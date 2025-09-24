@@ -32,15 +32,19 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, isDa
   );
 };
 
-// Custom dark tooltip content
-const CustomTooltipContent = ({ active, payload, label }: any) => {
+// Generic dark tooltip for all charts
+const GenericTooltipContent = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    const value = data.value || data.envios || 0;
+    const name = data.name || label;
+    const isPie = data.percentage !== undefined;
+
     return (
       <div className="glass-card bg-black/80 backdrop-blur-sm border border-white/10 rounded-lg p-3 shadow-lg min-w-[140px]">
-        <p className="text-white font-semibold text-sm mb-1">{data.name}</p>
-        <p className="text-green-400 font-medium text-xs">{data.value} envios</p>
-        <p className="text-gray-300 text-xs">({data.percentage}%)</p>
+        <p className="text-white font-semibold text-sm mb-1">{name}</p>
+        <p className="text-green-400 font-medium text-xs">{value} envios</p>
+        {isPie && <p className="text-gray-300 text-xs">({data.percentage}%)</p>}
       </div>
     );
   }
@@ -116,7 +120,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltipContent />} />
+                <Tooltip content={<GenericTooltipContent />} />
                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
               </PieChart>
             </ResponsiveContainer>
@@ -147,7 +151,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltipContent />} />
+                <Tooltip content={<GenericTooltipContent />} />
                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
               </PieChart>
             </ResponsiveContainer>
@@ -162,11 +166,11 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={horaData.map((v, i) => ({ hour: i, value: v }))} margin={{ bottom: 20 }}>
+              <BarChart data={horaData.map((v, i) => ({ hour: i, value: v, name: `Hora ${i}h` }))} margin={{ bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis dataKey="hour" stroke={isDark ? 'white' : 'gray'} interval={3} angle={-45} textAnchor="end" height={80} tick={{ fill: isDark ? 'white' : 'gray', fontSize: 12 }} />
                 <YAxis stroke={isDark ? 'white' : 'gray'} width={50} tick={{ fill: isDark ? 'white' : 'gray' }} />
-                <Tooltip labelFormatter={(label) => `Hora ${label}h`} />
+                <Tooltip content={<GenericTooltipContent />} />
                 <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -181,11 +185,11 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sortedTimeline} margin={{ right: 30, bottom: 80 }}>
+              <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ right: 30, bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis dataKey="day" stroke={isDark ? 'white' : 'gray'} angle={-45} textAnchor="end" height={80} interval={0} tick={{ fill: isDark ? 'white' : 'gray', fontSize: 12 }} />
                 <YAxis stroke={isDark ? 'white' : 'gray'} width={50} tick={{ fill: isDark ? 'white' : 'gray' }} />
-                <Tooltip labelFormatter={(label) => `Dia: ${label}`} />
+                <Tooltip content={<GenericTooltipContent />} />
                 <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2 }} activeDot={{ r: 6 }} />
                 <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="top" />
