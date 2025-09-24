@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, BarChart3 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Filters } from "@/components/dashboard/Filters";
 import { KPIs } from "@/components/dashboard/KPIs";
 import { Charts } from "@/components/dashboard/Charts";
@@ -65,6 +66,7 @@ export const Dashboard = () => {
   }, [allData, filters]);
 
   const totalPages = Math.ceil(filteredData.length / 5);
+  const isDark = document.documentElement.classList.contains('dark');
 
   if (loading) {
     return (
@@ -93,6 +95,21 @@ export const Dashboard = () => {
 
   return (
     <div>
+      {/* Green Gradient Header */}
+      <div className={`w-full py-4 px-6 flex items-center justify-between ${isDark ? 'glass-card bg-black/20' : 'bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg'}`}>
+        <div className="flex items-center gap-3">
+          <BarChart3 className={`h-6 w-6 ${isDark ? 'text-green-400' : 'text-white'}`} />
+          <h1 className={`text-2xl font-bold ${isDark ? 'gradient-text' : 'text-white drop-shadow-md'}`}>Dashboard</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-white/80'}`}>Análises em tempo real</p>
+          <Badge variant="destructive" className="flex items-center gap-1">
+            3
+            <i className="fas fa-bell text-xs"></i>
+          </Badge>
+        </div>
+      </div>
+
       <Filters onFilterChange={setFilters} />
       <KPIs totalEnvios={totalEnvios} totalIA={totalIA} totalSemIA={totalSemIA} />
       <Charts filteredData={filteredData} />

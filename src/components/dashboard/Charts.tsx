@@ -8,7 +8,7 @@ interface ChartsProps {
   filteredData: any[];
 }
 
-const COLORS = ["#10B981", "#059669", "#EF4444", "#3B82F6", "#F59E0B", "#8B5CF6"];
+const GREEN_COLORS = ["#10B981", "#059669", "#34D399", "#6EE7B7", "#A7F3D0", "#D1FAE5"]; // All green variations for unity
 
 const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, isDark }: any) => {
   const RADIAN = Math.PI / 180;
@@ -100,7 +100,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
         <CardContent className="p-8">
           <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className="fas fa-chart-pie"></i> Envios por Tipo
+            <i className="fas fa-chart-pie text-green-600"></i> Envios por Tipo
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -117,7 +117,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                   label={(entry) => <CustomLabel {...entry} isDark={isDark} />}
                 >
                   {pieDataTipo.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
@@ -131,7 +131,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.1s'}}>
         <CardContent className="p-8">
           <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className="fas fa-server"></i> Envios por Instância
+            <i className="fas fa-server text-green-600"></i> Envios por Instância
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -148,7 +148,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                   label={(entry) => <CustomLabel {...entry} isDark={isDark} />}
                 >
                   {pieDataInstancia.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
@@ -162,7 +162,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.2s'}}>
         <CardContent className="p-8">
           <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className="fas fa-clock"></i> Envios por Hora
+            <i className="fas fa-clock text-green-600"></i> Envios por Hora
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -181,7 +181,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       <Card className="lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
         <CardContent className="p-8">
           <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className="fas fa-chart-line"></i> Timeline de Envios
+            <i className="fas fa-chart-line text-green-600"></i> Timeline de Envios
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
