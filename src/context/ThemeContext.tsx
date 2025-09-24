@@ -2,48 +2,53 @@
 
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
+type Theme = 'dark' | 'light';
+
 interface ThemeContextType {
-  isDark: boolean;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function applyThemeClasses(isDark: boolean) {
-  const root = document.documentElement;
-  root.classList.toggle('dark', isDark);
-  root.classList.toggle('light', !isDark);
-}
+// Função para obter o tema inicial, garantindo que o estado do React comece sincronizado com o DOM.
+const getInitialTheme = (): Theme => {
+  if (typeof window !== 'undefined') {
+    // Respeita o que o script inicial no index.html já definiu.
+    if (document.documentElement.classList.contains('dark')) {
+      return 'dark';
+    }
+  }
+  // O padrão é 'light' se a classe 'dark' não estiver presente.
+  return 'light';
+};
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const root = document.documentElement;
-      const hasDark = root.classList.contains('dark');
-      const hasLight = root.classList.contains('light');
-      if (hasDark || hasLight) {
-        // Adota o que já foi definido no index.html (evita alternância na montagem)
-        return hasDark;
-      }
-      // Fallback (não deve acontecer por causa do script do index.html)
-      const saved = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const initialDark = saved ? saved === 'dark' : prefersDark;
-      applyThemeClasses(initialDark);
-      return initialDark;
-    }
-    return false;
-  });
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
+  // Este efeito sincroniza qualquer mudança de estado do React com o DOM e o localStorage.
   useEffect(() => {
-    applyThemeClasses(isDark);
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
+    const root = window.document.documentElement;
+    
+    // Limpa classes antigas e aplica a nova.
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
 
-  const toggleTheme = () => setIsDark((prev) => !prev);
+    // Salva a preferência do usuário.
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme);
+  };
+
+  const toggleTheme = () => {
+    setThemeState(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
 
   return (
-    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

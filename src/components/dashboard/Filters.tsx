@@ -10,14 +10,12 @@ import { CalendarIcon, Filter, X, Server, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { DateRange } from "react-day-picker";
-import { useTheme } from "@/context/ThemeContext";
 
 interface FiltersProps {
   onFilterChange: (filters: any) => void;
 }
 
 export const Filters = ({ onFilterChange }: FiltersProps) => {
-  const { isDark } = useTheme();
   const [instance, setInstance] = useState("all");
   const [tipo, setTipo] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -41,21 +39,13 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
     if (range.to) {
       const toStr = format(range.to, "MMM d, yyyy");
       const fullRange = `${fromStr} - ${toStr}`;
-      return (
-        <span className="truncate block" title={fullRange}>
-          {fullRange}
-        </span>
-      );
+      return <span className="truncate block" title={fullRange}>{fullRange}</span>;
     }
-    return (
-      <span className="truncate block" title={fromStr}>
-        {fromStr}
-      </span>
-    );
+    return <span className="truncate block" title={fromStr}>{fromStr}</span>;
   };
 
   return (
-    <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up mb-8 ${isDark ? '' : 'bg-green-50/70 border-green-200'}`}>
+    <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-8">
       <CardContent className="p-6">
         <div className="mb-4 flex items-center gap-2">
           <Filter className="h-4 w-4" />
@@ -67,9 +57,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
               <Server className="h-4 w-4" /> Instância
             </Label>
             <Select value={instance} onValueChange={setInstance}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todas" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
               </SelectContent>
@@ -81,9 +69,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
               <Tag className="h-4 w-4" /> Tipo
             </Label>
             <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="texto">Texto</SelectItem>
@@ -108,11 +94,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             </Popover>
           </div>
           
-          <Button 
-            variant="destructive" 
-            onClick={handleReset} 
-            className="h-10 w-10 p-0"
-          >
+          <Button variant="destructive" onClick={handleReset} className="h-10 w-10 p-0">
             <X className="h-4 w-4" />
           </Button>
         </div>

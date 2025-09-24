@@ -4,18 +4,15 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Filters } from "@/components/dashboard/Filters";
 import { KPIs } from "@/components/dashboard/KPIs";
 import { Charts } from "@/components/dashboard/Charts";
 import { DashboardTable } from "@/components/dashboard/Table";
 import dayjs from "dayjs";
-import { useTheme } from "@/context/ThemeContext";
 
 const URL_DASHBOARD_DATA = "https://webhook.bflabs.com.br/webhook/busca-dados-r7";
 
 export const Dashboard = () => {
-  const { isDark } = useTheme();
   const [allData, setAllData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +70,7 @@ export const Dashboard = () => {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-green-500 mb-2" />
-        <p className={`text-muted-foreground ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Buscando dados do dashboard...</p>
+        <p className="text-muted-foreground">Buscando dados do dashboard...</p>
       </div>
     );
   }
