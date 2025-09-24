@@ -31,29 +31,37 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
           <Table>
             <TableHeader className={`table-header ${isDark ? 'bg-green-900/20 backdrop-blur-sm border-b border-green-900/30' : 'bg-green-50/50 border-b border-green-200'}`}> {/* Header glass com leve green no dark */}
               <TableRow className={`${isDark ? 'border-b border-green-900/30' : 'border-b border-green-200/50'}`}> {/* Row border subtle green */}
-                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-800 font-semibold border-green-200'}`}>Data/Hora</TableHead>
-                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-800 font-semibold border-green-200'}`}>Instância</TableHead>
-                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-800 font-semibold border-green-200'}`}>Número</TableHead>
-                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-800 font-semibold border-green-200'}`}>Tipo</TableHead>
-                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-800 font-semibold border-green-200'}`}>Usou IA?</TableHead>
-                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-800 font-semibold border-green-200'}`}>Mensagem</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-900 font-semibold'}`}>Data/Hora</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-900 font-semibold'}`}>Instância</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-900 font-semibold'}`}>Número</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-900 font-semibold'}`}>Tipo</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-900 font-semibold'}`}>Usou IA?</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-gray-100 font-semibold' : 'text-gray-900 font-semibold'}`}>Mensagem</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.map((item, index) => (
                 <TableRow key={index} className={`border-b ${isDark ? 'border-green-900/30 hover:bg-green-800/30 transition-colors' : 'border-green-200/20 hover:bg-green-500/10 transition-colors'} ${index % 2 === 0 ? (isDark ? 'bg-green-900/10' : 'bg-green-50/20') : (isDark ? 'bg-green-900/20' : 'bg-green-50/10')}`}> {/* Alternating subtle green glass no dark; light green no light; hover green tint */}
-                  <TableCell className={`py-4 font-medium ${isDark ? 'text-gray-200' : 'text-gray-900 border-green-200'}`}>{item.date.format("DD/MM/YYYY HH:mm")}</TableCell>
+                  <TableCell className={`py-4 font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{item.date.format("DD/MM/YYYY HH:mm")}</TableCell>
                   <TableCell className="py-4">
-                    <Badge className={`font-medium ${isDark ? 'bg-green-900/20 text-green-300 border-green-900/30' : 'bg-green-100 text-green-800 border-green-200'}`}>{item.instancia}</Badge> {/* Badge green glass no dark */}
+                    <Badge className={`font-medium rounded-lg ${isDark ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-green-100 text-green-800 border-green-200'}`}>{item.instancia}</Badge> {/* Badge vivo com green glow */}
                   </TableCell>
-                  <TableCell className={`py-4 max-w-xs truncate ${isDark ? 'text-gray-300' : 'text-gray-700 border-green-200'}`} title={item.numero}>
+                  <TableCell className={`py-4 max-w-xs truncate ${isDark ? 'text-gray-300' : 'text-gray-800'}`} title={item.numero}>
                     {item.numero}
                   </TableCell>
-                  <TableCell className={`py-4 capitalize ${isDark ? 'text-gray-300' : 'text-gray-700 border-green-200'}`}>{item.tipo_envio}</TableCell>
-                  <TableCell className={`py-4 font-medium ${item.usaria ? (isDark ? "text-green-400" : "text-green-600 border-green-200") : (isDark ? "text-red-400" : "text-red-600 border-red-200")}`}>
-                    {item.usaria ? <><CheckCircle className="h-4 w-4 inline mr-1 text-green-400" /> Sim</> : <><XCircle className="h-4 w-4 inline mr-1 text-red-400" /> Não</>} {/* Icons green/red dark tint */}
+                  <TableCell className={`py-4 capitalize ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{item.tipo_envio}</TableCell>
+                  <TableCell className="py-4 font-medium">
+                    {item.usaria ? (
+                      <Badge variant="default" className="text-green-800 bg-green-500/20 border-green-500/30 rounded-lg">
+                        <CheckCircle className="h-3 w-3 inline mr-1 text-green-600" /> Sim
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="text-red-800 bg-red-500/20 border-red-500/30 rounded-lg">
+                        <XCircle className="h-3 w-3 inline mr-1 text-red-600" /> Não
+                      </Badge>
+                    )}
                   </TableCell>
-                  <TableCell className={`py-4 max-w-lg ${isDark ? 'text-gray-400' : 'text-gray-600 border-green-200'}`} title={item.texto}>
+                  <TableCell className={`py-4 max-w-lg ${isDark ? 'text-gray-400' : 'text-gray-700'}`} title={item.texto}>
                     <span className="truncate block">{item.texto?.substring(0, 60)}...</span>
                   </TableCell>
                 </TableRow>
@@ -74,17 +82,17 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
               size="sm" 
               onClick={() => onPageChange(currentPage - 1)} 
               disabled={currentPage === 1}
-              className={`glass-card ${isDark ? 'border-green-900/30 text-gray-200 hover:bg-green-800/30' : 'border-green-200 text-gray-700 hover:bg-green-50'}`}
+              className={`glass-card ${isDark ? 'border-green-900/30 text-gray-200 hover:bg-green-800/30' : 'border-green-200 text-gray-900 hover:bg-green-50'}`}
             >
               <i className="fas fa-chevron-left mr-2"></i> Anterior
             </Button>
-            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Página {currentPage} de {totalPages}</span>
+            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>Página {currentPage} de {totalPages}</span>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => onPageChange(currentPage + 1)} 
               disabled={currentPage === totalPages}
-              className={`glass-card ${isDark ? 'border-green-900/30 text-gray-200 hover:bg-green-800/30' : 'border-green-200 text-gray-700 hover:bg-green-50'}`}
+              className={`glass-card ${isDark ? 'border-green-900/30 text-gray-200 hover:bg-green-800/30' : 'border-green-200 text-gray-900 hover:bg-green-50'}`}
             >
               Próxima <i className="fas fa-chevron-right mr-2"></i>
             </Button>

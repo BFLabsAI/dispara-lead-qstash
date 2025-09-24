@@ -21,7 +21,7 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
             <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}> {/* Ícone green unificado */}
               <BarChart3 className="h-6 w-6 text-green-600" />
             </div>
-            <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Total de Envios</h3> {/* Título ao lado do ícone */}
+            <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>Total de Envios</h3> {/* Título ao lado do ícone */}
           </div>
           <p className="text-4xl font-bold gradient-text mb-2">{totalEnvios.toLocaleString()}</p> {/* Número em gradient-text */}
           <p className={`text-sm font-medium text-green-600`}>+12% este mês</p> {/* Subtexto verde unificado */}
@@ -34,7 +34,7 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
             <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}> {/* Ícone green unificado */}
               <Brain className="h-6 w-6 text-green-600" />
             </div>
-            <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Com IA</h3>
+            <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>Com IA</h3>
           </div>
           <p className="text-4xl font-bold gradient-text mb-2">{totalIA.toLocaleString()}</p>
           <p className={`text-sm font-medium text-green-600`}>Automação inteligente</p> {/* Subtexto green unificado */}
@@ -47,7 +47,7 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
             <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}> {/* Ícone green unificado */}
               <MessageCircle className="h-6 w-6 text-green-600" />
             </div>
-            <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Sem IA</h3>
+            <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>Sem IA</h3>
           </div>
           <p className="text-4xl font-bold gradient-text mb-2">{totalSemIA.toLocaleString()}</p>
           <p className={`text-sm font-medium text-green-600`}>Envios manuais</p> {/* Subtexto green unificado */}

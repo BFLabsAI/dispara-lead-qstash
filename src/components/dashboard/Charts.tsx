@@ -143,7 +143,6 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                   <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
                 </PieChart>
               </ResponsiveContainer>
-              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalTipo.toLocaleString()}</p> {/* Número em gradient-text, igual KPIs */}
             </div>
           ) : (
             <EmptyChartState title="Nenhum envio por tipo" icon={PieIcon} isDark={isDark} />
@@ -183,7 +182,6 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                   <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
                 </PieChart>
               </ResponsiveContainer>
-              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalInstancia.toLocaleString()}</p>
             </div>
           ) : (
             <EmptyChartState title="Nenhum envio por instância" icon={PieIcon} isDark={isDark} />
@@ -211,7 +209,6 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                   <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{filteredData.length.toLocaleString()}</p> {/* Total geral em gradient */}
             </div>
           ) : (
             <EmptyChartState title="Nenhum envio por hora" icon={Clock} isDark={isDark} />

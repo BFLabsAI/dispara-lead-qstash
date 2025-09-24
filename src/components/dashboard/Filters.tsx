@@ -38,14 +38,14 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
 
   // Função para format curto e tooltip full (sem corte rígido)
   const getDateDisplay = (range: DateRange | undefined) => {
-    if (!range?.from) return <span className="text-white/80">Selecionar período</span>; // Placeholder white no green gradient
+    if (!range?.from) return <span className={`${isDark ? 'text-white/80' : 'text-gray-900'}`}>Selecionar período</span>; // Placeholder dark no light
     const fromStr = format(range.from, "MMM d, yyyy"); // Curto: "Sep 1, 2025"
     if (range.to) {
       const toStr = format(range.to, "MMM d, yyyy");
       const fullRange = `${fromStr} - ${toStr}`; // Mostra range completo curto
       return (
         <span 
-          className="truncate block" 
+          className={`truncate block ${isDark ? 'text-white' : 'text-gray-900'}`} 
           title={fullRange} // Tooltip full para hover
         >
           {fullRange} {/* Sem limite chars: truncate cuida do ellipsis se necessário */}
@@ -54,7 +54,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
     }
     return (
       <span 
-        className="truncate block" 
+        className={`truncate block ${isDark ? 'text-white' : 'text-gray-900'}`} 
         title={fromStr}
       >
         {fromStr}
@@ -75,15 +75,15 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
         <div className="flex flex-wrap gap-3 items-end"> {/* Layout horizontal: 3 filtros + X; gap-3, items-end para alinhar */}
           {/* Instância - Maior espaço (flex-1 min-w-[220px]) */}
           <div className="flex-1 min-w-[220px] space-y-1">
-            <Label className="flex items-center gap-1 text-sm font-medium text-white/90"> {/* Label white no green */}
-              <i className="fas fa-server text-xs text-white"></i> Instância
+            <Label className={`flex items-center gap-1 text-sm font-medium ${isDark ? 'text-white/90' : 'text-gray-900'}`}> {/* Label dark no light */}
+              <i className={`fas fa-server text-xs ${isDark ? 'text-white' : 'text-gray-900'}`}></i> Instância
             </Label>
             <Select value={instance} onValueChange={(value) => { setInstance(value); }}>
-              <SelectTrigger className="glass-card h-10 bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30"> {/* Glass white no green, hover visível */}
+              <SelectTrigger className={`glass-card h-10 bg-white/20 backdrop-blur-sm border-white/30 ${isDark ? 'text-white hover:bg-white/30' : 'text-gray-900 hover:bg-white/50'}`}> {/* Trigger dark no light */}
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
-              <SelectContent className="glass-card max-h-48 bg-white/90 border-green-200 text-gray-900"> {/* Content light para legibilidade */}
-                <SelectItem value="all" className="text-gray-900 hover:bg-green-50">Todas</SelectItem>
+              <SelectContent className={`glass-card max-h-48 bg-white border-green-200 ${isDark ? 'text-white' : 'text-gray-900'}`}> {/* Content com dark text no light */}
+                <SelectItem value="all" className={`${isDark ? 'text-white hover:bg-gray-700/50' : 'text-gray-900 hover:bg-green-50'}`}>Todas</SelectItem>
                 {/* Add dynamic instances if needed */}
               </SelectContent>
             </Select>
@@ -91,34 +91,34 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
           
           {/* Tipo - Mesmo estilo, maior espaço */}
           <div className="flex-1 min-w-[220px] space-y-1">
-            <Label className="flex items-center gap-1 text-sm font-medium text-white/90"> {/* Label white no green */}
-              <i className="fas fa-tag text-xs text-white"></i> Tipo
+            <Label className={`flex items-center gap-1 text-sm font-medium ${isDark ? 'text-white/90' : 'text-gray-900'}`}> {/* Label dark no light */}
+              <i className={`fas fa-tag text-xs ${isDark ? 'text-white' : 'text-gray-900'}`}></i> Tipo
             </Label>
             <Select value={tipo} onValueChange={(value) => { setTipo(value); }}>
-              <SelectTrigger className="glass-card h-10 bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30"> {/* Glass white no green, hover visível */}
+              <SelectTrigger className={`glass-card h-10 bg-white/20 backdrop-blur-sm border-white/30 ${isDark ? 'text-white hover:bg-white/30' : 'text-gray-900 hover:bg-white/50'}`}> {/* Trigger dark no light */}
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
-              <SelectContent className="glass-card max-h-48 bg-white/90 border-green-200 text-gray-900"> {/* Content light para legibilidade */}
-                <SelectItem value="all" className="text-gray-900 hover:bg-green-50">Todos</SelectItem>
-                <SelectItem value="texto" className="text-gray-900 hover:bg-green-50">Texto</SelectItem>
-                <SelectItem value="imagem" className="text-gray-900 hover:bg-green-50">Imagem</SelectItem>
+              <SelectContent className={`glass-card max-h-48 bg-white border-green-200 ${isDark ? 'text-white' : 'text-gray-900'}`}> {/* Content com dark text no light */}
+                <SelectItem value="all" className={`${isDark ? 'text-white hover:bg-gray-700/50' : 'text-gray-900 hover:bg-green-50'}`}>Todos</SelectItem>
+                <SelectItem value="texto" className={`${isDark ? 'text-white hover:bg-gray-700/50' : 'text-gray-900 hover:bg-green-50'}`}>Texto</SelectItem>
+                <SelectItem value="imagem" className={`${isDark ? 'text-white hover:bg-gray-700/50' : 'text-gray-900 hover:bg-green-50'}`}>Imagem</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
           {/* Período - Mesmo estilo, maior espaço, texto curto sem overflow */}
           <div className="flex-1 min-w-[220px] space-y-1">
-            <Label className="flex items-center gap-1 text-sm font-medium text-white/90"> {/* Label white no green */}
-              <CalendarIcon className="h-3 w-3 text-white" />
+            <Label className={`flex items-center gap-1 text-sm font-medium ${isDark ? 'text-white/90' : 'text-gray-900'}`}> {/* Label dark no light */}
+              <CalendarIcon className={`h-3 w-3 ${isDark ? 'text-white' : 'text-gray-900'}`} />
               Período
             </Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="glass-card w-full justify-start text-left h-10 bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30"> {/* Glass white no green, hover visível */}
+                <Button variant="outline" className={`glass-card w-full justify-start text-left h-10 bg-white/20 backdrop-blur-sm border-white/30 ${isDark ? 'text-white hover:bg-white/30' : 'text-gray-900 hover:bg-white/50'}`}> {/* Trigger dark no light */}
                   {getDateDisplay(dateRange)}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="glass-card w-auto p-0 bg-white border-green-200 text-gray-900" align="start"> {/* Content light para legibilidade */}
+              <PopoverContent className={`glass-card w-auto p-0 bg-white border-green-200 ${isDark ? 'text-white' : 'text-gray-900'}`} align="start"> {/* Content com dark text no light */}
                 <Calendar mode="range" selected={dateRange} onSelect={(range) => { setDateRange(range); }} numberOfMonths={2} className="rounded-md border-0" />
               </PopoverContent>
             </Popover>
