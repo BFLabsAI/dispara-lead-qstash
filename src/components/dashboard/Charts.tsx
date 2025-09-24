@@ -32,6 +32,21 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, isDa
   );
 };
 
+// Custom dark tooltip content
+const CustomTooltipContent = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="glass-card bg-black/80 backdrop-blur-sm border border-white/10 rounded-lg p-3 shadow-lg min-w-[140px]">
+        <p className="text-white font-semibold text-sm mb-1">{data.name}</p>
+        <p className="text-green-400 font-medium text-xs">{data.value} envios</p>
+        <p className="text-gray-300 text-xs">({data.percentage}%)</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export const Charts = ({ filteredData }: ChartsProps) => {
   const isDark = document.documentElement.classList.contains('dark');
 
@@ -101,12 +116,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  formatter={(value, name, props) => [
-                    `${value} envios (${props.payload.percentage}%)`,
-                    name
-                  ]} 
-                />
+                <Tooltip content={<CustomTooltipContent />} />
                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
               </PieChart>
             </ResponsiveContainer>
@@ -137,12 +147,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  formatter={(value, name, props) => [
-                    `${value} envios (${props.payload.percentage}%)`,
-                    name
-                  ]} 
-                />
+                <Tooltip content={<CustomTooltipContent />} />
                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
               </PieChart>
             </ResponsiveContainer>
