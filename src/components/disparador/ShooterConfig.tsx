@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -15,6 +14,7 @@ import { MessageBlock } from "./MessageBlock";
 import { InstanceSelector } from "./InstanceSelector";
 import { QrDialog } from "./QrDialog";
 import { ErrorDialog } from "./ErrorDialog";
+import { ContactUploader } from "./ContactUploader";
 
 export const ShooterConfig = () => {
   const [qtdMensagens, setQtdMensagens] = useState(1);
@@ -25,8 +25,9 @@ export const ShooterConfig = () => {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("");
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
+  const [variables, setVariables] = useState<string[]>([]);
 
-  const { instances, contatos, templates, setTemplates, sendMessages, stopSending, loadInstances, setContatos } = useDisparadorStore();
+  const { instances, contatos, templates, setTemplates, sendMessages, stopSending, loadInstances } = useDisparadorStore();
 
   useEffect(() => {
     loadInstances();
@@ -60,36 +61,27 @@ export const ShooterConfig = () => {
           <i className="bi bi-rocket-takeoff"></i>Configuração de Disparo
         </h4>
         <InstanceSelector instances={connectedInstances} onSelectionChange={setSelectedInstances} />
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <Label className="flex items-center gap-1 mb-2">
-              <i className="bi bi-telephone"></i>Números (1 por linha)
-            </Label>
-            <Textarea
-              placeholder="Ex: 55849992053434..."
-              value={contatos.map((c) => c.telefone).join("\n")}
-              onChange={(e) => {
-                const phones = e.target.value.split('\n').map(p => ({ telefone: p }));
-                setContatos(phones);
-              }}
-              rows={5}
-              className="resize-none"
-            />
-          </div>
+          <ContactUploader onUpload={setVariables} />
           <div>
             <Label className="flex items-center gap-1 mb-2">
               <i className="bi bi-tags"></i>Variáveis disponíveis
             </Label>
-            <div className="border p-2 rounded-md bg-muted h-32 overflow-y-auto flex flex-wrap gap-1">
-              {contatos.length > 0 && Object.keys(contatos[0]).filter((k) => k !== "telefone").map((key) => (
-                <Badge key={key} variant="secondary" className="cursor-pointer" onClick={() => {/* Insert to active textarea */}}>
-                  {`{${key}}`}
-                </Badge>
-              ))}
+            <div className="border p-2 rounded-md bg-muted h-full min-h-[100px] overflow-y-auto flex flex-wrap gap-1 content-start">
+              {variables.length > 0 ? (
+                variables.map((key) => (
+                  <Badge key={key} variant="secondary" className="cursor-pointer">
+                    {`{${key}}`}
+                  </Badge>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground p-2">Carregue um arquivo para ver as variáveis.</p>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Clique para inserir variável.</p>
           </div>
         </div>
+
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
             <Label>Tempo min (s)</Label>

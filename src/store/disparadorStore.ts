@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { showError, showSuccess } from "@/utils/toast";
 import { ENDPOINTS } from "../services/api";
+import * as XLSX from "xlsx";
 
 const { BUSCA_INSTANCIAS, QR_CODE, DISPARO, FILE_UPLOAD } = ENDPOINTS;
 
@@ -90,9 +91,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   uploadFile: async (file: File) => {
     try {
       const buf = await file.arrayBuffer();
-      const wb = (window as any).XLSX.read(buf, { type: "array" });
+      const wb = XLSX.read(buf, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const arr = (window as any).XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+      const arr = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
       const header = (arr.shift() as string[]).map((h: string) => String(h).trim());
       const rows = arr as any[][];
       const phoneField = header.find((h: string) => h.toLowerCase().includes("telefone")) || header[0];
