@@ -2,6 +2,7 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge"; // Para o box verde destacado
 import { PieChart as PieIcon, Clock, Activity } from "lucide-react"; // Ícones para cada gráfico (sem TrendingUp)
 import dayjs from "dayjs";
 
@@ -204,15 +205,26 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       {/* Gráfico de Linha: Timeline - Estilo KPI otimizado, span full em lg */}
       <Card className="lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
         <CardContent className="p-8">
-          <div className="flex items-center gap-3 mb-6"> {/* Header: ícone + título lado a lado */}
-            <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}>
-              <Activity className="h-6 w-6 text-green-600" />
+          <div className="flex items-center justify-between mb-6"> {/* Header com justify-between: left (ícone+título), right (box verde) */}
+            <div className="flex items-center gap-3"> {/* Left: ícone + título lado a lado */}
+              <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}>
+                <Activity className="h-6 w-6 text-green-600" />
+              </div>
+              <h3 className={`font-bold text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
+                <i className="fas fa-chart-line text-green-600"></i> Timeline de Envios {/* Título com ícone, igual KPIs */}
+              </h3>
             </div>
-            <h3 className={`font-bold text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-              <i className="fas fa-chart-line text-green-600"></i> Timeline de Envios {/* Título com ícone, igual KPIs */}
-            </h3>
+            {/* Right: Box verde destacado com média (canto superior direito) */}
+            <div className="text-right">
+              <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg border-0">
+                <div className="text-white">
+                  <p className="text-xl font-bold">{mediaEnviosPorDia.toLocaleString()}</p>
+                  <p className="text-xs opacity-90 mt-0.5">Média de envios por dia</p>
+                </div>
+              </Badge>
+            </div>
           </div>
-          <div className="h-[350px]">
+          <div className="h-[400px]"> {/* Altura aumentada para preencher espaço sem elementos no fundo */}
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ right: 30, bottom: 80 }}>
                 <CartesianGrid className="chart-grid" strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
@@ -225,8 +237,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-3xl font-bold gradient-text mt-2 mb-2">{mediaEnviosPorDia.toLocaleString()}</p> {/* Média calculada em gradient-text, com mt-2 para menos espaçamento */}
-          <p className={`text-sm font-medium text-green-600`}>Média de envios por dia</p> {/* Subtítulo alterado */}
+          {/* Sem elementos aqui - gráfico ocupa todo o espaço restante, eliminando gap */}
         </CardContent>
       </Card>
     </div>
