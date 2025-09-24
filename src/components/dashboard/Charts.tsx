@@ -2,13 +2,14 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
+import { TrendingUp, PieChart as PieIcon, Clock, Activity } from "lucide-react"; // Ícones para cada gráfico, igual aos KPIs
 import dayjs from "dayjs";
 
 interface ChartsProps {
   filteredData: any[];
 }
 
-const GREEN_COLORS = ["#10B981", "#059669", "#34D399", "#6EE7B7", "#A7F3D0", "#D1FAE5"]; // All green variations for unity
+const GREEN_COLORS = ["#10B981", "#059669", "#34D399", "#6EE7B7", "#A7F3D0", "#D1FAE5"]; // Tons de verde para consistência
 
 const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, isDark }: any) => {
   const RADIAN = Math.PI / 180;
@@ -21,7 +22,7 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, isDa
     <text
       x={x}
       y={y}
-      fill={isDark ? "white" : "#1f2937"} /* Darker black/gray for light mode labels */
+      fill={isDark ? "white" : "#1f2937"}
       textAnchor={x > cx ? "start" : "end"}
       dominantBaseline="central"
       fontSize="12"
@@ -32,7 +33,7 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, isDa
   );
 };
 
-// Generic dark/light-aware tooltip for all charts
+// Tooltip genérico com estilo glass-card verde, igual aos KPIs
 const GenericTooltipContent = ({ active, payload, label, isDark }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -96,13 +97,18 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb">
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
-        <CardContent className="p-8">
-          <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className="fas fa-chart-pie text-green-600"></i> Envios por Tipo
-          </h5>
-          <div className="h-[350px]">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb"> {/* Grid igual aos KPIs */}
+      {/* Gráfico de Pizza: Envios por Tipo - Estilo KPI */}
+      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${isDark ? '' : 'bg-green-50/70 border-green-200'}`}> {/* Mesmo estilo dos KPIs */}
+        <CardContent className="p-0"> {/* Sem padding extra para gráfico ocupar espaço */}
+          <div className="flex items-center justify-between mb-6"> {/* Header com ícone e tendência, igual KPIs */}
+            <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}> {/* Ícone com glow */}
+              <PieIcon className="h-6 w-6 text-green-600" />
+            </div>
+            <TrendingUp className="h-5 w-5 text-green-600 animate-pulse-glow" /> {/* Seta de tendência */}
+          </div>
+          <h3 className={`font-semibold text-lg mb-2 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Tipo</h3> {/* Título igual KPIs */}
+          <div className="h-[350px]"> {/* Altura para gráfico */}
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -125,14 +131,21 @@ export const Charts = ({ filteredData }: ChartsProps) => {
               </PieChart>
             </ResponsiveContainer>
           </div>
+          <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalTipo.toLocaleString()}</p> {/* Número em gradient-text, igual KPIs */}
+          <p className={`text-sm font-medium text-green-600`}>Distribuição total</p> {/* Subtexto verde */}
         </CardContent>
       </Card>
-      
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.1s'}}>
-        <CardContent className="p-8">
-          <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className="fas fa-server text-green-600"></i> Envios por Instância
-          </h5>
+
+      {/* Gráfico de Pizza: Envios por Instância - Estilo KPI */}
+      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${isDark ? '' : 'bg-emerald-50/70 border-emerald-200'}`} style={{animationDelay: '0.1s'}}>
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between mb-6">
+            <div className={`p-3 bg-emerald-500/30 rounded-xl animate-pulse-glow kpi-icon border border-emerald-500/40`}>
+              <PieIcon className="h-6 w-6 text-emerald-600" /> {/* Ícone variado para diferenciação */}
+            </div>
+            <TrendingUp className="h-5 w-5 text-emerald-600 animate-pulse-glow" />
+          </div>
+          <h3 className={`font-semibold text-lg mb-2 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Instância</h3>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -156,14 +169,21 @@ export const Charts = ({ filteredData }: ChartsProps) => {
               </PieChart>
             </ResponsiveContainer>
           </div>
+          <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalInstancia.toLocaleString()}</p>
+          <p className={`text-sm font-medium text-emerald-600`}>Por instância ativa</p>
         </CardContent>
       </Card>
-      
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.2s'}}>
-        <CardContent className="p-8">
-          <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className="fas fa-clock text-green-600"></i> Envios por Hora
-          </h5>
+
+      {/* Gráfico de Barras: Envios por Hora - Estilo KPI */}
+      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${isDark ? '' : 'bg-teal-50/70 border-teal-200'}`} style={{animationDelay: '0.2s'}}>
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between mb-6">
+            <div className={`p-3 bg-teal-500/30 rounded-xl animate-pulse-glow kpi-icon border border-teal-500/40`}>
+              <Clock className="h-6 w-6 text-teal-600" />
+            </div>
+            <TrendingUp className="h-5 w-5 text-teal-600 animate-pulse-glow" />
+          </div>
+          <h3 className={`font-semibold text-lg mb-2 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Hora</h3>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={horaData.map((v, i) => ({ hour: i, value: v, name: `Hora ${i}h` }))} margin={{ bottom: 20 }}>
@@ -175,14 +195,23 @@ export const Charts = ({ filteredData }: ChartsProps) => {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <p className="text-2xl font-bold gradient-text mt-4 mb-2">{filteredData.length.toLocaleString()}</p> {/* Total geral em gradient */}
+          <p className={`text-sm font-medium text-teal-600`}>Distribuição horária</p>
         </CardContent>
       </Card>
-      
+
+      {/* Gráfico de Linha: Timeline - Estilo KPI, span full em lg */}
       <Card className="lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
         <CardContent className="p-8">
-          <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className="fas fa-chart-line text-green-600"></i> Timeline de Envios
-          </h5>
+          <div className="flex items-center justify-between mb-6">
+            <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}>
+              <Activity className="h-6 w-6 text-green-600" />
+            </div>
+            <TrendingUp className="h-5 w-5 text-green-600 animate-pulse-glow" />
+          </div>
+          <h3 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
+            <i className="fas fa-chart-line text-green-600"></i> Timeline de Envios {/* Título com ícone, igual KPIs */}
+          </h3>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ right: 30, bottom: 80 }}>
@@ -196,6 +225,8 @@ export const Charts = ({ filteredData }: ChartsProps) => {
               </LineChart>
             </ResponsiveContainer>
           </div>
+          <p className="text-3xl font-bold gradient-text mt-4 mb-2">{filteredData.length.toLocaleString()}</p> {/* Número total em gradient */}
+          <p className={`text-sm font-medium text-green-600`}>Evolução ao longo do tempo</p>
         </CardContent>
       </Card>
     </div>
