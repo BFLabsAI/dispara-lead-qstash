@@ -8,15 +8,12 @@ import {
   LayoutDashboard,
   Server,
   Rocket,
-  Moon,
-  Sun,
   Menu,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/context/ThemeContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 // --- Contexto ---
@@ -76,7 +73,6 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="mt-auto flex flex-col gap-2 p-4">
-        <ThemeToggle />
         <CollapseButton />
       </div>
     </aside>
@@ -102,9 +98,6 @@ function MobileSidebar() {
             <NavItem key={item.href} {...item} onClick={() => setIsOpen(false)} />
           ))}
         </nav>
-        <div className="mt-auto border-t p-4">
-          <ThemeToggle />
-        </div>
       </SheetContent>
     </Sheet>
   );
@@ -126,24 +119,13 @@ const navLinkVariants = cva(
 function NavItem({ href, icon: Icon, label, onClick }: any) {
   const { isCollapsed } = useSidebar();
   const location = useLocation();
-  const isActive = location.pathname === href;
+  const isActive = location.pathname.startsWith(href);
 
   return (
     <NavLink to={href} onClick={onClick} className={navLinkVariants({ state: isActive ? "active" : "default" })}>
       <Icon className="h-6 w-6" />
       <span className={cn("overflow-hidden whitespace-nowrap", isCollapsed && "hidden")}>{label}</span>
     </NavLink>
-  );
-}
-
-function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  const { isCollapsed } = useSidebar();
-  return (
-    <Button variant="ghost" onClick={toggleTheme} className={cn("w-full justify-start gap-4 rounded-lg px-4 py-3 text-base font-semibold text-muted-foreground", isCollapsed && "justify-center")}>
-      {theme === "light" ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
-      <span className={cn(isCollapsed && "hidden")}>Modo {theme === 'light' ? 'Claro' : 'Escuro'}</span>
-    </Button>
   );
 }
 
