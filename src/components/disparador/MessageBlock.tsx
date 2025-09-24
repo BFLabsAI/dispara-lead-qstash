@@ -10,7 +10,7 @@ import { useDisparadorStore } from "../../store/disparadorStore";
 
 interface MessageBlockProps {
   index: number;
-  onUpdate: (template: any) => void;
+  onUpdate: (index: number, template: any) => void;
 }
 
 export const MessageBlock = ({ index, onUpdate }: MessageBlockProps) => {
@@ -29,8 +29,8 @@ export const MessageBlock = ({ index, onUpdate }: MessageBlockProps) => {
   const previewText = text.replace(/\{(\w+)\}/g, (match, _key) => `<span class="bg-green-100 text-green-800 px-1 rounded">${match}</span>`);
 
   useEffect(() => {
-    onUpdate({ type, text, mediaUrl });
-  }, [type, text, mediaUrl, onUpdate]);
+    onUpdate(index, { type, text, mediaUrl });
+  }, [index, type, text, mediaUrl, onUpdate]);
 
   return (
     <Card className="bg-muted">

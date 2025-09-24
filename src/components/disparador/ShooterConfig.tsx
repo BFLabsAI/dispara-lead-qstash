@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export const ShooterConfig = () => {
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [variables, setVariables] = useState<string[]>([]);
 
-  const { instances, contatos, templates, setTemplates, sendMessages, stopSending, loadInstances } = useDisparadorStore();
+  const { instances, contatos, setTemplates, sendMessages, stopSending, loadInstances } = useDisparadorStore();
 
   useEffect(() => {
     loadInstances();
@@ -40,6 +40,7 @@ export const ShooterConfig = () => {
 
     setIsSending(true);
     setProgress(0);
+    const templates = useDisparadorStore.getState().templates;
     const result = await sendMessages({
       contatos,
       instances: selectedInstances,
@@ -52,7 +53,23 @@ export const ShooterConfig = () => {
     setStatus(result.sucessos + " sucessos, " + result.erros + " erros.");
   };
 
-  const connectedInstances = instances.filter((i) => i.connectionStatus === "open" || i.connectionStatus === "connected");
+  const connectedInstances = useMemo(() => 
+    instances.filter((i) => i.connectionStatus === "open" || i.connectionStatus === "connected"),
+    [instances]
+  );
+
+  const handleTemplateUpdate = useCallback((index: number, tpl: any) => {
+    const currentTemplates = useDisparadorStore.getState().templates;
+    const newTemplates = [...currentTemplates];
+    newTemplates[index] = tpl;
+    setTemplates(newTemplates);
+  }, [setTemplates]);
+
+  const handleQtdChange = (newQtd: number) => {
+    const clampedQtd = Math.max(1, newQtd || 1);
+    setQtdMensagens(clampedQtd);
+    setTemplates(Array(clampedQtd).fill(null).map(() => ({ type: 'texto', text: '', mediaUrl: '' })));
+  };
 
   return (
     <Card className="border-0 shadow-sm">
@@ -97,16 +114,12 @@ export const ShooterConfig = () => {
           </div>
           <div>
             <Label>Qtd. Mensagens</Label>
-            <Input type="number" value={qtdMensagens} onChange={(e) => { setQtdMensagens(+e.target.value); setTemplates([]); }} min={1} />
+            <Input type="number" value={qtdMensagens} onChange={(e) => handleQtdChange(+e.target.value)} min={1} />
           </div>
         </div>
         <div className="space-y-4 mb-4">
           {Array.from({ length: qtdMensagens }).map((_, i) => (
-            <MessageBlock key={i} index={i} onUpdate={(tpl) => {
-              const newTemplates = [...templates];
-              newTemplates[i] = tpl;
-              setTemplates(newTemplates);
-            }} />
+            <MessageBlock key={i} index={i} onUpdate={handleTemplateUpdate} />
           ))}
         </div>
         <div className="flex items-center space-x-2 mb-4">
