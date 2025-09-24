@@ -9,7 +9,6 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// Aplica as classes de tema no elemento root de forma consistente
 function applyThemeClasses(isDark: boolean) {
   const root = document.documentElement;
   root.classList.toggle('dark', isDark);
@@ -19,10 +18,17 @@ function applyThemeClasses(isDark: boolean) {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
+      const root = document.documentElement;
+      const hasDark = root.classList.contains('dark');
+      const hasLight = root.classList.contains('light');
+      if (hasDark || hasLight) {
+        // Adota o que já foi definido no index.html (evita alternância na montagem)
+        return hasDark;
+      }
+      // Fallback (não deve acontecer por causa do script do index.html)
       const saved = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const initialDark = saved ? saved === 'dark' : prefersDark;
-      // Garante classe no primeiro paint
       applyThemeClasses(initialDark);
       return initialDark;
     }
