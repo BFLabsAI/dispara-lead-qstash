@@ -148,41 +148,39 @@
   .font-outfit { font-family: 'Outfit', sans-serif }
 }
 
-/* === CORREÇÃO ULTRA-ESPECÍFICA PARA SIDEBAR === */
-.sidebar-hover-fix a:hover,
-.sidebar-hover-fix button:hover,
-.sidebar-hover-fix [role="button"]:hover,
-.sidebar-hover-fix [data-radix-collection-item]:hover {
-  background-color: rgba(16, 185, 129, 0.1) !important;
-  color: #10B981 !important;
-  border-radius: 0.375rem !important;
-  transition: all 0.2s ease !important;
-}
+/* === CORREÇÃO DEFINITIVA PARA SIDEBAR === */
+@layer components {
+  /* Hover para todos os elementos do sidebar */
+  aside *:hover,
+  [data-sidebar] *:hover,
+  .sidebar *:hover {
+    color: hsl(var(--primary)) !important;
+  }
 
-.sidebar-hover-fix a:hover svg,
-.sidebar-hover-fix button:hover svg,
-.sidebar-hover-fix [role="button"]:hover svg,
-.sidebar-hover-fix [data-radix-collection-item]:hover svg {
-  color: #10B981 !important;
-}
+  /* Hover específico para links e botões */
+  aside a:hover,
+  aside button:hover,
+  [data-sidebar] a:hover,
+  [data-sidebar] button:hover,
+  .sidebar a:hover,
+  .sidebar button:hover {
+    background-color: hsla(142, 76%, 36%, 0.1) !important;
+    color: hsl(var(--primary)) !important;
+  }
 
-.sidebar-hover-fix a.active,
-.sidebar-hover-fix button.active,
-.sidebar-hover-fix [role="button"].active,
-.sidebar-hover-fix [data-radix-collection-item].active,
-.sidebar-hover-fix a[aria-current="page"],
-.sidebar-hover-fix [data-state="active"] {
-  background-color: rgba(16, 185, 129, 0.15) !important;
-  color: #10B981 !important;
-  font-weight: 600 !important;
+  /* Estado ativo */
+  aside a.active,
+  aside a[aria-current="page"],
+  aside [data-state="active"],
+  [data-sidebar] a.active,
+  [data-sidebar] a[aria-current="page"],
+  [data-sidebar] [data-state="active"],
+  .sidebar a.active,
+  .sidebar a[aria-current="page"],
+  .sidebar [data-state="active"] {
+    background-color: hsla(142, 76%, 36%, 0.15) !important;
+    color: hsl(var(--primary)) !important;
+    font-weight: 600;
+  }
 }
-
-.sidebar-hover-fix a.active svg,
-.sidebar-hover-fix button.active svg,
-.sidebar-hover-fix [role="button"].active svg,
-.sidebar-hover-fix [data-radix-collection-item].active svg,
-.sidebar-hover-fix a[aria-current="page"] svg,
-.sidebar-hover-fix [data-state="active"] svg {
-  color: #10B981 !important;
-}
-/* === FIM DA CORREÇÃO ULTRA-ESPECÍFICA === */
+/* === FIM DA CORREÇÃO === */
