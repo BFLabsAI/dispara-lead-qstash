@@ -79,53 +79,53 @@ export const InstanceManager = () => {
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4 sm:px-6">
-      {/* Stats */}
+      {/* Stats - estilo semelhante aos KPIs do dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Instâncias</p>
-              <p className="text-3xl font-bold mt-2">{stats.total}</p>
+        <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-500/20 rounded-lg border border-emerald-500/30">
+              <Server className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="p-3 rounded-lg bg-muted">
-              <Server className="h-6 w-6 text-foreground" />
+            <div>
+              <h4 className="font-semibold">Total Instâncias</h4>
+              <p className="text-3xl font-bold gradient-text">{stats.total}</p>
             </div>
           </div>
         </Card>
 
-        <Card className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Ativas</p>
-              <p className="text-3xl font-bold mt-2 text-green-600 dark:text-green-400">{stats.connected}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+        <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6" style={{ animationDelay: "0.05s" }}>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-green-500/20 rounded-lg border border-green-500/30">
               <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
+            <div>
+              <h4 className="font-semibold">Ativas</h4>
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.connected}</p>
+            </div>
           </div>
         </Card>
 
-        <Card className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Inativas</p>
-              <p className="text-3xl font-bold mt-2 text-red-600 dark:text-red-400">{stats.disconnected}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+        <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6" style={{ animationDelay: "0.1s" }}>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-red-500/20 rounded-lg border border-red-500/30">
               <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h4 className="font-semibold">Inativas</h4>
+              <p className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.disconnected}</p>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Instances Grid */}
+      {/* Lista de instâncias */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {instances.length === 0 ? (
-          <Card className="col-span-full rounded-2xl border bg-card text-card-foreground p-14 text-center shadow-sm">
-            <QrCode className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <Card className="col-span-full glass-card rounded-2xl p-14 text-center shadow-md">
+            <QrCode className="h-16 w-16 mx-auto mb-4 text-emerald-600 dark:text-emerald-400" />
             <h3 className="text-2xl font-semibold mb-2">Nenhuma instância</h3>
             <p className="text-muted-foreground mb-6">Crie suas primeiras conexões para começar a disparar.</p>
-            <Button onClick={loadInstances}>
+            <Button onClick={loadInstances} className="btn-premium">
               <i className="fas fa-sync-alt mr-2" /> Atualizar
             </Button>
           </Card>
@@ -144,13 +144,15 @@ export const InstanceManager = () => {
 
       <QrDialog />
 
-      {/* Webhook Modal */}
+      {/* Webhook Modal com acento azul */}
       <Dialog open={webhookOpen} onOpenChange={setWebhookOpen}>
-        <DialogContent className="max-w-4xl rounded-xl border bg-card text-card-foreground">
+        <DialogContent className="max-w-4xl rounded-xl glass-card border-blue-200/40 dark:border-blue-800/40 shadow-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-              <Link className="h-5 w-5" />
-              Configurar Webhook - {webhookInstance}
+              <span className="p-2 rounded-lg bg-blue-600/15 border border-blue-600/30">
+                <Link className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </span>
+              <span>Configurar Webhook - {webhookInstance}</span>
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Integre eventos do WhatsApp com seu sistema externo.
@@ -167,13 +169,13 @@ export const InstanceManager = () => {
             </div>
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
-                <Zap className="h-4 w-4" />
+                <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 Eventos Ativos ({selectedEvents.length})
               </Label>
-              <ScrollArea className="h-48 rounded-lg border bg-muted/40 p-3">
+              <ScrollArea className="h-48 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/40 p-3">
                 <div className="space-y-2">
                   {WEBHOOK_EVENTS.map((event) => (
-                    <div key={event} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/60">
+                    <div key={event} className="flex items-center space-x-3 p-2 rounded-md hover:bg-blue-500/10">
                       <Checkbox
                         id={event}
                         checked={selectedEvents.includes(event)}
@@ -190,7 +192,7 @@ export const InstanceManager = () => {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setWebhookOpen(false)}>Cancelar</Button>
-            <Button onClick={saveWebhook} disabled={!webhookUrl.trim()}>
+            <Button onClick={saveWebhook} disabled={!webhookUrl.trim()} className="bg-blue-600 hover:bg-blue-700 text-white">
               <i className="fas fa-save mr-2" /> Salvar
             </Button>
           </DialogFooter>
