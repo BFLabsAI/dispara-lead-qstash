@@ -13,11 +13,11 @@ interface Instance {
 }
 
 interface StatusConfig {
-  class: string;
   text: string;
-  icon: React.ComponentType<{ className?: string }>;
-  indicator: string;
-  badge: "default" | "destructive" | "secondary" | "outline" | null | undefined;
+  badgeClass: string;
+  dotClass: string;
+  textClass: string;
+  Icon: React.ComponentType<{ className?: string }>;
 }
 
 interface InstanceCardProps {
@@ -30,60 +30,95 @@ interface InstanceCardProps {
 export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: InstanceCardProps) => {
   const { fetchQrCode } = useDisparadorStore();
   const isConnected = instance.connectionStatus === "open" || instance.connectionStatus === "connected";
-  
-  const statusConfig: StatusConfig = isConnected 
-    ? { class: 'text-green-400', text: 'Ativa e Operacional', icon: CheckCircle, indicator: 'bg-green-500', badge: 'default' }
-    : { class: 'text-red-400', text: 'Desconectada', icon: XCircle, indicator: 'bg-red-500', badge: 'destructive' };
+
+  const statusConfig: StatusConfig = isConnected
+    ? {
+        text: "Ativa e Operacional",
+        badgeClass:
+          "bg-green-500/10 text-green-700 dark:text-green-300 border border-green-500/20",
+        dotClass: "bg-green-500",
+        textClass: "text-green-700 dark:text-green-300",
+        Icon: CheckCircle,
+      }
+    : {
+        text: "Desconectada",
+        badgeClass:
+          "bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20",
+        dotClass: "bg-red-500",
+        textClass: "text-red-700 dark:text-red-300",
+        Icon: XCircle,
+      };
 
   const formattedName = instance.name
     .toLowerCase()
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, char => char.toUpperCase());
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
   return (
-    <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-6 sm:p-8 max-w-full overflow-hidden" style={{animationDelay: `${index * 0.1}s`}}>
-      <div className="flex items-start justify-between mb-4 sm:mb-6">
-        <div className="flex items-start space-x-3 sm:space-x-4 flex-1 min-w-0">
-          <div className="flex-shrink-0 relative">
-            <div className="gradient-primary p-3 sm:p-4 rounded-2xl flex items-center justify-center border-2 border-white/20 shadow-lg">
-              <QrCode className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+    <Card
+      className="rounded-xl border bg-card text-card-foreground shadow-sm animate-slide-in-up p-5 sm:p-6"
+      style={{ animationDelay: `${index * 0.06}s` }}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="relative">
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+              <QrCode className="h-6 w-6 text-primary" />
             </div>
-            <div className={`absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 h-4 w-4 rounded-full border-2 border-card ${statusConfig.indicator} shadow-lg`}></div>
+            <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full ring-2 ring-card ${statusConfig.dotClass}`} />
           </div>
-          <div className="space-y-1 flex-1 min-w-0">
-            <h3 className="text-xl sm:text-2xl font-bold text-white break-words leading-tight">{formattedName}</h3>
-            <Badge variant={statusConfig.badge} className="text-xs sm:text-sm">{statusConfig.text}</Badge>
+          <div className="min-w-0">
+            <h3 className="text-lg sm:text-xl font-semibold truncate">{formattedName}</h3>
+            <div className={`inline-flex items-center gap-2 mt-1 px-2.5 py-1 rounded-full ${statusConfig.badgeClass}`}>
+              {React.createElement(statusConfig.Icon, { className: "h-4 w-4" })}
+              <span className="text-xs sm:text-sm font-medium">{statusConfig.text}</span>
+            </div>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
+
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={loadInstances}
-          className="glass-card text-gray-400 hover:text-white p-2 sm:p-3 rounded-xl hover:bg-white/10 flex-shrink-0 ml-2"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          title="Atualizar"
         >
-          <i className="fas fa-sync-alt text-sm sm:text-base"></i>
+          <i className="fas fa-sync-alt text-sm" />
         </Button>
       </div>
 
-      <div className="bg-gray-900/50 rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6">
-        <div className={`flex items-center justify-center ${statusConfig.class} text-sm sm:text-base`}>
-          {React.createElement(statusConfig.icon, { className: "h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 flex-shrink-0" })}
-          <span className="font-semibold break-words">{statusConfig.text}</span>
+      {/* Info strip */}
+      <div className="rounded-lg border bg-muted/40 px-3 py-2 mb-4">
+        <div className={`flex items-center justify-center gap-2 text-sm font-medium ${statusConfig.textClass}`}>
+          {React.createElement(statusConfig.Icon, { className: "h-4 w-4" })}
+          <span>{statusConfig.text}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
-        <Button 
-          onClick={() => fetchQrCode(instance.name)}
-          className={`btn-premium px-4 py-2 sm:px-6 sm:py-3 rounded-xl font-semibold text-white w-full text-sm sm:text-base ${isConnected ? 'gradient-danger' : 'gradient-success'}`}
-        >
-          <i className={`fas ${isConnected ? 'fa-power-off' : 'fa-qrcode'} mr-1 sm:mr-2 text-sm sm:text-base`}></i>
-          <span className="break-words">{isConnected ? 'Desconectar' : 'Conectar'}</span>
-        </Button>
-        
-        <Button onClick={() => openWebhook(instance.name)} className="btn-premium px-4 py-2 sm:px-6 sm:py-3 rounded-xl font-semibold gradient-primary text-white w-full text-sm sm:text-base">
-          <i className="fas fa-project-diagram mr-1 sm:mr-2 text-sm sm:text-base"></i>
-          <span className="break-words">Webhook</span>
+      {/* Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {isConnected ? (
+          <Button
+            variant="destructive"
+            onClick={() => fetchQrCode(instance.name)}
+            className="w-full"
+          >
+            <i className="fas fa-power-off mr-2" />
+            Desconectar
+          </Button>
+        ) : (
+          <Button
+            onClick={() => fetchQrCode(instance.name)}
+            className="w-full"
+          >
+            <i className="fas fa-qrcode mr-2" />
+            Conectar
+          </Button>
+        )}
+        <Button variant="outline" onClick={() => openWebhook(instance.name)} className="w-full">
+          <i className="fas fa-project-diagram mr-2" />
+          Webhook
         </Button>
       </div>
     </Card>

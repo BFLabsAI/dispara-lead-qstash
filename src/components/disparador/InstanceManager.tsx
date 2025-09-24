@@ -60,83 +60,83 @@ export const InstanceManager = () => {
   };
 
   const toggleEvent = (event: string) => {
-    setSelectedEvents(prev => 
+    setSelectedEvents(prev =>
       prev.includes(event) ? prev.filter(e => e !== event) : [...prev, event]
     );
   };
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] glass-card rounded-3xl p-12 animate-scale-in mx-auto max-w-4xl">
+      <div className="flex flex-col items-center justify-center min-h-[400px] rounded-2xl border bg-card p-12 shadow-sm">
         <div className="loading-dots mx-auto mb-8">
           <div></div><div></div><div></div><div></div>
         </div>
-        <h3 className="text-3xl font-bold mb-4 gradient-text">Analisando Conexões</h3>
-        <p className="text-xl text-gray-400">Carregando instâncias premium...</p>
+        <h3 className="text-2xl font-semibold mb-2">Carregando instâncias...</h3>
+        <p className="text-muted-foreground">Aguarde enquanto buscamos suas conexões</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-12 max-w-7xl mx-auto px-6">
+    <div className="space-y-10 max-w-7xl mx-auto px-4 sm:px-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-400 mb-2 font-medium">Total Instâncias</p>
-              <p className="text-4xl font-bold text-white">{stats.total}</p>
+              <p className="text-sm text-muted-foreground">Total Instâncias</p>
+              <p className="text-3xl font-bold mt-2">{stats.total}</p>
             </div>
-            <div className="gradient-primary p-4 rounded-xl animate-pulse-glow">
-              <Server className="h-8 w-8 text-white" />
+            <div className="p-3 rounded-lg bg-muted">
+              <Server className="h-6 w-6 text-foreground" />
             </div>
           </div>
         </Card>
-        
-        <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.1s'}}>
+
+        <Card className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-400 mb-2 font-medium">Ativas</p>
-              <p className="text-4xl font-bold text-green-400">{stats.connected}</p>
+              <p className="text-sm text-muted-foreground">Ativas</p>
+              <p className="text-3xl font-bold mt-2 text-green-600 dark:text-green-400">{stats.connected}</p>
             </div>
-            <div className="gradient-success p-4 rounded-xl animate-pulse-glow">
-              <CheckCircle className="h-8 w-8 text-white" />
+            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
         </Card>
-        
-        <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.2s'}}>
+
+        <Card className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-400 mb-2 font-medium">Inativas</p>
-              <p className="text-4xl font-bold text-red-400">{stats.disconnected}</p>
+              <p className="text-sm text-muted-foreground">Inativas</p>
+              <p className="text-3xl font-bold mt-2 text-red-600 dark:text-red-400">{stats.disconnected}</p>
             </div>
-            <div className="gradient-danger p-4 rounded-xl animate-pulse-glow">
-              <XCircle className="h-8 w-8 text-white" />
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
         </Card>
       </div>
 
       {/* Instances Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {instances.length === 0 ? (
-          <Card className="col-span-full glass-card rounded-3xl p-16 text-center animate-scale-in">
-            <QrCode className="h-20 w-20 text-gray-500 mx-auto mb-6 animate-pulse" />
-            <h3 className="text-3xl font-bold mb-4 text-gray-300">Nenhuma Instância</h3>
-            <p className="text-xl text-gray-500 mb-8 max-w-md mx-auto">Comece criando suas primeiras conexões WhatsApp para disparos premium.</p>
-            <Button onClick={loadInstances} className="btn-premium px-8 py-4 text-lg gradient-primary">
-              <i className="fas fa-magic mr-2"></i> Criar Instância
+          <Card className="col-span-full rounded-2xl border bg-card text-card-foreground p-14 text-center shadow-sm">
+            <QrCode className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-2xl font-semibold mb-2">Nenhuma instância</h3>
+            <p className="text-muted-foreground mb-6">Crie suas primeiras conexões para começar a disparar.</p>
+            <Button onClick={loadInstances}>
+              <i className="fas fa-sync-alt mr-2" /> Atualizar
             </Button>
           </Card>
         ) : (
           instances.map((instance, index) => (
-            <InstanceCard 
-              key={instance.name} 
-              instance={instance} 
-              index={index} 
-              loadInstances={loadInstances} 
-              openWebhook={openWebhook} 
+            <InstanceCard
+              key={instance.name}
+              instance={instance}
+              index={index}
+              loadInstances={loadInstances}
+              openWebhook={openWebhook}
             />
           ))
         )}
@@ -146,43 +146,41 @@ export const InstanceManager = () => {
 
       {/* Webhook Modal */}
       <Dialog open={webhookOpen} onOpenChange={setWebhookOpen}>
-        <DialogContent className="glass-card max-w-4xl max-h-[80vh] rounded-2xl">
+        <DialogContent className="max-w-4xl rounded-xl border bg-card text-card-foreground">
           <DialogHeader>
-            <DialogTitle className="gradient-text text-2xl flex items-center gap-2">
-              <Link className="h-6 w-6" />
+            <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+              <Link className="h-5 w-5" />
               Configurar Webhook - {webhookInstance}
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               Integre eventos do WhatsApp com seu sistema externo.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-white font-medium">URL de Destino</Label>
-              <Input 
-                value={webhookUrl} 
-                onChange={(e) => setWebhookUrl(e.target.value)} 
+              <Label>URL de Destino</Label>
+              <Input
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
                 placeholder="https://seu-sistema.com/api/webhook"
-                className="h-12 text-white bg-black/30 border-white/20"
               />
             </div>
             <div className="space-y-3">
-              <Label className="text-white font-medium flex items-center gap-2">
+              <Label className="flex items-center gap-2">
                 <Zap className="h-4 w-4" />
                 Eventos Ativos ({selectedEvents.length})
               </Label>
-              <ScrollArea className="h-48 rounded-xl border border-white/10 bg-black/20 p-4">
-                <div className="space-y-3">
+              <ScrollArea className="h-48 rounded-lg border bg-muted/40 p-3">
+                <div className="space-y-2">
                   {WEBHOOK_EVENTS.map((event) => (
-                    <div key={event} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
-                      <Checkbox 
+                    <div key={event} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/60">
+                      <Checkbox
                         id={event}
                         checked={selectedEvents.includes(event)}
                         onCheckedChange={() => toggleEvent(event)}
-                        className="border-white/30 data-[state=checked]:bg-green-500"
                       />
-                      <Label htmlFor={event} className="text-white text-sm font-medium cursor-pointer flex-1">
-                        {event.replace(/_/g, ' ')}
+                      <Label htmlFor={event} className="text-sm cursor-pointer flex-1">
+                        {event.replace(/_/g, " ")}
                       </Label>
                     </div>
                   ))}
@@ -190,12 +188,10 @@ export const InstanceManager = () => {
               </ScrollArea>
             </div>
           </div>
-          <DialogFooter className="gap-3">
-            <Button variant="outline" onClick={() => setWebhookOpen(false)} className="glass-card text-gray-300">
-              Cancelar
-            </Button>
-            <Button onClick={saveWebhook} className="btn-premium gradient-success px-8" disabled={!webhookUrl.trim()}>
-              <i className="fas fa-save mr-2"></i> Salvar Configuração
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setWebhookOpen(false)}>Cancelar</Button>
+            <Button onClick={saveWebhook} disabled={!webhookUrl.trim()}>
+              <i className="fas fa-save mr-2" /> Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
