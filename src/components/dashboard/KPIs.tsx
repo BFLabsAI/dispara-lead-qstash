@@ -10,42 +10,44 @@ interface KPIsProps {
 }
 
 export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
+  const isDark = document.documentElement.classList.contains('dark');
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 section-mb"> {/* Increased gap/mb */}
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8"> {/* Increased padding */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 section-mb">
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8">
         <div className="flex items-center justify-between mb-6">
-          <div className="p-3 bg-green-500/20 rounded-xl animate-pulse-glow">
-            <BarChart3 className="h-6 w-6 text-green-400" />
+          <div className={`p-3 bg-green-500/20 rounded-xl animate-pulse-glow kpi-icon ${isDark ? 'border border-green-500/30' : ''}`}>
+            <BarChart3 className={`h-6 w-6 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
           </div>
-          <TrendingUp className="h-5 w-5 text-green-400 animate-pulse-glow" />
+          <TrendingUp className={`h-5 w-5 ${isDark ? 'text-green-400' : 'text-green-600'} animate-pulse-glow`} />
         </div>
-        <h3 className="font-semibold text-lg text-gray-300 mb-2">Total de Envios</h3>
+        <h3 className={`font-semibold text-lg mb-2 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Total de Envios</h3>
         <p className="text-4xl font-bold gradient-text mb-2">{totalEnvios.toLocaleString()}</p>
-        <p className="text-sm text-green-400 font-medium">+12% este mês</p>
+        <p className={`text-sm font-medium ${isDark ? 'text-green-400' : 'text-green-600'}`}>+12% este mês</p>
       </Card>
       
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.1s'}}>
         <div className="flex items-center justify-between mb-6">
-          <div className="p-3 bg-blue-500/20 rounded-xl animate-pulse-glow">
-            <Brain className="h-6 w-6 text-blue-400" />
+          <div className={`p-3 bg-blue-500/20 rounded-xl animate-pulse-glow kpi-icon ${isDark ? 'border border-blue-500/30' : ''}`}>
+            <Brain className={`h-6 w-6 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
           </div>
-          <TrendingUp className="h-5 w-5 text-green-400 animate-pulse-glow" />
+          <TrendingUp className={`h-5 w-5 ${isDark ? 'text-green-400' : 'text-green-600'} animate-pulse-glow`} />
         </div>
-        <h3 className="font-semibold text-lg text-gray-300 mb-2">Com IA</h3>
+        <h3 className={`font-semibold text-lg mb-2 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Com IA</h3>
         <p className="text-4xl font-bold gradient-text mb-2">{totalIA.toLocaleString()}</p>
-        <p className="text-sm text-green-400 font-medium">Automação inteligente</p>
+        <p className={`text-sm font-medium ${isDark ? 'text-green-400' : 'text-green-600'}`}>Automação inteligente</p>
       </Card>
       
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.2s'}}>
         <div className="flex items-center justify-between mb-6">
-          <div className="p-3 bg-orange-500/20 rounded-xl animate-pulse-glow">
-            <MessageCircle className="h-6 w-6 text-orange-400" />
+          <div className={`p-3 bg-orange-500/20 rounded-xl animate-pulse-glow kpi-icon ${isDark ? 'border border-orange-500/30' : ''}`}>
+            <MessageCircle className={`h-6 w-6 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
           </div>
-          <TrendingUp className="h-5 w-5 text-green-400 animate-pulse-glow" />
+          <TrendingUp className={`h-5 w-5 ${isDark ? 'text-green-400' : 'text-green-600'} animate-pulse-glow`} />
         </div>
-        <h3 className="font-semibold text-lg text-gray-300 mb-2">Sem IA</h3>
+        <h3 className={`font-semibold text-lg mb-2 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Sem IA</h3>
         <p className="text-4xl font-bold gradient-text mb-2">{totalSemIA.toLocaleString()}</p>
-        <p className="text-sm text-green-400 font-medium">Envios manuais</p>
+        <p className={`text-sm font-medium ${isDark ? 'text-green-400' : 'text-green-600'}`}>Envios manuais</p>
       </Card>
     </div>
   );

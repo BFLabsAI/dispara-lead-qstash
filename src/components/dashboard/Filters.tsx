@@ -23,6 +23,8 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
     to: undefined,
   });
 
+  const isDark = document.documentElement.classList.contains('dark');
+
   const handleReset = () => {
     setInstance("all");
     setTipo("all");
@@ -36,49 +38,49 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
 
   return (
     <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-12 section-mb">
-      <CardContent className="p-8"> {/* Increased padding */}
+      <CardContent className="p-8">
         <div className="flex items-center gap-2 mb-6">
-          <Filter className="h-5 w-5 text-green-400" />
-          <h3 className="font-bold text-xl gradient-text">Filtros Avançados</h3>
+          <Filter className={`h-5 w-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+          <h3 className={`font-bold text-xl ${isDark ? 'gradient-text' : 'text-gray-900'}`}>Filtros Avançados</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end"> {/* Better grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
           <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-gray-300 font-medium">
-              <i className="fas fa-server text-green-400"></i> Instância
+            <Label className={`flex items-center gap-2 font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              <i className={`fas fa-server ${isDark ? 'text-green-400' : 'text-green-600'}`}></i> Instância
             </Label>
             <Select value={instance} onValueChange={setInstance}>
-              <SelectTrigger className="glass-card border-white/20 bg-black/20 text-white h-12">
+              <SelectTrigger className={`glass-card h-12 ${isDark ? 'border-white/20 bg-black/20 text-white' : 'filter-select'}`}>
                 <SelectValue placeholder="Todas as instâncias" />
               </SelectTrigger>
-              <SelectContent className="glass-card bg-black/20 border-white/20 max-h-96">
-                <SelectItem value="all" className="text-white hover:bg-green-500/20">Todas</SelectItem>
+              <SelectContent className={`glass-card max-h-96 ${isDark ? 'bg-black/20 border-white/20' : 'bg-white border-green-200'}`}>
+                <SelectItem value="all" className={isDark ? 'text-white hover:bg-green-500/20' : 'text-gray-900 hover:bg-green-50'}>Todas</SelectItem>
                 {/* Add dynamic instances if needed */}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-gray-300 font-medium">
-              <i className="fas fa-tag text-green-400"></i> Tipo
+            <Label className={`flex items-center gap-2 font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              <i className={`fas fa-tag ${isDark ? 'text-green-400' : 'text-green-600'}`}></i> Tipo
             </Label>
             <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger className="glass-card border-white/20 bg-black/20 text-white h-12">
+              <SelectTrigger className={`glass-card h-12 ${isDark ? 'border-white/20 bg-black/20 text-white' : 'filter-select'}`}>
                 <SelectValue placeholder="Todos os tipos" />
               </SelectTrigger>
-              <SelectContent className="glass-card bg-black/20 border-white/20 max-h-96">
-                <SelectItem value="all" className="text-white hover:bg-green-500/20">Todos</SelectItem>
-                <SelectItem value="texto" className="text-white hover:bg-green-500/20">Texto</SelectItem>
-                <SelectItem value="imagem" className="text-white hover:bg-green-500/20">Imagem</SelectItem>
+              <SelectContent className={`glass-card max-h-96 ${isDark ? 'bg-black/20 border-white/20' : 'bg-white border-green-200'}`}>
+                <SelectItem value="all" className={isDark ? 'text-white hover:bg-green-500/20' : 'text-gray-900 hover:bg-green-50'}>Todos</SelectItem>
+                <SelectItem value="texto" className={isDark ? 'text-white hover:bg-green-500/20' : 'text-gray-900 hover:bg-green-50'}>Texto</SelectItem>
+                <SelectItem value="imagem" className={isDark ? 'text-white hover:bg-green-500/20' : 'text-gray-900 hover:bg-green-50'}>Imagem</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2 md:col-span-1">
-            <Label className="flex items-center gap-2 text-gray-300 font-medium">
-              <CalendarIcon className="h-4 w-4 text-green-400" />
+            <Label className={`flex items-center gap-2 font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              <CalendarIcon className={`h-4 w-4 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
               Período
             </Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="glass-card w-full justify-start text-left h-12 border-white/20 bg-black/20 text-white hover:bg-green-500/10">
+                <Button variant="outline" className={`glass-card w-full justify-start text-left h-12 ${isDark ? 'border-white/20 bg-black/20 text-white hover:bg-green-500/10' : 'filter-select border-green-200 hover:border-green-400'}`}>
                   {dateRange?.from ? (
                     dateRange.to ? (
                       <>
@@ -88,11 +90,11 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
                       format(dateRange.from, "PPP")
                     )
                   ) : (
-                    <span className="text-gray-400">Selecionar período</span>
+                    <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>Selecionar período</span>
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="glass-card w-auto p-0 border-white/20 bg-black/20 max-w-none" align="start">
+              <PopoverContent className={`glass-card w-auto p-0 ${isDark ? 'border-white/20 bg-black/20 max-w-none' : 'bg-white border-green-200'}`} align="start">
                 <Calendar mode="range" selected={dateRange} onSelect={setDateRange} numberOfMonths={2} className="rounded-md border-0" />
               </PopoverContent>
             </Popover>
@@ -101,7 +103,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             <Button 
               variant="outline" 
               onClick={handleReset} 
-              className="glass-card w-full h-12 border-white/20 bg-black/20 text-gray-300 hover:bg-red-500/20 hover:text-red-400"
+              className={`glass-card w-full h-12 ${isDark ? 'border-white/20 bg-black/20 text-gray-300 hover:bg-red-500/20 hover:text-red-400' : 'border-gray-300 text-gray-700 hover:bg-red-50 hover:text-red-600 border-red-200'}`}
             >
               <i className="fas fa-times mr-2"></i> Limpar
             </Button>

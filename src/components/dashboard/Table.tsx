@@ -15,6 +15,7 @@ interface TableProps {
 }
 
 export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: TableProps) => {
+  const isDark = document.documentElement.classList.contains('dark');
   const itemsPerPage = 5;
   const paginatedData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -22,36 +23,36 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
     <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-12 section-mb">
       <CardContent className="p-8">
         <div className="flex items-center gap-2 mb-6">
-          <i className="fas fa-table text-green-400 text-xl"></i>
-          <h5 className="font-bold text-xl gradient-text">Registros de Disparo</h5>
+          <i className={`fas fa-table text-xl ${isDark ? 'text-green-400' : 'text-green-600'}`}></i>
+          <h5 className={`font-bold text-xl ${isDark ? 'gradient-text' : 'text-gray-900'}`}>Registros de Disparo</h5>
         </div>
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <Table>
-            <TableHeader className="bg-black/20 backdrop-blur-sm">
+            <TableHeader className={`table-header ${isDark ? 'bg-black/20 backdrop-blur-sm' : ''}`}>
               <TableRow className="border-b border-white/10">
-                <TableHead className="text-white font-semibold py-4 text-left">Data/Hora</TableHead>
-                <TableHead className="text-white font-semibold py-4 text-left">Instância</TableHead>
-                <TableHead className="text-white font-semibold py-4 text-left">Número</TableHead>
-                <TableHead className="text-white font-semibold py-4 text-left">Tipo</TableHead>
-                <TableHead className="text-white font-semibold py-4 text-left">Usou IA?</TableHead>
-                <TableHead className="text-white font-semibold py-4 text-left">Mensagem</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-white font-semibold' : 'text-gray-800 font-semibold'}`}>Data/Hora</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-white font-semibold' : 'text-gray-800 font-semibold'}`}>Instância</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-white font-semibold' : 'text-gray-800 font-semibold'}`}>Número</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-white font-semibold' : 'text-gray-800 font-semibold'}`}>Tipo</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-white font-semibold' : 'text-gray-800 font-semibold'}`}>Usou IA?</TableHead>
+                <TableHead className={`py-4 text-left ${isDark ? 'text-white font-semibold' : 'text-gray-800 font-semibold'}`}>Mensagem</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.map((item, index) => (
                 <TableRow key={index} className={`border-b border-white/5 hover:bg-green-500/5 transition-colors ${index % 2 === 0 ? 'bg-black/5' : ''}`}>
-                  <TableCell className="text-white py-4 font-medium">{item.date.format("DD/MM/YYYY HH:mm")}</TableCell>
+                  <TableCell className={`py-4 font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.date.format("DD/MM/YYYY HH:mm")}</TableCell>
                   <TableCell className="py-4">
-                    <Badge className="bg-green-500/20 text-green-300 border-green-500/30 font-medium">{item.instancia}</Badge>
+                    <Badge className={`font-medium ${isDark ? 'bg-green-500/20 text-green-300 border-green-500/30' : 'bg-green-100 text-green-800 border-green-200'}`}>{item.instancia}</Badge>
                   </TableCell>
-                  <TableCell className="text-gray-300 py-4 max-w-xs truncate" title={item.numero}>
+                  <TableCell className={`py-4 max-w-xs truncate ${isDark ? 'text-gray-300' : 'text-gray-700'}`} title={item.numero}>
                     {item.numero}
                   </TableCell>
-                  <TableCell className="text-gray-300 py-4 capitalize">{item.tipo_envio}</TableCell>
-                  <TableCell className={`py-4 font-medium ${item.usaria ? "text-green-400" : "text-red-400"}`}>
+                  <TableCell className={`py-4 capitalize ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{item.tipo_envio}</TableCell>
+                  <TableCell className={`py-4 font-medium ${item.usaria ? (isDark ? "text-green-400" : "text-green-600") : (isDark ? "text-red-400" : "text-red-600")}`}>
                     {item.usaria ? <><CheckCircle className="h-4 w-4 inline mr-1" /> Sim</> : <><XCircle className="h-4 w-4 inline mr-1" /> Não</>}
                   </TableCell>
-                  <TableCell className="text-gray-400 py-4 max-w-lg" title={item.texto}>
+                  <TableCell className={`py-4 max-w-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`} title={item.texto}>
                     <span className="truncate block">{item.texto?.substring(0, 60)}...</span>
                   </TableCell>
                 </TableRow>
@@ -60,8 +61,8 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
           </Table>
         </div>
         {data.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <i className="fas fa-inbox text-4xl mb-4 text-gray-500"></i>
+          <div className={`text-center py-12 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <i className={`fas fa-inbox text-4xl mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}></i>
             <p className="text-lg">Nenhum registro encontrado</p>
             <p className="text-sm mt-1">Aplique filtros ou aguarde novos envios</p>
           </div>
@@ -72,17 +73,17 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
               size="sm" 
               onClick={() => onPageChange(currentPage - 1)} 
               disabled={currentPage === 1}
-              className="glass-card border-white/20 text-white hover:bg-green-500/20"
+              className={`glass-card ${isDark ? 'border-white/20 text-white hover:bg-green-500/20' : 'border-gray-300 text-gray-700 hover:bg-green-50 border-green-200'}`}
             >
               <i className="fas fa-chevron-left mr-2"></i> Anterior
             </Button>
-            <span className="text-gray-300 font-medium">Página {currentPage} de {totalPages}</span>
+            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Página {currentPage} de {totalPages}</span>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => onPageChange(currentPage + 1)} 
               disabled={currentPage === totalPages}
-              className="glass-card border-white/20 text-white hover:bg-green-500/20"
+              className={`glass-card ${isDark ? 'border-white/20 text-white hover:bg-green-500/20' : 'border-gray-300 text-gray-700 hover:bg-green-50 border-green-200'}`}
             >
               Próxima <i className="fas fa-chevron-right mr-2"></i>
             </Button>

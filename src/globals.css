@@ -167,16 +167,16 @@
 }
 
 .light .glass-card {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  color: hsl(var(--foreground)); /* Dark text */
+  background: rgba(255, 255, 255, 0.95); /* Slightly more opaque for solidity */
+  border: 1px solid rgba(16, 185, 129, 0.2); /* Green border accent */
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.15), 0 4px 20px rgba(0, 0, 0, 0.08); /* Green-tinted shadow + stronger base */
+  color: hsl(var(--foreground)); /* Dark text for contrast */
 }
 
 .light .glass-card:hover {
-  background: white;
-  border-color: rgba(16, 185, 129, 0.2);
-  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.15);
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 12px 40px rgba(16, 185, 129, 0.25), 0 8px 30px rgba(0, 0, 0, 0.12); /* Stronger green glow on hover */
   transform: translateY(-2px);
 }
 
@@ -296,8 +296,8 @@
 
 .light .modal-content {
   background: rgba(255, 255, 255, 0.95);
-  color: #1f2937;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #1f2937; /* Dark gray for contrast */
+  border: 1px solid rgba(16, 185, 129, 0.2); /* Green accent */
 }
 
 /* Scrollbar - Elegant green */
@@ -332,4 +332,44 @@
   /* Section spacing */
   .section-mb { margin-bottom: 3rem; }
   .section-p { padding: 2rem; }
+
+  /* Light mode enhancements: Darker text and green accents for KPIs/Filters/Charts */
+  .light .glass-card h3, .light .glass-card h5 { 
+    color: #1f2937; /* Dark gray for strong contrast */
+    font-weight: 700;
+  }
+  .light .glass-card p { 
+    color: #374151; /* Medium dark gray */
+  }
+  .light .glass-card .text-gray-300 { 
+    color: #6b7280 !important; /* Ensure darker muted text */
+  }
+  .light .glass-card .gradient-text { 
+    background: linear-gradient(135deg, #10B981, #059669); /* Keep green gradient for accents */
+  }
+  .light .kpi-icon { 
+    background: rgba(16, 185, 129, 0.1); /* Subtle green bg for icons in KPIs */
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+  .light .filter-select { 
+    background: white;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #1f2937;
+  }
+  .light .filter-select:focus { 
+    border-color: #10B981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+  .light .table-header { 
+    background: rgba(16, 185, 129, 0.05); /* Subtle green tint for table headers */
+    color: #1f2937;
+    border-bottom: 2px solid rgba(16, 185, 129, 0.2);
+  }
+  .light .chart-axis { 
+    stroke: #374151 !important; /* Darker axes in charts for light mode */
+    fill: #374151 !important;
+  }
+  .light .chart-grid { 
+    stroke: rgba(16, 185, 129, 0.1); /* Green-tinted grid lines */
+  }
 }
