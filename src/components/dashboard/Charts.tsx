@@ -70,11 +70,12 @@ export const Charts = ({ filteredData }: ChartsProps) => {
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const totalTipo: number = Object.values(tipoData).reduce((sum: number, v: number) => sum + v, 0);
+  const tipoValues = Object.values(tipoData) as number[];
+  const totalTipo: number = tipoValues.reduce((sum: number, v: number) => sum + v, 0);
   const pieDataTipo = Object.entries(tipoData).map(([name, value]) => ({ 
     name, 
-    value, 
-    percentage: totalTipo > 0 ? (((value / totalTipo) * 100).toFixed(1)) : "0" 
+    value: Number(value),
+    percentage: totalTipo > 0 ? Number(((Number(value) / totalTipo) * 100).toFixed(1)).toString() : "0" 
   }));
 
   const instanciaData = filteredData.reduce((acc: Record<string, number>, item) => {
@@ -82,11 +83,12 @@ export const Charts = ({ filteredData }: ChartsProps) => {
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const totalInstancia: number = Object.values(instanciaData).reduce((sum: number, v: number) => sum + v, 0);
+  const instanciaValues = Object.values(instanciaData) as number[];
+  const totalInstancia: number = instanciaValues.reduce((sum: number, v: number) => sum + v, 0);
   const pieDataInstancia = Object.entries(instanciaData).map(([name, value]) => ({ 
     name, 
-    value, 
-    percentage: totalInstancia > 0 ? (((value / totalInstancia) * 100).toFixed(1)) : "0" 
+    value: Number(value),
+    percentage: totalInstancia > 0 ? Number(((Number(value) / totalInstancia) * 100).toFixed(1)).toString() : "0" 
   }));
 
   const horaData = Array(24).fill(0);
