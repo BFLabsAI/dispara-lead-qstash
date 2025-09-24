@@ -148,30 +148,39 @@
   .font-outfit { font-family: 'Outfit', sans-serif }
 }
 
-/* === INÍCIO DA CORREÇÃO DEFINITIVA === */
+/* === CORREÇÃO DEFINITIVA PARA SIDEBAR === */
 @layer components {
-  /*
-    Regra de alta especificidade para o HOVER dos itens da navegação lateral.
-    - Fundo: Verde muito sutil e transparente.
-    - Cor (Texto e Ícone): Verde primário vibrante.
-  */
-  aside nav a:hover,
-  aside nav button:hover {
+  /* Hover para todos os elementos do sidebar */
+  aside *:hover,
+  [data-sidebar] *:hover,
+  .sidebar *:hover {
+    color: hsl(var(--primary)) !important;
+  }
+
+  /* Hover específico para links e botões */
+  aside a:hover,
+  aside button:hover,
+  [data-sidebar] a:hover,
+  [data-sidebar] button:hover,
+  .sidebar a:hover,
+  .sidebar button:hover {
     background-color: hsla(142, 76%, 36%, 0.1) !important;
     color: hsl(var(--primary)) !important;
   }
 
-  /*
-    Regra para o item ATIVO (página atual).
-    - Fundo: Verde um pouco mais visível que o hover.
-    - Cor: Verde primário vibrante.
-  */
-  aside nav a.active,
-  aside nav a[aria-current="page"],
-  aside nav [data-state="active"] {
+  /* Estado ativo */
+  aside a.active,
+  aside a[aria-current="page"],
+  aside [data-state="active"],
+  [data-sidebar] a.active,
+  [data-sidebar] a[aria-current="page"],
+  [data-sidebar] [data-state="active"],
+  .sidebar a.active,
+  .sidebar a[aria-current="page"],
+  .sidebar [data-state="active"] {
     background-color: hsla(142, 76%, 36%, 0.15) !important;
     color: hsl(var(--primary)) !important;
     font-weight: 600;
   }
 }
-/* === FIM DA CORREÇÃO DEFINITIVA === */
+/* === FIM DA CORREÇÃO === */
