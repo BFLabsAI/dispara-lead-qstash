@@ -81,38 +81,38 @@ export const InstanceManager = () => {
     <div className="space-y-10 max-w-7xl mx-auto px-4 sm:px-6">
       {/* Stats - estilo semelhante aos KPIs do dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6">
+        <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6 gradient-primary text-white">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-500/20 rounded-lg border border-emerald-500/30">
-              <Server className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            <div className="p-3 bg-white/10 rounded-lg border border-white/20">
+              <Server className="h-6 w-6 text-white" />
             </div>
             <div>
               <h4 className="font-semibold">Total Instâncias</h4>
-              <p className="text-3xl font-bold gradient-text">{stats.total}</p>
+              <p className="text-3xl font-bold">{stats.total}</p>
             </div>
           </div>
         </Card>
 
-        <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6" style={{ animationDelay: "0.05s" }}>
+        <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6 gradient-primary text-white" style={{ animationDelay: "0.05s" }}>
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-green-500/20 rounded-lg border border-green-500/30">
-              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+            <div className="p-3 bg-white/10 rounded-lg border border-white/20">
+              <CheckCircle className="h-6 w-6 text-white" />
             </div>
             <div>
               <h4 className="font-semibold">Ativas</h4>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.connected}</p>
+              <p className="text-3xl font-bold">{stats.connected}</p>
             </div>
           </div>
         </Card>
 
-        <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6" style={{ animationDelay: "0.1s" }}>
+        <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6 gradient-primary text-white" style={{ animationDelay: "0.1s" }}>
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-red-500/20 rounded-lg border border-red-500/30">
-              <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            <div className="p-3 bg-white/10 rounded-lg border border-white/20">
+              <XCircle className="h-6 w-6 text-white" />
             </div>
             <div>
               <h4 className="font-semibold">Inativas</h4>
-              <p className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.disconnected}</p>
+              <p className="text-3xl font-bold">{stats.disconnected}</p>
             </div>
           </div>
         </Card>

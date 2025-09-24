@@ -56,7 +56,7 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
 
   return (
     <Card
-      className="glass-card rounded-2xl border border-green-200/40 dark:border-green-500/20 shadow-sm animate-slide-in-up p-5 sm:p-6 transition-all hover:border-primary/50 hover:shadow-lg"
+      className="rounded-2xl border border-green-200/40 dark:border-green-500/20 shadow-sm animate-slide-in-up p-5 sm:p-6 transition-all hover:border-primary/50 hover:shadow-lg bg-green-50 dark:bg-green-950"
       style={{ animationDelay: `${index * 0.06}s` }}
     >
       {/* Header */}
