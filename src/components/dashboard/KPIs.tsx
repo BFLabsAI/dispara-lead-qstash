@@ -11,43 +11,43 @@ interface KPIsProps {
 
 export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8">
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
-              <BarChart3 className="h-6 w-6 text-green-600" />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <Card className="glass-card animate-slide-in-up">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-primary/20 rounded-lg border border-primary/30">
+              <BarChart3 className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Total de Envios</h3>
+            <h3 className="font-semibold text-lg">Total de Envios</h3>
           </div>
-          <p className="text-4xl font-bold gradient-text mb-2">{totalEnvios.toLocaleString()}</p>
-          <p className="text-sm font-medium text-green-600">+12% este mês</p>
+          <p className="text-4xl font-bold gradient-text">{totalEnvios.toLocaleString()}</p>
+          <p className="text-sm font-medium text-primary/80">+12% este mês</p>
         </CardContent>
       </Card>
       
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.1s'}}>
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
-              <Brain className="h-6 w-6 text-green-600" />
+      <Card className="glass-card animate-slide-in-up" style={{animationDelay: '0.1s'}}>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-primary/20 rounded-lg border border-primary/30">
+              <Brain className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Com IA</h3>
+            <h3 className="font-semibold text-lg">Com IA</h3>
           </div>
-          <p className="text-4xl font-bold gradient-text mb-2">{totalIA.toLocaleString()}</p>
-          <p className="text-sm font-medium text-green-600">Automação inteligente</p>
+          <p className="text-4xl font-bold gradient-text">{totalIA.toLocaleString()}</p>
+          <p className="text-sm font-medium text-primary/80">Automação inteligente</p>
         </CardContent>
       </Card>
       
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.2s'}}>
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
-              <MessageCircle className="h-6 w-6 text-green-600" />
+      <Card className="glass-card animate-slide-in-up" style={{animationDelay: '0.2s'}}>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-primary/20 rounded-lg border border-primary/30">
+              <MessageCircle className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Sem IA</h3>
+            <h3 className="font-semibold text-lg">Sem IA</h3>
           </div>
-          <p className="text-4xl font-bold gradient-text mb-2">{totalSemIA.toLocaleString()}</p>
-          <p className="text-sm font-medium text-green-600">Envios manuais</p>
+          <p className="text-4xl font-bold gradient-text">{totalSemIA.toLocaleString()}</p>
+          <p className="text-sm font-medium text-primary/80">Envios manuais</p>
         </CardContent>
       </Card>
     </div>

@@ -33,26 +33,15 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
     setDateRange({ from: undefined, to: undefined });
   };
 
-  const getDateDisplay = (range: DateRange | undefined) => {
-    if (!range?.from) return <span>Selecionar período</span>;
-    const fromStr = format(range.from, "MMM d, yyyy");
-    if (range.to) {
-      const toStr = format(range.to, "MMM d, yyyy");
-      const fullRange = `${fromStr} - ${toStr}`;
-      return <span className="truncate block" title={fullRange}>{fullRange}</span>;
-    }
-    return <span className="truncate block" title={fromStr}>{fromStr}</span>;
-  };
-
   return (
-    <Card className="rounded-2xl card-premium animate-slide-in-up mb-8 gradient-primary text-white shadow-lg">
+    <Card className="glass-card animate-slide-in-up mb-6 gradient-primary text-white shadow-lg">
       <CardContent className="p-6">
         <div className="mb-4 flex items-center gap-2">
           <Filter className="h-5 w-5" />
           <h3 className="font-bold text-xl">Filtros Avançados</h3>
         </div>
         <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[220px] space-y-1.5">
+          <div className="flex-1 min-w-[200px] space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <Server className="h-4 w-4" /> Instância
             </Label>
@@ -66,7 +55,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             </Select>
           </div>
           
-          <div className="flex-1 min-w-[220px] space-y-1.5">
+          <div className="flex-1 min-w-[200px] space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <Tag className="h-4 w-4" /> Tipo
             </Label>
@@ -82,7 +71,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             </Select>
           </div>
           
-          <div className="flex-1 min-w-[220px] space-y-1.5">
+          <div className="flex-1 min-w-[200px] space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <CalendarIcon className="h-4 w-4" /> Período
             </Label>
@@ -92,19 +81,19 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
                   variant="outline" 
                   className="w-full justify-start text-left font-normal bg-white/10 border-white/20 hover:bg-white/20 text-white"
                 >
-                  {getDateDisplay(dateRange)}
+                  {dateRange?.from ? format(dateRange.from, "LLL dd, y") : <span>Selecionar período</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="range" selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
+                <Calendar mode="single" selected={dateRange?.from} onSelect={(day) => setDateRange({from: day, to: day})} />
               </PopoverContent>
             </Popover>
           </div>
           
           <Button 
-            variant="ghost" 
+            variant="destructive" 
             onClick={handleReset} 
-            className="h-10 w-10 p-0 bg-white/10 hover:bg-white/20 text-white"
+            className="h-10 w-10 p-0"
           >
             <X className="h-4 w-4" />
           </Button>
