@@ -10,7 +10,7 @@ interface ChartsProps {
 
 const COLORS = ["#10B981", "#059669", "#EF4444", "#3B82F6", "#F59E0B", "#8B5CF6"];
 
-const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, value, isDark }: any) => {
+const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, isDark }: any) => {
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -27,7 +27,7 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, inde
       fontSize="12"
       fontWeight="bold"
     >
-      {`${name}: ${value} (${percentage}%)`}
+      {`${percentage}%`}
     </text>
   );
 };
