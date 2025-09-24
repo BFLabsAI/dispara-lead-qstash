@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -19,14 +18,6 @@ import { InstanceCard } from "./InstanceCard";
 const WEBHOOK_EVENTS = [
   "MESSAGES_UPSERT", "CONTACTS_UPSERT", "CONNECTION_UPDATE", "SEND_MESSAGE", "GROUP_UPDATE", "CALL"
 ];
-
-interface StatusConfig {
-  class: string;
-  text: string;
-  icon: React.ComponentType<{ className?: string }>;
-  indicator: string;
-  badge: "default" | "destructive";
-}
 
 export const InstanceManager = () => {
   const location = useLocation();
@@ -88,7 +79,7 @@ export const InstanceManager = () => {
 
   return (
     <div className="space-y-12 max-w-7xl mx-auto px-6">
-      {/* Stats - Larger, more spaced */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8">
           <div className="flex items-center justify-between">
@@ -127,7 +118,7 @@ export const InstanceManager = () => {
         </Card>
       </div>
 
-      {/* Instances Grid - Larger gap, full beauty */}
+      {/* Instances Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {instances.length === 0 ? (
           <Card className="col-span-full glass-card rounded-3xl p-16 text-center animate-scale-in">
@@ -140,14 +131,20 @@ export const InstanceManager = () => {
           </Card>
         ) : (
           instances.map((instance, index) => (
-            <InstanceCard key={instance.name} instance={instance} />
+            <InstanceCard 
+              key={instance.name} 
+              instance={instance} 
+              index={index} 
+              loadInstances={loadInstances} 
+              openWebhook={openWebhook} 
+            />
           ))
         )}
       </div>
 
       <QrDialog />
 
-      {/* Premium Webhook Modal */}
+      {/* Webhook Modal */}
       <Dialog open={webhookOpen} onOpenChange={setWebhookOpen}>
         <DialogContent className="glass-card max-w-4xl max-h-[80vh] rounded-2xl">
           <DialogHeader>
