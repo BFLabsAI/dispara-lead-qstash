@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
-import { DateRange } from "react-day-picker"; // Import DateRange type for range mode
+import { DateRange } from "react-day-picker";
 
 interface FiltersProps {
   onFilterChange: (filters: any) => void;
@@ -18,7 +18,10 @@ interface FiltersProps {
 export const Filters = ({ onFilterChange }: FiltersProps) => {
   const [instance, setInstance] = useState("all");
   const [tipo, setTipo] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: undefined,
+    to: undefined,
+  });
 
   const handleReset = () => {
     setInstance("all");
@@ -32,57 +35,75 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
   };
 
   return (
-    <Card className="border-0 shadow-sm">
+    <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
       <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
           <div>
-            <Label className="flex items-center gap-1">Instância</Label>
+            <Label className="flex items-center gap-2 text-gray-300">Instância</Label>
             <Select value={instance} onValueChange={setInstance}>
-              <SelectTrigger>
+              <SelectTrigger className="glass-card border-gray-700 bg-gray-900/50 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {/* Dynamic options */}
+              <SelectContent className="glass-card bg-gray-900/90 border-gray-700">
+                <SelectItem value="all" className="text-white hover:bg-gray-800/50">Todas</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="flex items-center gap-1">Tipo</Label>
+            <Label className="flex items-center gap-2 text-gray-300">Tipo</Label>
             <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger>
+              <SelectTrigger className="glass-card border-gray-700 bg-gray-900/50 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {/* Dynamic */}
+              <SelectContent className="glass-card bg-gray-900/90 border-gray-700">
+                <SelectItem value="all" className="text-white hover:bg-gray-800/50">Todos</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="flex items-center gap-1">Período</Label>
+            <Label className="flex items-center gap-2 text-gray-300">Período</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <Button variant="outline" className="glass-card w-full justify-start text-left font-normal border-gray-700 bg-gray-900/50 text-white hover:bg-gray-800/50">
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from ? `${format(dateRange.from, "PPP")} ${dateRange.to ? `- ${format(dateRange.to, "PPP")}` : ""}` : <span>Pick a date</span>}
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "PPP")} - {format(dateRange.to, "PPP")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "PPP")
+                    )
+                  ) : (
+                    <span className="text-gray-400">Selecionar período</span>
+                  )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar 
-                  mode="range" 
-                  selected={dateRange} 
-                  onSelect={setDateRange} 
-                  numberOfMonths={2} 
+              <PopoverContent className="glass-card w-auto p-0 border-gray-700 bg-gray-900/90" align="start">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  className="text-white"
                 />
               </PopoverContent>
             </Popover>
           </div>
-          <div className="space-y-2">
-            <Button variant="outline" onClick={handleReset} className="w-full">
-              <i className="bi bi-arrow-clockwise mr-1"></i>Limpar
+          <div className="space-y-3">
+            <Button 
+              variant="outline" 
+              onClick={handleReset} 
+              className="glass-card w-full border-gray-700 hover:bg-gray-800/50 text-gray-300"
+            >
+              <i className="fas fa-arrow-rotate-left mr-2"></i>Limpar
             </Button>
-            <Button onClick={handleApply} className="w-full">Aplicar</Button>
+            <Button 
+              onClick={handleApply} 
+              className="btn-premium w-full gradient-success text-white"
+            >
+              <i className="fas fa-check mr-2"></i>Aplicar
+            </Button>
           </div>
         </div>
       </CardContent>

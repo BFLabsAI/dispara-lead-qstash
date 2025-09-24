@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Filters } from "./Filters";
@@ -54,10 +54,10 @@ export const Dashboard = () => {
       filtered = filtered.filter((item) => item.tipo_envio === filters.tipo);
     }
     if (filters.dateRange?.from && filters.dateRange?.to) {
-      const { from, to } = filters.dateRange;
+      const start = dayjs(filters.dateRange.from).startOf("day");
+      const end = dayjs(filters.dateRange.to).endOf("day");
       filtered = filtered.filter((item) =>
-        item.date.isAfter(dayjs(from).startOf("day")) &&
-        item.date.isBefore(dayjs(to).endOf("day"))
+        item.date.isAfter(start) && item.date.isBefore(end)
       );
     }
     setFilteredData(filtered);
@@ -68,22 +68,29 @@ export const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-green-500 mb-2" />
-        <p className="text-muted-foreground">Buscando dados do dashboard...</p>
+      <div className="flex flex-col items-center justify-center py-12 glass-card rounded-3xl p-12 animate-scale-in">
+        <div className="loading-dots mb-6">
+          <div></div><div></div><div></div><div></div>
+        </div>
+        <h3 className="text-2xl font-semibold mb-2 gradient-text">Carregando Dashboard</h3>
+        <p className="text-gray-400">Buscando dados analíticos...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="destructive" className="mx-auto max-w-md">
-        <AlertDescription>
-          <p className="font-semibold">Erro ao carregar dados.</p>
-          <p>{error}</p>
-          <Button onClick={loadData} className="mt-2">Tentar Novamente</Button>
+      <div className="glass-card rounded-3xl p-12 text-center animate-scale-in">
+        <XCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+        <AlertDescription className="text-gray-300">
+          <p className="font-semibold text-white mb-2">Erro ao carregar dados.</p>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <Button onClick={loadData} className="btn-premium px-6 py-3 gradient-primary text-white rounded-xl">
+            <i className="fas fa-redo mr-2"></i>
+            Tentar Novamente
+          </Button>
         </AlertDescription>
-      </Alert>
+      </div>
     );
   }
 
@@ -92,7 +99,7 @@ export const Dashboard = () => {
   const totalSemIA = totalEnvios - totalIA;
 
   return (
-    <div>
+    <div className="space-y-8">
       <Filters onFilterChange={setFilters} />
       <KPIs totalEnvios={totalEnvios} totalIA={totalIA} totalSemIA={totalSemIA} />
       <Charts filteredData={filteredData} />
@@ -105,3 +112,5 @@ export const Dashboard = () => {
     </div>
   );
 };
+
+export default Dashboard;
