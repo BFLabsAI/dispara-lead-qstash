@@ -77,13 +77,13 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb max-w-full overflow-hidden">
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
         <CardContent className="p-8">
           <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
             <i className="fas fa-chart-pie"></i> Envios por Tipo
           </h5>
-          <div className="h-[350px]">
+          <div className="h-[400px] max-w-full overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -107,7 +107,12 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                     name
                   ]} 
                 />
-                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                <Legend 
+                  layout="vertical" 
+                  verticalAlign="middle" 
+                  align="right"
+                  wrapperStyle={{ paddingLeft: '10px', fontSize: '12px', maxHeight: '300px', overflowY: 'auto' }} 
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -119,7 +124,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
             <i className="fas fa-server"></i> Envios por Instância
           </h5>
-          <div className="h-[350px]">
+          <div className="h-[400px] max-w-full overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -143,7 +148,12 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                     name
                   ]} 
                 />
-                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                <Legend 
+                  layout="vertical" 
+                  verticalAlign="middle" 
+                  align="right"
+                  wrapperStyle={{ paddingLeft: '10px', fontSize: '12px', maxHeight: '300px', overflowY: 'auto' }} 
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -155,7 +165,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
             <i className="fas fa-clock"></i> Envios por Hora
           </h5>
-          <div className="h-[350px]">
+          <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={horaData.map((v, i) => ({ hour: i, value: v }))} margin={{ bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
@@ -174,7 +184,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
             <i className="fas fa-chart-line"></i> Timeline de Envios
           </h5>
-          <div className="h-[350px]">
+          <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sortedTimeline} margin={{ right: 30, bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
@@ -183,7 +193,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                 <Tooltip labelFormatter={(label) => `Dia: ${label}`} />
                 <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2 }} activeDot={{ r: 6 }} />
                 <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
-                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="top" />
+                <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '14px' }} verticalAlign="top" />
               </LineChart>
             </ResponsiveContainer>
           </div>
