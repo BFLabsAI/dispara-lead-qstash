@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useLocation, Outlet } from "react-router-dom";
+import { useLocation, Outlet, useNavigate } from "react-router-dom";
 import {
   Home,
   Send,
@@ -24,6 +24,7 @@ interface DashboardLayoutProps {}
 export const DashboardLayout = () => {
   const [isDark, setIsDark] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isDark) {
@@ -41,13 +42,21 @@ export const DashboardLayout = () => {
     return "Dashboard";
   });
 
+  // Sync selected with current route
+  useEffect(() => {
+    if (location.pathname === "/") setSelected("Dashboard");
+    else if (location.pathname === "/instancias") setSelected("Instâncias");
+    else if (location.pathname === "/disparo") setSelected("Novo Disparo");
+  }, [location.pathname]);
+
   const menuItems = [
     { Icon: BarChart3, title: "Dashboard", path: "/", notifs: 0 },
     { Icon: QrCode, title: "Instâncias", path: "/instancias", notifs: 0 },
     { Icon: Send, title: "Novo Disparo", path: "/disparo", notifs: 0 },
   ];
 
-  const updateSelected = (title: string) => {
+  const handleNavigate = (path: string, title: string) => {
+    navigate(path);
     setSelected(title);
   };
 
@@ -58,7 +67,7 @@ export const DashboardLayout = () => {
           open={open} 
           setOpen={setOpen} 
           selected={selected} 
-          setSelected={updateSelected}
+          onNavigate={handleNavigate}
           menuItems={menuItems}
         />
         <div className="flex-1 p-6 overflow-auto">
@@ -98,7 +107,7 @@ export const DashboardLayout = () => {
   );
 };
 
-const Sidebar = ({ open, setOpen, selected, setSelected, menuItems }) => {
+const Sidebar = ({ open, setOpen, selected, onNavigate, menuItems }) => {
   return (
     <nav
       className={`sticky top-0 h-screen shrink-0 border-r transition-all duration-300 ease-in-out ${
@@ -114,7 +123,7 @@ const Sidebar = ({ open, setOpen, selected, setSelected, menuItems }) => {
             Icon={item.Icon}
             title={item.title}
             selected={selected}
-            setSelected={setSelected}
+            onClick={() => onNavigate(item.path, item.title)}
             open={open}
             notifs={item.notifs}
           />
@@ -126,11 +135,11 @@ const Sidebar = ({ open, setOpen, selected, setSelected, menuItems }) => {
   );
 };
 
-const Option = ({ Icon, title, selected, setSelected, open, notifs }: { 
+const Option = ({ Icon, title, selected, onClick, open, notifs }: { 
   Icon: React.ComponentType<any>; 
   title: string; 
   selected: string; 
-  setSelected: React.Dispatch<React.SetStateAction<string>>; 
+  onClick: () => void;
   open: boolean; 
   notifs?: number; 
 }) => {
@@ -138,7 +147,8 @@ const Option = ({ Icon, title, selected, setSelected, open, notifs }: {
   
   return (
     <button
-      className={`relative flex h-11 w-full items-center rounded-md transition-all duration-200 ${
+      onClick={onClick}
+      className={`relative flex h-11 w-full items-center rounded-md transition-all duration-200 w-full ${
         isSelected 
           ? "bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-300 shadow-sm border-l-2 border-green-500" 
           : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
