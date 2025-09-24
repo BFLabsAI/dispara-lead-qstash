@@ -1,4 +1,3 @@
-35 chars); adding flex nowrap to button text for better fit. X gradient red: changing to bg-gradient-to-r from-red-500 to-red-600 (not full solid), hover from-red-600 to-red-700, white icon, rounded-full with red glow (animate-pulse-glow border-red-500/40). Clean code without erroneous description text to fix all 31 TS errors (description was parsed as code).">
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,19 +36,19 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
     setDateRange({ from: undefined, to: undefined });
   };
 
-  // Função para format curto e tooltip full
+  // Função para format curto e tooltip full (sem corte rígido)
   const getDateDisplay = (range: DateRange | undefined) => {
     if (!range?.from) return <span className={isDark ? 'text-gray-400' : 'text-white/80'}>Selecionar período</span>;
     const fromStr = format(range.from, "MMM d, yyyy"); // Curto: "Sep 1, 2025"
     if (range.to) {
       const toStr = format(range.to, "MMM d, yyyy");
-      const fullRange = `${fromStr} - ${toStr}`; // ' - ' separator for shortness
+      const fullRange = `${fromStr} - ${toStr}`; // Mostra range completo curto
       return (
         <span 
-          className="truncate block flex nowrap" 
+          className="truncate block" 
           title={fullRange} // Tooltip full para hover
         >
-          {fullRange.length > 35 ? `${fromStr} - ${toStr.slice(-10)}...` : fullRange} {/* Higher limit 35; preserves end of second date if truncated */}
+          {fullRange} {/* Sem limite chars: truncate cuida do ellipsis se necessário */}
         </span>
       );
     }
@@ -129,7 +128,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
           <Button 
             variant="ghost" 
             onClick={handleReset} 
-            className={`h-10 w-10 p-0 rounded-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg border-0 animate-pulse-glow kpi-icon border border-red-500/40`} // Gradient red, white icon, red glow premium
+            className={`h-10 w-10 p-0 rounded-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg border-0 animate-pulse-glow kpi-icon border border-red-500/40`} // Gradiente red, white icon, red glow premium
           >
             <X className="h-4 w-4" /> {/* Ícone branco, tamanho médio */}
           </Button>
