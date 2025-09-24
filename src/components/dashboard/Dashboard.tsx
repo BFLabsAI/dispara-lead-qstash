@@ -1,21 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Filters } from "@/components/dashboard/Filters";
-import { KPIs } from "@/components/dashboard/KPIs";
-import { Charts } from "@/components/dashboard/Charts";
-import { DashboardTable } from "@/components/dashboard/Table";
+import { Filters } from "./Filters";
+import { KPIs } from "./KPIs";
+import { Charts } from "./Charts";
+import { DashboardTable } from "./Table";
 import dayjs from "dayjs";
-import { useTheme } from "@/context/ThemeContext";
 
 const URL_DASHBOARD_DATA = "https://webhook.bflabs.com.br/webhook/busca-dados-r7";
 
 export const Dashboard = () => {
-  const { isDark } = useTheme();
   const [allData, setAllData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,22 +68,29 @@ export const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-green-500 mb-2" />
-        <p className={`${isDark ? 'text-gray-400' : 'text-gray-900'}`}>Buscando dados do dashboard...</p>
+      <div className="flex flex-col items-center justify-center py-12 glass-card rounded-3xl p-12 animate-scale-in mx-auto max-w-4xl">
+        <div className="loading-dots mb-6">
+          <div></div><div></div><div></div><div></div>
+        </div>
+        <h3 className="text-2xl font-semibold mb-2 gradient-text">Carregando Dashboard</h3>
+        <p className="text-gray-400">Buscando dados analíticos...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="destructive" className="mx-auto max-w-md">
-        <AlertDescription>
-          <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Erro ao carregar dados.</p>
-          <p className={`${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{error}</p>
-          <Button onClick={loadData} className="mt-2">Tentar Novamente</Button>
+      <div className="glass-card rounded-3xl p-12 text-center animate-scale-in mx-auto max-w-4xl">
+        <XCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+        <AlertDescription className="text-gray-300">
+          <p className="font-semibold text-white mb-2">Erro ao carregar dados.</p>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <Button onClick={loadData} className="btn-premium px-6 py-3 gradient-primary text-white rounded-xl">
+            <i className="fas fa-redo mr-2"></i>
+            Tentar Novamente
+          </Button>
         </AlertDescription>
-      </Alert>
+      </div>
     );
   }
 
@@ -95,7 +99,7 @@ export const Dashboard = () => {
   const totalSemIA = totalEnvios - totalIA;
 
   return (
-    <div>
+    <div className="space-y-8 max-w-7xl mx-auto px-4"> {/* Added max-width and px-4 for spacing */}
       <Filters onFilterChange={setFilters} />
       <KPIs totalEnvios={totalEnvios} totalIA={totalIA} totalSemIA={totalSemIA} />
       <Charts filteredData={filteredData} />
