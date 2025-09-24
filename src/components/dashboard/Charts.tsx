@@ -12,12 +12,12 @@ const COLORS = ["#10B981", "#059669", "#EF4444", "#3B82F6", "#F59E0B", "#8B5CF6"
 
 export const Charts = ({ filteredData }: ChartsProps) => {
   const tipoData = filteredData.reduce((acc, item) => {
-    acc[item.tipo_envio] = (acc[item.tipo_envio] || 0) + 1;
+    acc[item.tipo_envio || 'Desconhecido'] = (acc[item.tipo_envio || 'Desconhecido'] || 0) + 1;
     return acc;
   }, {} as any);
 
   const instanciaData = filteredData.reduce((acc, item) => {
-    acc[item.instancia] = (acc[item.instancia] || 0) + 1;
+    acc[item.instancia || 'Desconhecida'] = (acc[item.instancia || 'Desconhecida'] || 0) + 1;
     return acc;
   }, {} as any);
 
@@ -28,29 +28,29 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   });
 
   const timelineData = filteredData.reduce((acc, item) => {
-    const day = item.date.format("YYYY-MM-DD");
+    const day = item.date.format("DD/MM");
     acc[day] = (acc[day] || 0) + 1;
     return acc;
   }, {} as any);
   const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 px-4"> {/* Added mb-8 and px-4 for spacing */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb"> {/* Increased gap/mb for beauty */}
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
-        <CardContent className="p-6">
-          <h5 className="font-semibold mb-4 flex items-center gap-2 gradient-text">
-            <i className="fas fa-chart-pie"></i>Envios por Tipo
+        <CardContent className="p-8"> {/* Increased padding */}
+          <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
+            <i className="fas fa-chart-pie"></i> Envios por Tipo
           </h5>
-          <div className="h-[300px]"> {/* Fixed height container */}
+          <div className="h-[350px]"> {/* Taller for no cut-off */}
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={Object.entries(tipoData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={80} fill="#10B981" label>
+                <Pie data={Object.entries(tipoData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={100} fill="#10B981" labelLine={false}>
                   {Object.entries(tipoData).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend wrapperStyle={{ paddingTop: '10px' }} /> {/* Added padding for legend */}
+                <Tooltip formatter={(value) => [`${value} envios`, '']} />
+                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -58,20 +58,20 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       </Card>
       
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.1s'}}>
-        <CardContent className="p-6">
-          <h5 className="font-semibold mb-4 flex items-center gap-2 gradient-text">
-            <i className="fas fa-server"></i>Envios por Instância
+        <CardContent className="p-8">
+          <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
+            <i className="fas fa-server"></i> Envios por Instância
           </h5>
-          <div className="h-[300px]">
+          <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={Object.entries(instanciaData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={80} fill="#10B981">
+                <Pie data={Object.entries(instanciaData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={100} fill="#10B981" labelLine={false}>
                   {Object.entries(instanciaData).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                <Tooltip formatter={(value) => [`${value} envios`, '']} />
+                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -79,18 +79,18 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       </Card>
       
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.2s'}}>
-        <CardContent className="p-6">
-          <h5 className="font-semibold mb-4 flex items-center gap-2 gradient-text">
-            <i className="fas fa-clock"></i>Envios por Hora
+        <CardContent className="p-8">
+          <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
+            <i className="fas fa-clock"></i> Envios por Hora
           </h5>
-          <div className="h-[300px]">
+          <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={horaData.map((v, i) => ({ hour: i, value: v }))}>
+              <BarChart data={horaData.map((v, i) => ({ hour: i, value: v }))} margin={{ bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="hour" stroke="gray" interval={4} angle={-45} textAnchor="end" height={60} /> {/* Rotated labels, extra height */}
-                <YAxis stroke="gray" width={40} /> {/* Fixed width */}
-                <Tooltip />
-                <Bar dataKey="value" fill="#10B981" />
+                <XAxis dataKey="hour" stroke={isDark ? 'white' : 'gray'} interval={3} angle={-45} textAnchor="end" height={80} tick={{ fill: isDark ? 'white' : 'gray', fontSize: 12 }} />
+                <YAxis stroke={isDark ? 'white' : 'gray'} width={50} tick={{ fill: isDark ? 'white' : 'gray' }} />
+                <Tooltip labelFormatter={(label) => `Hora ${label}h`} />
+                <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -98,20 +98,20 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       </Card>
       
       <Card className="lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
-        <CardContent className="p-6">
-          <h5 className="font-semibold mb-4 flex items-center gap-2 gradient-text">
-            <i className="fas fa-chart-line"></i>Timeline de Envios
+        <CardContent className="p-8">
+          <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
+            <i className="fas fa-chart-line"></i> Timeline de Envios
           </h5>
-          <div className="h-[300px]">
+          <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sortedTimeline} margin={{ right: 30, bottom: 20 }}> {/* Added margins */}
+              <LineChart data={sortedTimeline} margin={{ right: 30, bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="day" stroke="gray" angle={-45} textAnchor="end" height={60} interval={Math.max(0, sortedTimeline.length - 5)} /> {/* Rotated, spaced labels */}
-                <YAxis stroke="gray" width={40} />
-                <Tooltip />
-                <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} />
-                <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
-                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                <XAxis dataKey="day" stroke={isDark ? 'white' : 'gray'} angle={-45} textAnchor="end" height={80} interval={0} tick={{ fill: isDark ? 'white' : 'gray', fontSize: 12 }} />
+                <YAxis stroke={isDark ? 'white' : 'gray'} width={50} tick={{ fill: isDark ? 'white' : 'gray' }} />
+                <Tooltip labelFormatter={(label) => `Dia: ${label}`} />
+                <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
+                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="top" />
               </LineChart>
             </ResponsiveContainer>
           </div>

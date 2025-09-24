@@ -19,12 +19,8 @@ import { Badge } from "@/components/ui/badge";
 export const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isDark, setIsDark] = useState(() => {
-    // Load initial theme from localStorage, default to dark (premium look)
-    return localStorage.getItem('theme') !== 'light';
-  });
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') !== 'light');
 
-  // Apply theme to document root
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -43,7 +39,6 @@ export const DashboardLayout = () => {
     return "Dashboard";
   });
 
-  // Sync selected with current route
   useEffect(() => {
     if (location.pathname === "/") setSelected("Dashboard");
     else if (location.pathname === "/instancias") setSelected("Instâncias");
@@ -51,7 +46,7 @@ export const DashboardLayout = () => {
   }, [location.pathname]);
 
   const menuItems = [
-    { Icon: BarChart3, title: "Dashboard", path: "/", notifs: 0 },
+    { Icon: BarChart3, title: "Dashboard", path: "/", notifs: 3 },
     { Icon: QrCode, title: "Instâncias", path: "/instancias", notifs: 0 },
     { Icon: Send, title: "Novo Disparo", path: "/disparo", notifs: 0 },
   ];
@@ -61,64 +56,50 @@ export const DashboardLayout = () => {
     setSelected(title);
   };
 
-  const toggleTheme = () => {
-    setIsDark(prev => !prev);
-  };
+  const toggleTheme = () => setIsDark(prev => !prev);
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden">
-      {/* Premium Background Elements - Only show in dark mode for vibrancy */}
+      {/* Vibrant Background - Dark only, more subtle */}
       {!isDark ? null : (
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-600 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-green-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float" style={{animationDelay: '2s'}}></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-700 rounded-full mix-blend-multiply filter blur-xl opacity-5 animate-float" style={{animationDelay: '4s'}}></div>
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-500/10 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-green-600/10 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-700/5 rounded-full blur-3xl animate-float" style={{animationDelay: '4s'}}></div>
         </div>
       )}
 
       <div className="relative z-10 flex flex-1">
-        <Sidebar 
-          open={open} 
-          setOpen={setOpen} 
-          selected={selected} 
-          onNavigate={handleNavigate}
-          menuItems={menuItems}
-          isDark={isDark}
-        />
-        <div className="flex-1 flex flex-col overflow-auto">
-          {/* Premium Header */}
-          <header className={`glass-card py-6 px-6 text-left animate-slide-in-up z-10 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+        <Sidebar open={open} setOpen={setOpen} selected={selected} onNavigate={handleNavigate} menuItems={menuItems} isDark={isDark} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Premium Header - Spacious, elegant */}
+          <header className="glass-card p-6 section-p text-left animate-slide-in-up z-10 border-b">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className={`text-3xl font-bold ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-                  {selected === "Dashboard" ? "Dashboard" : selected === "Instâncias" ? "Gerenciamento de Instâncias" : "Novo Disparo"}
+              <div className="space-y-1">
+                <h1 className={`text-4xl font-bold ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
+                  {selected}
                 </h1>
-                <p className={`mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {selected === "Dashboard" ? "Bem-vindo ao seu dashboard premium" : selected === "Instâncias" ? "Gerencie suas instâncias do WhatsApp com excelência" : "Configure envios em massa com precisão"}
+                <p className={`text-lg ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {selected === "Dashboard" ? "Analytics e insights em tempo real" : selected === "Instâncias" ? "Gerencie conexões WhatsApp premium" : "Crie disparos massivos inteligentes"}
                 </p>
               </div>
               <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" className={`relative glass-card p-3 rounded-xl ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+                <Button variant="ghost" className={`relative glass-card p-3 rounded-xl ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                   <Bell className="h-5 w-5" />
-                  <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 text-xs">3</Badge>
+                  <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 text-xs bg-red-500">3</Badge>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleTheme}
-                  className={`glass-card h-10 w-10 p-0 rounded-xl ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
-                >
+                <Button onClick={toggleTheme} variant="ghost" className={`glass-card h-10 w-10 p-0 rounded-xl ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                   {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </Button>
-                <Button variant="ghost" size="sm" className={`glass-card h-10 w-10 p-0 rounded-xl ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+                <Button variant="ghost" className={`glass-card h-10 w-10 p-0 rounded-xl ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                   <User className="h-5 w-5" />
                 </Button>
               </div>
             </div>
           </header>
           
-          {/* Content */}
-          <main className="flex-1 p-6 overflow-y-auto">
+          {/* Content - Full height, scrollable */}
+          <main className="flex-1 overflow-y-auto p-6 section-p">
             <Outlet />
           </main>
         </div>
@@ -127,137 +108,60 @@ export const DashboardLayout = () => {
   );
 };
 
-const Sidebar = ({ open, setOpen, selected, onNavigate, menuItems, isDark }) => {
-  return (
-    <nav
-      className={`sticky top-0 h-screen shrink-0 border-r transition-all duration-300 ease-in-out z-10 glass-card ${
-        open ? 'w-64' : 'w-16'
-      } p-2 shadow-sm ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
-    >
-      <TitleSection open={open} />
+// Sidebar - Premium gradient bg, white icons
+const Sidebar = ({ open, setOpen, selected, onNavigate, menuItems, isDark }) => (
+  <nav className={`sticky top-0 h-screen shrink-0 border-r transition-all duration-300 ease-in-out z-10 ${isDark ? 'gradient-primary/10 backdrop-blur-md' : 'bg-white/80 backdrop-blur-md'} ${open ? 'w-64' : 'w-16'} p-4 shadow-lg border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+    <TitleSection open={open} />
+    <div className="space-y-2 mt-8 mb-auto">
+      {menuItems.map((item) => (
+        <Option key={item.title} Icon={item.Icon} title={item.title} selected={selected} onClick={() => onNavigate(item.path, item.title)} open={open} notifs={item.notifs} isDark={isDark} />
+      ))}
+    </div>
+    <ToggleClose open={open} setOpen={setOpen} isDark={isDark} />
+  </nav>
+);
 
-      <div className="space-y-1 mb-8">
-        {menuItems.map((item) => (
-          <Option
-            key={item.title}
-            Icon={item.Icon}
-            title={item.title}
-            selected={selected}
-            onClick={() => onNavigate(item.path, item.title)}
-            open={open}
-            notifs={item.notifs}
-            isDark={isDark}
-          />
-        ))}
-      </div>
-
-      <ToggleClose open={open} setOpen={setOpen} isDark={isDark} />
-    </nav>
-  );
-};
-
-const Option = ({ Icon, title, selected, onClick, open, notifs, isDark }: { 
-  Icon: React.ComponentType<any>; 
-  title: string; 
-  selected: string; 
-  onClick: () => void;
-  open: boolean; 
-  notifs?: number; 
-  isDark: boolean;
-}) => {
+const Option = ({ Icon, title, selected, onClick, open, notifs, isDark }) => {
   const isSelected = selected === title;
-  
   return (
-    <button
+    <Button
       onClick={onClick}
-      className={`relative flex h-11 w-full items-center rounded-xl transition-all duration-200 w-full glass-card card-premium ${
-        isSelected 
-          ? "bg-green-500/20 border-green-500 text-green-300 shadow-sm border-l-2" 
-          : isDark 
-            ? "text-gray-400 hover:bg-gray-800/50 hover:text-white"
-            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-      }`}
+      variant="ghost"
+      className={`relative flex h-12 w-full items-center justify-start rounded-xl transition-all duration-200 glass-card card-premium ${isSelected ? 'gradient-primary text-white shadow-lg' : isDark ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'}`}
     >
-      <div className="grid h-full w-12 place-content-center">
-        <Icon className={`h-4 w-4 ${isSelected ? 'text-green-400' : isDark ? 'text-gray-400' : 'text-gray-600'}`} />
-      </div>
-      
-      {open && (
-        <span
-          className={`text-sm font-medium transition-opacity duration-200 ml-3 ${
-            open ? 'opacity-100' : 'opacity-0'
-          } ${isSelected ? 'text-green-300' : isDark ? 'text-gray-400' : 'text-gray-600'}`}
-        >
-          {title}
-        </span>
-      )}
-
-      {notifs && open && (
-        <Badge variant="destructive" className={`absolute right-3 flex h-5 w-5 items-center justify-center text-xs font-medium ${isDark ? 'bg-red-500' : 'bg-red-600'}`}>
-          {notifs}
-        </Badge>
-      )}
-    </button>
+      <Icon className={`h-5 w-5 mr-3 ${isSelected ? 'text-white' : isDark ? 'text-gray-300' : 'text-gray-700'}`} />
+      {open && <span className={`font-semibold ${isSelected ? 'text-white' : isDark ? 'text-gray-300' : 'text-gray-700'}`}>{title}</span>}
+      {notifs && open && <Badge className={`absolute right-3 ${isDark ? 'bg-red-600 text-white' : 'bg-red-500 text-white'}`}>{notifs}</Badge>}
+    </Button>
   );
 };
 
-const TitleSection = ({ open }) => {
-  return (
-    <div className="mb-6 border-b border-gray-700 pb-4 glass-card rounded-xl p-3">
-      <div className="flex cursor-pointer items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Logo />
-          {open && (
-            <div className="transition-opacity duration-200">
-              <div className="flex items-center gap-2">
-                <div>
-                  <span className="block text-sm font-semibold gradient-text">
-                    DisparaLead
-                  </span>
-                  <span className="block text-xs text-gray-400">
-                    Premium
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
+const TitleSection = ({ open }) => (
+  <div className="mb-8 border-b border-white/10 pb-4">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="gradient-primary p-3 rounded-xl">
+          <i className="fas fa-rocket text-white text-xl"></i>
         </div>
         {open && (
-          <ChevronDown className="h-4 w-4 text-gray-400" />
+          <div>
+            <h2 className="text-xl font-bold gradient-text">DisparaLead</h2>
+            <p className="text-xs text-gray-400">Premium Automation</p>
+          </div>
         )}
       </div>
+      {open && <ChevronDown className="h-4 w-4 text-gray-400" />}
     </div>
-  );
-};
+  </div>
+);
 
-const Logo = () => {
-  return (
-    <div className="grid size-10 shrink-0 place-content-center rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-sm">
-      <img src="https://i.ibb.co/8WjsnNk/dispara-lead.png" alt="DisparaLead" className="h-6 w-6" />
-    </div>
-  );
-};
-
-const ToggleClose = ({ open, setOpen, isDark }) => {
-  return (
-    <button
-      onClick={() => setOpen(!open)}
-      className={`absolute bottom-0 left-0 right-0 border-t transition-colors hover:bg-gray-800/50 glass-card ${isDark ? 'border-gray-700' : 'border-gray-200'}`}
-    >
-      <div className="flex items-center p-3">
-        <div className="grid size-10 place-content-center">
-          <ChevronsRight
-            className={`h-4 w-4 transition-transform duration-300 ${isDark ? 'text-gray-400' : 'text-gray-600'} ${
-              open ? "rotate-180" : ""
-            }`}
-          />
-        </div>
-        {open && (
-          <span className={`text-sm font-medium transition-opacity duration-200 ml-3 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Esconder
-          </span>
-        )}
-      </div>
-    </button>
-  );
-};
+const ToggleClose = ({ open, setOpen, isDark }) => (
+  <Button
+    onClick={() => setOpen(!open)}
+    variant="ghost"
+    className={`w-full rounded-xl glass-card ${isDark ? 'text-gray-300 hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'}`}
+  >
+    <ChevronsRight className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''} ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
+    {open && <span className={`ml-3 font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Esconder</span>}
+  </Button>
+);
