@@ -4,6 +4,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, 
 import { Card, CardContent } from "@/components/ui/card";
 import { PieChart as PieIcon, Clock, Activity, BarChart3 } from "lucide-react"; // Ícones para empty states
 import dayjs from "dayjs";
+import { useTheme } from "@/context/ThemeContext";
 
 interface ChartsProps {
   filteredData: any[];
@@ -64,7 +65,7 @@ const EmptyChartState = ({ title, icon: Icon, isDark }: { title: string; icon: R
 );
 
 export const Charts = ({ filteredData }: ChartsProps) => {
-  const isDark = document.documentElement.classList.contains('dark');
+  const { isDark } = useTheme();
   const hasData = filteredData.length > 0;
 
   const tipoData = filteredData.reduce((acc: Record<string, number>, item) => {

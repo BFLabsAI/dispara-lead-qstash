@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle } from "lucide-react";
 import dayjs from "dayjs";
+import { useTheme } from "@/context/ThemeContext";
 
 interface TableProps {
   data: any[];
@@ -15,7 +16,7 @@ interface TableProps {
 }
 
 export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: TableProps) => {
-  const isDark = document.documentElement.classList.contains('dark');
+  const { isDark } = useTheme();
   const itemsPerPage = 5;
   const paginatedData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 

@@ -10,20 +10,20 @@ import { CalendarIcon, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { DateRange } from "react-day-picker";
+import { useTheme } from "@/context/ThemeContext";
 
 interface FiltersProps {
   onFilterChange: (filters: any) => void;
 }
 
 export const Filters = ({ onFilterChange }: FiltersProps) => {
+  const { isDark } = useTheme();
   const [instance, setInstance] = useState("all");
   const [tipo, setTipo] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
   });
-
-  const isDark = document.documentElement.classList.contains('dark');
 
   // Auto-apply: chama onFilterChange sempre que estados mudam
   useEffect(() => {

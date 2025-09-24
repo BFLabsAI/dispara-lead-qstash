@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, BarChart3, Brain, MessageCircle } from "lucide-react"; // Removido TrendingUp das importações (não usado mais)
+import { useTheme } from "@/context/ThemeContext";
 
 interface KPIsProps {
   totalEnvios: number;
@@ -10,7 +11,7 @@ interface KPIsProps {
 }
 
 export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
-  const isDark = document.documentElement.classList.contains('dark');
+  const { isDark } = useTheme();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 section-mb">

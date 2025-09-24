@@ -8,25 +8,28 @@ import Dashboard from "./pages/Dashboard";
 import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
 import NotFound from "./pages/NotFound";
+import { ThemeProvider } from "./context/ThemeContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route element={<DashboardLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/instancias" element={<Instancias />} />
-            <Route path="/disparo" element={<Disparo />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route element={<DashboardLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/instancias" element={<Instancias />} />
+              <Route path="/disparo" element={<Disparo />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
