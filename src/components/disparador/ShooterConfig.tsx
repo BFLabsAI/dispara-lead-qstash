@@ -60,7 +60,11 @@ export const ShooterConfig = () => {
         <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <i className="bi bi-rocket-takeoff"></i>Configuração de Disparo
         </h4>
-        <InstanceSelector instances={connectedInstances} onSelectionChange={setSelectedInstances} />
+        <InstanceSelector 
+          instances={connectedInstances} 
+          selectedInstances={selectedInstances}
+          onSelectionChange={setSelectedInstances} 
+        />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <ContactUploader onUpload={setVariables} />

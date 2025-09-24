@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -8,17 +7,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface InstanceSelectorProps {
   instances: { name: string; connectionStatus: string }[];
+  selectedInstances: string[];
   onSelectionChange: (selected: string[]) => void;
 }
 
-export const InstanceSelector = ({ instances, onSelectionChange }: InstanceSelectorProps) => {
-  const [selected, setSelected] = useState<string[]>([]);
-
+export const InstanceSelector = ({ instances, selectedInstances, onSelectionChange }: InstanceSelectorProps) => {
   const handleCheckboxChange = (name: string, checked: boolean) => {
     const newSelected = checked 
-      ? [...selected, name] 
-      : selected.filter(s => s !== name);
-    setSelected(newSelected);
+      ? [...selectedInstances, name] 
+      : selectedInstances.filter(s => s !== name);
     onSelectionChange(newSelected);
   };
 
@@ -37,7 +34,7 @@ export const InstanceSelector = ({ instances, onSelectionChange }: InstanceSelec
                 <div key={instance.name} className="flex items-center space-x-2">
                   <Checkbox 
                     id={`check-${instance.name}`} 
-                    checked={selected.includes(instance.name)}
+                    checked={selectedInstances.includes(instance.name)}
                     onCheckedChange={(checked) => handleCheckboxChange(instance.name, !!checked)}
                   />
                   <Label htmlFor={`check-${instance.name}`}>{instance.name}</Label>
