@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useDisparadorStore } from "./disparadorStore"; // We'll create this store for shared state
+import { useDisparadorStore } from "../../store/disparadorStore";
 
 interface InstanceCardProps {
   instance: {

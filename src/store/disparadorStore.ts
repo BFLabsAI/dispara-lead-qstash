@@ -1,11 +1,8 @@
 import { create } from "zustand";
 import { showError, showSuccess } from "@/utils/toast";
+import { ENDPOINTS } from "../services/api";
 
-// Endpoints
-const URL_BUSCA_INSTANCIAS = "https://webhook.bflabs.com.br/webhook/busca-instancias-nw";
-const URL_QR_CODE = "https://webhook.bflabs.com.br/webhook/atualizar-qr-code-nw";
-const URL_DISPARO = "https://webhook.bflabs.com.br/webhook/disparar";
-const URL_FILE_UPLOAD = "https://webhook.bflabs.com.br/webhook/file-upload";
+const { BUSCA_INSTANCIAS, QR_CODE, DISPARO, FILE_UPLOAD } = ENDPOINTS;
 
 interface Instance {
   name: string;
@@ -24,7 +21,7 @@ interface DisparadorState {
 
   loadInstances: () => Promise<void>;
   fetchQrCode: (instanceName: string) => Promise<void>;
-  resetQr: () => void; // New: reset QR state to prevent random opens
+  resetQr: () => void;
   uploadFile: (file: File) => Promise<{ contatos: any[]; variables: string[] }>;
   mediaUpload: (file: File) => Promise<string | null>;
   sendMessages: (params: {
@@ -50,7 +47,6 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   interromper: false,
   templates: [],
 
-  // New: Reset QR state (call on route change or init)
   resetQr: () => {
     set({ qrCode: null, qrInstance: null, qrCountdown: 0 });
   },
@@ -58,7 +54,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   loadInstances: async () => {
     set({ isLoading: true });
     try {
-      const response = await fetch(URL_BUSCA_INSTANCIAS);
+      const response = await fetch(BUSCA_INSTANCIAS);
       if (!response.ok) throw new Error("Falha ao buscar instâncias.");
       const data = await response.json();
       const instances = data.instances || data;
@@ -72,17 +68,15 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   },
 
   fetchQrCode: async (instanceName: string) => {
-    // Only fetch if not already loading QR
     if (get().qrInstance === instanceName && get().qrCode) return;
     
     set({ qrCode: null, qrInstance: instanceName, qrCountdown: 30 });
     try {
-      const response = await fetch(`${URL_QR_CODE}?instanceName=${instanceName}`);
+      const response = await fetch(`${QR_CODE}?instanceName=${instanceName}`);
       if (!response.ok) throw new Error("Falha ao gerar QR Code.");
       const data = await response.json();
       if (data.code) {
         set({ qrCode: `data:image/png;base64,${data.code}` });
-        // Countdown logic (simplified; use useEffect in component for interval)
       } else {
         set({ qrCode: null });
         showError("Já está conectado ou houve um erro.");
@@ -95,13 +89,12 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
 
   uploadFile: async (file: File) => {
     try {
-      // Parse file using xlsx (logic from original JS)
       const buf = await file.arrayBuffer();
       const wb = (window as any).XLSX.read(buf, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const arr = (window as any).XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-      const header = arr.shift().map((h: string) => String(h).trim());
-      const rows = arr as any[];
+      const header = (arr.shift() as string[]).map((h: string) => String(h).trim());
+      const rows = arr as any[][];
       const phoneField = header.find((h: string) => h.toLowerCase().includes("telefone")) || header[0];
       const contatos: any[] = [];
       const extractPhones = (raw: string) =>
@@ -128,7 +121,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   mediaUpload: async (file: File) => {
     try {
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase();
-      const response = await fetch(URL_FILE_UPLOAD, {
+      const response = await fetch(FILE_UPLOAD, {
         method: "POST",
         headers: { "Content-Type": file.type, "X-File-Name": sanitizedName },
         body: file,
@@ -152,7 +145,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
     let sucessos = 0;
     let erros = 0;
     let log = "";
-    const list = contatos.length ? contatos : []; // Assume contatos from textarea if needed
+    const list = contatos.length ? contatos : [];
     for (let i = 0; i < list.length; i++) {
       if (get().interromper) {
         log += "⏹️ Interrompido pelo usuário\n";
@@ -160,7 +153,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       }
       const item = list[i];
       const messages = templates.map((tt: any) => {
-        const personalizedText = tt.text.replace(/\{(\w+)\}/g, (_, k) => {
+        const personalizedText = tt.text.replace(/\{(\w+)\}/g, (_: any, k: string) => {
           const full = item[k] || "";
           return tt.text.includes(`{${k.split(" ")[0]}}`) ? full.split(" ")[0] : full;
         });
@@ -168,7 +161,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       });
       const choice = instances[i % instances.length];
       try {
-        const res = await fetch(URL_DISPARO, {
+        const res = await fetch(DISPARO, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -188,12 +181,10 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
         erros++;
         log += `❌ ${item.telefone} via ${choice} – Erro: ${(e as Error).message}\n`;
       }
-      // Progress update via callback or state
       const delay = (Math.random() * (tempoMax - tempoMin) + tempoMin) * 1000;
       await new Promise((r) => setTimeout(r, delay));
     }
     const finalLog = `RELATÓRIO DE ENVIO\n\nTotal: ${list.length}\nEnviados com sucesso: ${sucessos}\nTotal com erro: ${erros}\n\n--- DETALHES ---\n${log}`;
-    // Download log
     const blob = new Blob([finalLog], { type: "text/plain" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);

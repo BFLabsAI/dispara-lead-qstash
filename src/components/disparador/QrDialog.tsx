@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useDisparadorStore } from "./disparadorStore";
+import { useDisparadorStore } from "../../store/disparadorStore";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -21,7 +21,6 @@ export const QrDialog = () => {
       interval = setInterval(() => setCountdown((c) => c - 1), 1000);
     }
     if (countdown === 0) {
-      // Regenerate or close
       setOpen(false);
     }
     return () => clearInterval(interval);

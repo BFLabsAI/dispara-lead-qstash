@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { DashboardLayout } from "@/components/ui/DashboardLayout";
+import { DashboardLayout } from "./components/layout/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
@@ -20,12 +20,15 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            {/* Rotas que usam o DashboardLayout */}
             <Route element={<DashboardLayout />}>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/instancias" element={<Instancias />} />
               <Route path="/disparo" element={<Disparo />} />
             </Route>
+            
+            {/* Rotas que não usam o layout, como a página 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

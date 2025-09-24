@@ -9,8 +9,7 @@ import { KPIs } from "@/components/dashboard/KPIs";
 import { Charts } from "@/components/dashboard/Charts";
 import { DashboardTable } from "@/components/dashboard/Table";
 import dayjs from "dayjs";
-
-const URL_DASHBOARD_DATA = "https://webhook.bflabs.com.br/webhook/busca-dados-r7";
+import { getDashboardData } from "../services/dashboardService";
 
 export const Dashboard = () => {
   const [allData, setAllData] = useState<any[]>([]);
@@ -18,20 +17,13 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({ instance: "all", tipo: "all", dateRange: null });
+  const [filters, setFilters] = useState<any>({ instance: "all", tipo: "all", dateRange: null });
 
   const loadData = async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(URL_DASHBOARD_DATA);
-      if (!response.ok) throw new Error("Erro ao carregar dados.");
-      const result = await response.json();
-      const data = Array.isArray(result) ? result.map((item: any) => ({
-        ...item,
-        date: dayjs(item.created_at),
-      })) : [];
-      data.sort((a: any, b: any) => b.date - a.date);
+      const data = await getDashboardData();
       setAllData(data);
       setFilteredData(data);
     } catch (err) {

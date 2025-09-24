@@ -5,13 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { showError } from "@/utils/toast";
-import { useDisparadorStore } from "./disparadorStore";
+import { useDisparadorStore } from "../../store/disparadorStore";
 import { MessageBlock } from "./MessageBlock";
 import { InstanceSelector } from "./InstanceSelector";
 import { QrDialog } from "./QrDialog";
@@ -27,14 +26,13 @@ export const ShooterConfig = () => {
   const [status, setStatus] = useState("");
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
 
-  const { instances, contatos, templates, setTemplates, sendMessages, stopSending, loadInstances } = useDisparadorStore();
+  const { instances, contatos, templates, setTemplates, sendMessages, stopSending, loadInstances, setContatos } = useDisparadorStore();
 
   useEffect(() => {
     loadInstances();
   }, [loadInstances]);
 
   const handleSend = async () => {
-    // selectedInstances now managed via state (update InstanceSelector to call setSelectedInstances)
     if (selectedInstances.length === 0) return showError("Nenhuma instância selecionada.");
     if (contatos.length === 0) return showError("Nenhum contato fornecido.");
     if (tempoMin < 1 || tempoMax < 1 || tempoMax < tempoMin) return showError("Tempos inválidos.");
@@ -70,7 +68,10 @@ export const ShooterConfig = () => {
             <Textarea
               placeholder="Ex: 55849992053434..."
               value={contatos.map((c) => c.telefone).join("\n")}
-              onChange={(e) => {/* Parse to contatos */}}
+              onChange={(e) => {
+                const phones = e.target.value.split('\n').map(p => ({ telefone: p }));
+                setContatos(phones);
+              }}
               rows={5}
               className="resize-none"
             />
@@ -80,7 +81,6 @@ export const ShooterConfig = () => {
               <i className="bi bi-tags"></i>Variáveis disponíveis
             </Label>
             <div className="border p-2 rounded-md bg-muted h-32 overflow-y-auto flex flex-wrap gap-1">
-              {/* Render badges for variables */}
               {contatos.length > 0 && Object.keys(contatos[0]).filter((k) => k !== "telefone").map((key) => (
                 <Badge key={key} variant="secondary" className="cursor-pointer" onClick={() => {/* Insert to active textarea */}}>
                   {`{${key}}`}
@@ -106,7 +106,11 @@ export const ShooterConfig = () => {
         </div>
         <div className="space-y-4 mb-4">
           {Array.from({ length: qtdMensagens }).map((_, i) => (
-            <MessageBlock key={i} index={i} onUpdate={(tpl) => {/* Update templates */}} />
+            <MessageBlock key={i} index={i} onUpdate={(tpl) => {
+              const newTemplates = [...templates];
+              newTemplates[i] = tpl;
+              setTemplates(newTemplates);
+            }} />
           ))}
         </div>
         <div className="flex items-center space-x-2 mb-4">

@@ -6,8 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { useDisparadorStore } from "./disparadorStore";
+import { useDisparadorStore } from "../../store/disparadorStore";
 
 interface MessageBlockProps {
   index: number;
@@ -18,7 +17,6 @@ export const MessageBlock = ({ index, onUpdate }: MessageBlockProps) => {
   const [type, setType] = useState<"texto" | "imagem" | "audio" | "video">("texto");
   const [text, setText] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
-  const [showMedia, setShowMedia] = useState(false);
   const { mediaUpload } = useDisparadorStore();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,7 +26,7 @@ export const MessageBlock = ({ index, onUpdate }: MessageBlockProps) => {
     if (fileUrl) setMediaUrl(fileUrl);
   };
 
-  const previewText = text.replace(/\{(\w+)\}/g, (match, key) => `<span class="bg-green-100 text-green-800 px-1 rounded">${match}</span>`);
+  const previewText = text.replace(/\{(\w+)\}/g, (match, _key) => `<span class="bg-green-100 text-green-800 px-1 rounded">${match}</span>`);
 
   useEffect(() => {
     onUpdate({ type, text, mediaUrl });
