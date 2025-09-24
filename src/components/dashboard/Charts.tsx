@@ -2,7 +2,7 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import { PieChart as PieIcon, Clock, Activity, BarChart3, LineChart as LineChartIcon } from "lucide-react";
+import { PieChart as PieIcon, Clock, Activity, BarChart3 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
 interface ChartsProps {
@@ -70,16 +70,16 @@ export const Charts = ({ filteredData }: ChartsProps) => {
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const totalTipo = Object.values(tipoData).reduce((sum: number, v) => sum + (v as number), 0);
-  const pieDataTipo = Object.entries(tipoData).map(([name, value]) => ({ name, value, percentage: totalTipo > 0 ? (((value as number) / totalTipo) * 100).toFixed(1) : "0" }));
+  const totalTipo = Object.values(tipoData).reduce((sum: number, v) => sum + v, 0);
+  const pieDataTipo = Object.entries(tipoData).map(([name, value]: [string, number]) => ({ name, value, percentage: totalTipo > 0 ? ((value / totalTipo) * 100).toFixed(1) : "0" }));
 
   const instanciaData = filteredData.reduce((acc: Record<string, number>, item) => {
     const key = item.instancia || 'Desconhecida';
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const totalInstancia = Object.values(instanciaData).reduce((sum: number, v) => sum + (v as number), 0);
-  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]) => ({ name, value, percentage: totalInstancia > 0 ? (((value as number) / totalInstancia) * 100).toFixed(1) : "0" }));
+  const totalInstancia = Object.values(instanciaData).reduce((sum: number, v) => sum + v, 0);
+  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]: [string, number]) => ({ name, value, percentage: totalInstancia > 0 ? ((value / totalInstancia) * 100).toFixed(1) : "0" }));
 
   const horaData = Array(24).fill(0);
   filteredData.forEach((item) => horaData[item.date.hour()]++);
@@ -171,8 +171,8 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
               <Activity className="h-6 w-6 text-green-600" />
             </div>
-            <h3 className="font-bold text-xl flex items-center gap-2 text-shadow text-gray-900 dark:gradient-text">
-              <LineChartIcon className="h-6 w-6 text-green-600" /> Timeline de Envios
+            <h3 className="font-bold text-xl text-shadow text-gray-900 dark:gradient-text">
+              Timeline de Envios
             </h3>
           </div>
           {hasData ? (

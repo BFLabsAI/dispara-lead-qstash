@@ -20,9 +20,11 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
   return (
     <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-12">
       <CardContent className="p-8">
-        <div className="flex items-center gap-2 mb-6">
-          <TableIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
-          <h5 className="font-bold text-xl text-gray-900 dark:text-white">Registros de Disparo</h5>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+            <TableIcon className="h-6 w-6 text-green-600" />
+          </div>
+          <h3 className="font-bold text-xl text-gray-900 dark:text-white">Registros de Disparo</h3>
         </div>
         <div className="overflow-x-auto rounded-xl border border-green-200/50 dark:border-green-500/30">
           <Table>
