@@ -56,8 +56,8 @@ export const ShooterConfig = () => {
   const connectedInstances = instances.filter((i) => i.connectionStatus === "open" || i.connectionStatus === "connected");
 
   return (
-    <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
-      <CardContent className="p-8">
+    <Card className="border-0 shadow-sm">
+      <CardContent className="p-6">
         <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <i className="bi bi-rocket-takeoff"></i>Configuração de Disparo
         </h4>
