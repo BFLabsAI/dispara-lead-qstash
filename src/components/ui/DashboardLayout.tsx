@@ -28,38 +28,38 @@ export function DashboardLayout() {
   const { title, subtitle } = getPageTitle();
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      {/* Sticky top header - unchanged */}
-      <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 logoxa:hidden">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="-ml-1" />
-        </div>
-        <div className="flex flex-1 items-center justify-between gap-2">
-          {/* Optional search or logo here */}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="glass-card text-muted-foreground hover:text-foreground">
-            <Bell className="h-5 w-5" />
-            {notifications > 0 && (
-              <Badge
-                variant="destructive"
-                className="ml-1 h-5 w-5 rounded-full p-0 text-xs absolute -top-1 -right-1"
-              >
-                {notifications}
-              </Badge>
-            )}
-          </Button>
-          <Button variant="ghost" size="sm" className="glass-card text-muted-foreground hover:text-foreground">
-            <Sun className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="glass-card text-muted-foreground hover:text-foreground">
-            <User className="h-5 w-5" />
-          </Button>
-        </div>
-      </header>
+    <SidebarProvider> {/* Wrap entire layout to include header (SidebarTrigger) and main content (SidebarInset) */}
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        {/* Sticky top header - now inside provider */}
+        <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 logoxa:hidden">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1" />
+          </div>
+          <div className="flex flex-1 items-center justify-between gap-2">
+            {/* Optional search or logo here */}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="glass-card text-muted-foreground hover:text-foreground">
+              <Bell className="h-5 w-5" />
+              {notifications > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="ml-1 h-5 w-5 rounded-full p-0 text-xs absolute -top-1 -right-1"
+                >
+                  {notifications}
+                </Badge>
+              )}
+            </Button>
+            <Button variant="ghost" size="sm" className="glass-card text-muted-foreground hover:text-foreground">
+              <Sun className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="glass-card text-muted-foreground hover:text-foreground">
+              <User className="h-5 w-5" />
+            </Button>
+          </div>
+        </header>
 
-      {/* Wrap main content with SidebarProvider to fix useSidebar error */}
-      <SidebarProvider>
+        {/* Main content - now also inside provider */}
         <div className="flex flex-1 overflow-hidden">
           <SidebarInset>
             <div className="mx-auto w-full max-w-screen-2xl flex-1 overflow-auto p-4 md:p-6 lg:p-8">
@@ -101,7 +101,7 @@ export function DashboardLayout() {
             </div>
           </SidebarInset>
         </div>
-      </SidebarProvider>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }
