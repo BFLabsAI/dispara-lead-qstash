@@ -35,23 +35,25 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 px-4"> {/* Added mb-8 and px-4 for spacing */}
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
         <CardContent className="p-6">
           <h5 className="font-semibold mb-4 flex items-center gap-2 gradient-text">
             <i className="fas fa-chart-pie"></i>Envios por Tipo
           </h5>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie data={Object.entries(tipoData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={80} fill="#10B981" label>
-                {Object.entries(tipoData).map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="h-[300px]"> {/* Fixed height container */}
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={Object.entries(tipoData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={80} fill="#10B981" label>
+                  {Object.entries(tipoData).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend wrapperStyle={{ paddingTop: '10px' }} /> {/* Added padding for legend */}
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
       
@@ -60,17 +62,19 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           <h5 className="font-semibold mb-4 flex items-center gap-2 gradient-text">
             <i className="fas fa-server"></i>Envios por Instância
           </h5>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie data={Object.entries(instanciaData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={80} fill="#10B981">
-                {Object.entries(instanciaData).map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={Object.entries(instanciaData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={80} fill="#10B981">
+                  {Object.entries(instanciaData).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
       
@@ -79,15 +83,17 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           <h5 className="font-semibold mb-4 flex items-center gap-2 gradient-text">
             <i className="fas fa-clock"></i>Envios por Hora
           </h5>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={horaData.map((v, i) => ({ hour: i, value: v }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="hour" stroke="gray" />
-              <YAxis stroke="gray" />
-              <Tooltip />
-              <Bar dataKey="value" fill="#10B981" />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={horaData.map((v, i) => ({ hour: i, value: v }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis dataKey="hour" stroke="gray" interval={4} angle={-45} textAnchor="end" height={60} /> {/* Rotated labels, extra height */}
+                <YAxis stroke="gray" width={40} /> {/* Fixed width */}
+                <Tooltip />
+                <Bar dataKey="value" fill="#10B981" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
       
@@ -96,16 +102,19 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           <h5 className="font-semibold mb-4 flex items-center gap-2 gradient-text">
             <i className="fas fa-chart-line"></i>Timeline de Envios
           </h5>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={sortedTimeline}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="day" stroke="gray" />
-              <YAxis stroke="gray" />
-              <Tooltip />
-              <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} />
-              <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={sortedTimeline} margin={{ right: 30, bottom: 20 }}> {/* Added margins */}
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis dataKey="day" stroke="gray" angle={-45} textAnchor="end" height={60} interval={Math.max(0, sortedTimeline.length - 5)} /> {/* Rotated, spaced labels */}
+                <YAxis stroke="gray" width={40} />
+                <Tooltip />
+                <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} />
+                <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
+                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
     </div>

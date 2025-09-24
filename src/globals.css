@@ -59,7 +59,7 @@
 
   body {
     @apply text-foreground font-outfit;
-    background-color: hsl(var(--background)); /* Light mode: white/clean */
+    background-color: hsl(var(--background)); /* Light mode: pure white */
   }
 
   .dark {
@@ -130,8 +130,8 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
-  50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+  0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); }
 }
 
 @keyframes slideInUp {
@@ -149,18 +149,36 @@
 .animate-slide-in-up { animation: slideInUp 0.6s ease-out forwards; }
 .animate-scale-in { animation: scaleIn 0.4s ease-out forwards; }
 
-/* Premium Glass Effect - Adapted for both modes */
+/* Premium Glass Effect - Fixed for both modes with high contrast */
 .glass-card {
-  @apply bg-card border-card;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-.glass-card:hover {
-  @apply bg-card/90;
-  border-color: hsl(var(--primary));
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+.dark .glass-card {
+  background: rgba(31, 41, 55, 0.8); /* Darker, more opaque for contrast */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  color: white; /* Ensure text is white in dark */
+}
+
+.dark .glass-card:hover {
+  background: rgba(31, 41, 55, 0.9);
+  border-color: rgba(16, 185, 129, 0.5); /* Green border on hover */
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.2);
+}
+
+.light .glass-card {
+  background: rgba(255, 255, 255, 0.9); /* Solid white-ish for light mode */
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  color: #1f2937; /* Dark text for readability */
+}
+
+.light .glass-card:hover {
+  background: white;
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
 }
 
 /* Premium Gradients (Green-focused for Disparador) */
@@ -175,7 +193,11 @@
   background-clip: text;
 }
 
-/* Premium Button Effects */
+.dark .gradient-text {
+  background: linear-gradient(135deg, #10B981, #34D399); /* Keep green in dark */
+}
+
+/* Premium Button Effects - Theme-aware */
 .btn-premium {
   position: relative;
   overflow: hidden;
@@ -211,7 +233,7 @@
   box-shadow: 0 25px 50px rgba(16, 185, 129, 0.15); /* Green shadow */
 }
 
-/* Loading Animation (Dots) */
+/* Loading Animation (Dots) - Theme-aware */
 .loading-dots { 
   display: inline-block; 
   position: relative; 
@@ -257,7 +279,7 @@
 .status-offline::after { background: rgba(239, 68, 68, 0.3); }
 @keyframes pulse-ring { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
 
-/* Premium Modal */
+/* Premium Modal - Theme-aware */
 .modal-backdrop { 
   background: rgba(0, 0, 0, 0.8); 
   backdrop-filter: blur(10px); 
@@ -268,6 +290,18 @@
   backdrop-filter: blur(20px); 
   -webkit-backdrop-filter: blur(20px); 
   border: 1px solid rgba(255, 255, 255, 0.1); 
+  color: white;
+}
+
+.dark .modal-content {
+  background: rgba(31, 41, 55, 0.95);
+  color: white;
+}
+
+.light .modal-content {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* Premium Scrollbar - Theme-aware */
@@ -290,4 +324,12 @@
 @layer utilities { 
   .text-shadow { text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); } 
   .font-outfit { font-family: 'Outfit', sans-serif; }
+
+  /* Force high contrast text in dark mode */
+  .dark {
+    --text-contrast: 210 40% 98%; /* Bright white */
+  }
+  .dark * {
+    color: hsl(var(--text-contrast));
+  }
 }

@@ -35,16 +35,16 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
   };
 
   return (
-    <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
+    <Card className="glass-card rounded-2xl card-premium animate-slide-in-up max-w-7xl mx-auto">
       <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end max-w-full"> {/* Added max-w-full */}
           <div>
             <Label className="flex items-center gap-2 text-gray-300">Instância</Label>
             <Select value={instance} onValueChange={setInstance}>
               <SelectTrigger className="glass-card border-gray-700 bg-gray-900/50 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="glass-card bg-gray-900/90 border-gray-700">
+              <SelectContent className="glass-card bg-gray-900/90 border-gray-700 max-h-96"> {/* Limited height */}
                 <SelectItem value="all" className="text-white hover:bg-gray-800/50">Todas</SelectItem>
               </SelectContent>
             </Select>
@@ -55,12 +55,12 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
               <SelectTrigger className="glass-card border-gray-700 bg-gray-900/50 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="glass-card bg-gray-900/90 border-gray-700">
+              <SelectContent className="glass-card bg-gray-900/90 border-gray-700 max-h-96">
                 <SelectItem value="all" className="text-white hover:bg-gray-800/50">Todos</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="md:col-span-1">
             <Label className="flex items-center gap-2 text-gray-300">Período</Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -79,7 +79,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="glass-card w-auto p-0 border-gray-700 bg-gray-900/90" align="start">
+              <PopoverContent className="glass-card w-auto p-0 border-gray-700 bg-gray-900/90 max-w-none" align="start">
                 <Calendar
                   mode="range"
                   selected={dateRange}
@@ -90,7 +90,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
               </PopoverContent>
             </Popover>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 md:col-span-1">
             <Button 
               variant="outline" 
               onClick={handleReset} 

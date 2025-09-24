@@ -68,7 +68,7 @@ export const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 glass-card rounded-3xl p-12 animate-scale-in">
+      <div className="flex flex-col items-center justify-center py-12 glass-card rounded-3xl p-12 animate-scale-in mx-auto max-w-4xl">
         <div className="loading-dots mb-6">
           <div></div><div></div><div></div><div></div>
         </div>
@@ -80,7 +80,7 @@ export const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="glass-card rounded-3xl p-12 text-center animate-scale-in">
+      <div className="glass-card rounded-3xl p-12 text-center animate-scale-in mx-auto max-w-4xl">
         <XCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
         <AlertDescription className="text-gray-300">
           <p className="font-semibold text-white mb-2">Erro ao carregar dados.</p>
@@ -99,7 +99,7 @@ export const Dashboard = () => {
   const totalSemIA = totalEnvios - totalIA;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-7xl mx-auto px-4"> {/* Added max-width and px-4 for spacing */}
       <Filters onFilterChange={setFilters} />
       <KPIs totalEnvios={totalEnvios} totalIA={totalIA} totalSemIA={totalSemIA} />
       <Charts filteredData={filteredData} />

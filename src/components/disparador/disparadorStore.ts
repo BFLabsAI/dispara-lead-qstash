@@ -24,6 +24,7 @@ interface DisparadorState {
 
   loadInstances: () => Promise<void>;
   fetchQrCode: (instanceName: string) => Promise<void>;
+  resetQr: () => void; // New: reset QR state to prevent random opens
   uploadFile: (file: File) => Promise<{ contatos: any[]; variables: string[] }>;
   mediaUpload: (file: File) => Promise<string | null>;
   sendMessages: (params: {
@@ -49,6 +50,11 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   interromper: false,
   templates: [],
 
+  // New: Reset QR state (call on route change or init)
+  resetQr: () => {
+    set({ qrCode: null, qrInstance: null, qrCountdown: 0 });
+  },
+
   loadInstances: async () => {
     set({ isLoading: true });
     try {
@@ -66,6 +72,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   },
 
   fetchQrCode: async (instanceName: string) => {
+    // Only fetch if not already loading QR
+    if (get().qrInstance === instanceName && get().qrCode) return;
+    
     set({ qrCode: null, qrInstance: instanceName, qrCountdown: 30 });
     try {
       const response = await fetch(`${URL_QR_CODE}?instanceName=${instanceName}`);

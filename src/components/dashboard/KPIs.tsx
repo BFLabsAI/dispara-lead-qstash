@@ -11,7 +11,7 @@ interface KPIsProps {
 
 export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 px-4"> {/* Added mb-8 and px-4 */}
       <Card className="glass-card rounded-2xl p-6 card-premium animate-slide-in-up">
         <div className="flex items-center justify-between mb-4">
           <div className="p-2 bg-green-500/20 rounded-xl">

@@ -1,16 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, QrCode } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CheckCircle, XCircle, QrCode } from "lucide-react";
 import { useDisparadorStore } from "./disparadorStore";
 import { QrDialog } from "./QrDialog";
+import { showError, showSuccess } from "@/utils/toast";
 
 export const InstanceManager = () => {
-  const { instances, isLoading, loadInstances } = useDisparadorStore();
+  const location = useLocation();
+  const { instances, isLoading, loadInstances, resetQr } = useDisparadorStore();
   const [stats, setStats] = useState({ total: 0, connected: 0, disconnected: 0 });
+  const [webhookOpen, setWebhookOpen] = useState(false);
+  const [webhookInstance, setWebhookInstance] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
+
+  // Reset QR state on mount/route change to prevent random opens
+  useEffect(() => {
+    resetQr();
+  }, [location.pathname, resetQr]);
 
   useEffect(() => {
     loadInstances();
@@ -23,9 +37,25 @@ export const InstanceManager = () => {
     setStats({ total, connected, disconnected });
   }, [instances]);
 
+  const openWebhook = (instanceName: string) => {
+    setWebhookInstance(instanceName);
+    setWebhookUrl("");
+    setWebhookOpen(true);
+  };
+
+  const saveWebhook = () => {
+    if (!webhookUrl) {
+      showError("URL do webhook é obrigatória.");
+      return;
+    }
+    // TODO: Integrate with API if needed
+    showSuccess(`Webhook salvo para ${webhookInstance}: ${webhookUrl}`);
+    setWebhookOpen(false);
+  };
+
   if (isLoading) {
     return (
-      <div className="glass-card rounded-3xl p-12 text-center animate-scale-in">
+      <div className="glass-card rounded-3xl p-12 text-center animate-scale-in mx-auto max-w-4xl">
         <div className="loading-dots mx-auto mb-6">
           <div></div><div></div><div></div><div></div>
         </div>
@@ -36,8 +66,8 @@ export const InstanceManager = () => {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Stats Grid */}
+    <div className="space-y-8 max-w-7xl mx-auto px-4">
+      {/* Stats Grid - Added spacing */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="glass-card rounded-2xl p-6 card-premium animate-slide-in-up">
           <div className="flex items-center justify-between">
@@ -76,10 +106,10 @@ export const InstanceManager = () => {
         </div>
       </div>
 
-      {/* Instances Grid */}
+      {/* Instances Grid - Added max-width and spacing */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {instances.length === 0 ? (
-          <div className="col-span-full glass-card rounded-3xl p-12 text-center animate-scale-in">
+          <div className="col-span-full glass-card rounded-3xl p-12 text-center animate-scale-in mx-auto max-w-4xl">
             <QrCode className="h-16 w-16 text-gray-600 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold mb-2 text-gray-300">Nenhuma Instância Encontrada</h3>
             <p className="text-gray-500">Configure suas primeiras instâncias para começar.</p>
@@ -90,17 +120,42 @@ export const InstanceManager = () => {
           </div>
         ) : (
           instances.map((instance, index) => (
-            <InstanceCard key={instance.name} instance={instance} index={index} loadInstances={loadInstances} />
+            <InstanceCard key={instance.name} instance={instance} index={index} loadInstances={loadInstances} openWebhook={openWebhook} />
           ))
         )}
       </div>
 
       <QrDialog />
+
+      {/* Webhook Modal */}
+      <Dialog open={webhookOpen} onOpenChange={setWebhookOpen}>
+        <DialogContent className="glass-card max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="gradient-text">Configurar Webhook para {webhookInstance}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>URL do Webhook</Label>
+              <Input 
+                value={webhookUrl} 
+                onChange={(e) => setWebhookUrl(e.target.value)} 
+                placeholder="https://seu-webhook.com/receive"
+                className="mt-1"
+              />
+            </div>
+            <p className="text-sm text-gray-400">Configure eventos específicos se necessário (implementar checkboxes futuramente).</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWebhookOpen(false)}>Cancelar</Button>
+            <Button onClick={saveWebhook} className="btn-premium gradient-primary">Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-const InstanceCard = ({ instance, index, loadInstances }) => {
+const InstanceCard = ({ instance, index, loadInstances, openWebhook }) => {
   const { fetchQrCode } = useDisparadorStore();
   const isConnected = instance.connectionStatus === "open" || instance.connectionStatus === "connected";
   const statusConfig = isConnected 
@@ -112,7 +167,6 @@ const InstanceCard = ({ instance, index, loadInstances }) => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
           <div className="relative">
-            {/* Placeholder profile pic - replace with real if available */}
             <div className={`w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center border-2 border-gray-700`}>
               <QrCode className="h-8 w-8 text-white" />
             </div>
@@ -149,7 +203,7 @@ const InstanceCard = ({ instance, index, loadInstances }) => {
           {isConnected ? 'Desconectar' : 'Conectar'}
         </Button>
         
-        <Button className="btn-premium px-6 py-3 rounded-xl font-semibold gradient-primary text-white w-full">
+        <Button onClick={() => openWebhook(instance.name)} className="btn-premium px-6 py-3 rounded-xl font-semibold gradient-primary text-white w-full">
           <i className="fas fa-project-diagram mr-2"></i>
           Webhook
         </Button>
