@@ -58,10 +58,8 @@
   }
 
   body {
-    @apply bg-background text-foreground font-outfit;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #0f0f0f 50%, #1a1a1a 75%, #0a0a0a 100%);
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
+    @apply text-foreground font-outfit;
+    background-color: hsl(var(--background)); /* Light mode: white/clean */
   }
 
   .dark {
@@ -100,6 +98,12 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    body {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #0f0f0f 50%, #1a1a1a 75%, #0a0a0a 100%);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+    }
   }
 }
 
@@ -145,19 +149,18 @@
 .animate-slide-in-up { animation: slideInUp 0.6s ease-out forwards; }
 .animate-scale-in { animation: scaleIn 0.4s ease-out forwards; }
 
-/* Premium Glass Effect */
+/* Premium Glass Effect - Adapted for both modes */
 .glass-card {
-  background: rgba(255, 255, 255, 0.02);
+  @apply bg-card border-card;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(16, 185, 129, 0.3); /* Green accent */
-  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.1);
+  @apply bg-card/90;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 /* Premium Gradients (Green-focused for Disparador) */
@@ -221,7 +224,7 @@
   width: 13px; 
   height: 13px; 
   border-radius: 50%; 
-  background: #10B981; /* Green */
+  background: hsl(var(--primary)); /* Theme-aware green */
   animation-timing-function: cubic-bezier(0, 1, 1, 0); 
 }
 .loading-dots div:nth-child(1) { left: 8px; animation: loading-dots1 0.6s infinite; }
@@ -267,20 +270,20 @@
   border: 1px solid rgba(255, 255, 255, 0.1); 
 }
 
-/* Premium Scrollbar */
+/* Premium Scrollbar - Theme-aware */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { 
-  background: rgba(255, 255, 255, 0.05); 
+  background: hsl(var(--muted)); 
   border-radius: 10px; 
 }
 ::-webkit-scrollbar-thumb { 
-  background: linear-gradient(135deg, #10B981, #059669); /* Green gradient */
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)/0.8)); /* Theme green */
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 10px hsl(var(--primary)/0.3);
 }
 ::-webkit-scrollbar-thumb:hover { 
-  background: linear-gradient(135deg, #059669, #047857);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+  background: linear-gradient(135deg, hsl(var(--primary)/0.8), hsl(var(--primary)/0.6));
+  box-shadow: 0 0 15px hsl(var(--primary)/0.5);
 }
 
 /* Custom Utilities */
