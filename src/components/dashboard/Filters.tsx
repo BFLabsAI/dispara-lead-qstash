@@ -45,31 +45,35 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
   };
 
   return (
-    <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-8">
+    <Card className="rounded-2xl card-premium animate-slide-in-up mb-8 gradient-primary text-white shadow-lg">
       <CardContent className="p-6">
         <div className="mb-4 flex items-center gap-2">
-          <Filter className="h-4 w-4 text-green-500" />
-          <h3 className="font-bold text-lg gradient-text">Filtros Avançados</h3>
+          <Filter className="h-5 w-5" />
+          <h3 className="font-bold text-xl">Filtros Avançados</h3>
         </div>
-        <div className="flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[220px] space-y-1">
-            <Label className="flex items-center gap-1 text-sm font-medium">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[220px] space-y-1.5">
+            <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <Server className="h-4 w-4" /> Instância
             </Label>
             <Select value={instance} onValueChange={setInstance}>
-              <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+              <SelectTrigger className="bg-white/10 border-white/20 hover:bg-white/20 text-white">
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
-          <div className="flex-1 min-w-[220px] space-y-1">
-            <Label className="flex items-center gap-1 text-sm font-medium">
+          <div className="flex-1 min-w-[220px] space-y-1.5">
+            <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <Tag className="h-4 w-4" /> Tipo
             </Label>
             <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectTrigger className="bg-white/10 border-white/20 hover:bg-white/20 text-white">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="texto">Texto</SelectItem>
@@ -78,13 +82,16 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             </Select>
           </div>
           
-          <div className="flex-1 min-w-[220px] space-y-1">
-            <Label className="flex items-center gap-1 text-sm font-medium">
+          <div className="flex-1 min-w-[220px] space-y-1.5">
+            <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <CalendarIcon className="h-4 w-4" /> Período
             </Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-left font-normal bg-white/10 border-white/20 hover:bg-white/20 text-white"
+                >
                   {getDateDisplay(dateRange)}
                 </Button>
               </PopoverTrigger>
@@ -94,7 +101,11 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             </Popover>
           </div>
           
-          <Button variant="destructive" onClick={handleReset} className="h-10 w-10 p-0">
+          <Button 
+            variant="ghost" 
+            onClick={handleReset} 
+            className="h-10 w-10 p-0 bg-white/10 hover:bg-white/20 text-white"
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
