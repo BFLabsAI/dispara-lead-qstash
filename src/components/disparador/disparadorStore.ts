@@ -25,6 +25,7 @@ interface DisparadorState {
   loadInstances: () => Promise<void>;
   fetchQrCode: (instanceName: string) => Promise<void>;
   uploadFile: (file: File) => Promise<{ contatos: any[]; variables: string[] }>;
+  mediaUpload: (file: File) => Promise<string | null>;
   sendMessages: (params: {
     contatos: any[];
     instances: string[];
@@ -112,6 +113,27 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
     } catch (error) {
       showError("Erro ao processar arquivo: " + (error as Error).message);
       return { contatos: [], variables: [] };
+    }
+  },
+
+  mediaUpload: async (file: File) => {
+    try {
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase();
+      const response = await fetch(URL_FILE_UPLOAD, {
+        method: "POST",
+        headers: { "Content-Type": file.type, "X-File-Name": sanitizedName },
+        body: file,
+      });
+      if (!response.ok) throw new Error(`Erro no upload: ${response.status}`);
+      const result = await response.json();
+      if (result.fileUrl) {
+        showSuccess("Upload concluído!");
+        return result.fileUrl;
+      }
+      throw new Error("URL do arquivo não encontrada.");
+    } catch (error) {
+      showError("Falha no upload: " + (error as Error).message);
+      return null;
     }
   },
 

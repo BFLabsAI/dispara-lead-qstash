@@ -34,7 +34,7 @@ export const ShooterConfig = () => {
   }, [loadInstances]);
 
   const handleSend = async () => {
-    // selectedInstances from InstanceSelector state
+    // selectedInstances now managed via state (update InstanceSelector to call setSelectedInstances)
     if (selectedInstances.length === 0) return showError("Nenhuma instância selecionada.");
     if (contatos.length === 0) return showError("Nenhum contato fornecido.");
     if (tempoMin < 1 || tempoMax < 1 || tempoMax < tempoMin) return showError("Tempos inválidos.");

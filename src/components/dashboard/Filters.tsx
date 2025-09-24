@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
-import { DateRange } from "react-day-picker";
+import { DateRange } from "react-day-picker"; // Import DateRange type for range mode
 
 interface FiltersProps {
   onFilterChange: (filters: any) => void;
@@ -18,10 +18,7 @@ interface FiltersProps {
 export const Filters = ({ onFilterChange }: FiltersProps) => {
   const [instance, setInstance] = useState("all");
   const [tipo, setTipo] = useState("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: undefined,
-    to: undefined,
-  });
+  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
 
   const handleReset = () => {
     setInstance("all");
@@ -68,25 +65,15 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "PPP")} - {format(dateRange.to, "PPP")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "PPP")
-                    )
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
+                  {dateRange.from ? `${format(dateRange.from, "PPP")} ${dateRange.to ? `- ${format(dateRange.to, "PPP")}` : ""}` : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
+                <Calendar 
+                  mode="range" 
+                  selected={dateRange} 
+                  onSelect={setDateRange} 
+                  numberOfMonths={2} 
                 />
               </PopoverContent>
             </Popover>
