@@ -70,16 +70,24 @@ export const Charts = ({ filteredData }: ChartsProps) => {
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const totalTipo = Object.values(tipoData).reduce((sum: number, v) => sum + (v as number), 0);
-  const pieDataTipo = Object.entries(tipoData).map(([name, value]) => ({ name, value, percentage: totalTipo > 0 ? (((value as number) / totalTipo) * 100).toFixed(1) : "0" }));
+  const totalTipo: number = Object.values(tipoData).reduce((sum: number, v: number) => sum + v, 0);
+  const pieDataTipo = Object.entries(tipoData).map(([name, value]) => ({ 
+    name, 
+    value, 
+    percentage: totalTipo > 0 ? (((value / totalTipo) * 100).toFixed(1)) : "0" 
+  }));
 
   const instanciaData = filteredData.reduce((acc: Record<string, number>, item) => {
     const key = item.instancia || 'Desconhecida';
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const totalInstancia = Object.values(instanciaData).reduce((sum: number, v) => sum + (v as number), 0);
-  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]) => ({ name, value, percentage: totalInstancia > 0 ? (((value as number) / totalInstancia) * 100).toFixed(1) : "0" }));
+  const totalInstancia: number = Object.values(instanciaData).reduce((sum: number, v: number) => sum + v, 0);
+  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]) => ({ 
+    name, 
+    value, 
+    percentage: totalInstancia > 0 ? (((value / totalInstancia) * 100).toFixed(1)) : "0" 
+  }));
 
   const horaData = Array(24).fill(0);
   filteredData.forEach((item) => horaData[item.date.hour()]++);
@@ -129,7 +137,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieDataInstancia} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />}>
+                  <Pie data={pieDataInstancia} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />} >
                     {pieDataInstancia.map((entry, index) => <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />)}
                   </Pie>
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
