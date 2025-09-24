@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
+import { showError } from "@/utils/toast";
 import { useDisparadorStore } from "./disparadorStore";
 import { MessageBlock } from "./MessageBlock";
 import { InstanceSelector } from "./InstanceSelector";
@@ -24,6 +25,7 @@ export const ShooterConfig = () => {
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("");
+  const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
 
   const { instances, contatos, templates, setTemplates, sendMessages, stopSending, loadInstances } = useDisparadorStore();
 
@@ -32,7 +34,7 @@ export const ShooterConfig = () => {
   }, [loadInstances]);
 
   const handleSend = async () => {
-    const selectedInstances = []; // Get from InstanceSelector
+    // selectedInstances from InstanceSelector state
     if (selectedInstances.length === 0) return showError("Nenhuma instância selecionada.");
     if (contatos.length === 0) return showError("Nenhum contato fornecido.");
     if (tempoMin < 1 || tempoMax < 1 || tempoMax < tempoMin) return showError("Tempos inválidos.");
@@ -59,7 +61,7 @@ export const ShooterConfig = () => {
         <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <i className="bi bi-rocket-takeoff"></i>Configuração de Disparo
         </h4>
-        <InstanceSelector instances={connectedInstances} />
+        <InstanceSelector instances={connectedInstances} onSelectionChange={setSelectedInstances} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <Label className="flex items-center gap-1 mb-2">

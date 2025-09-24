@@ -1,5 +1,7 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
+
 interface KPIsProps {
   totalEnvios: number;
   totalIA: number;

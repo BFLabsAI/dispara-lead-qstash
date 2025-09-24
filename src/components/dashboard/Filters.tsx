@@ -7,9 +7,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns"; // For date formatting
+import { format } from "date-fns";
 import { useState } from "react";
-import { DateRange } from "react-day-range"; // Wait, use shadcn DateRangePicker if available, but for simplicity use two dates
+import { DateRange } from "react-day-picker";
 
 interface FiltersProps {
   onFilterChange: (filters: any) => void;
@@ -18,12 +18,15 @@ interface FiltersProps {
 export const Filters = ({ onFilterChange }: FiltersProps) => {
   const [instance, setInstance] = useState("all");
   const [tipo, setTipo] = useState("all");
-  const [dateRange, setDateRange] = useState<any>({ start: null, end: null });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: undefined,
+    to: undefined,
+  });
 
   const handleReset = () => {
     setInstance("all");
     setTipo("all");
-    setDateRange({ start: null, end: null });
+    setDateRange({ from: undefined, to: undefined });
     onFilterChange({ instance: "all", tipo: "all", dateRange: null });
   };
 
@@ -65,11 +68,26 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.start ? format(dateRange.start, "PPP") : <span>Pick a date</span>}
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "PPP")} - {format(dateRange.to, "PPP")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "PPP")
+                    )
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="range" selected={dateRange} onSelect={setDateRange} />
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
               </PopoverContent>
             </Popover>
           </div>

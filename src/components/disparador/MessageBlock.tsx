@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useDisparadorStore } from "./disparadorStore";
+import { showError, showSuccess } from "@/utils/toast";
+
+const URL_FILE_UPLOAD = "https://webhook.bflabs.com.br/webhook/file-upload";
 
 interface MessageBlockProps {
   index: number;
@@ -19,20 +21,38 @@ export const MessageBlock = ({ index, onUpdate }: MessageBlockProps) => {
   const [text, setText] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [showMedia, setShowMedia] = useState(false);
-  const { uploadFile } = useDisparadorStore();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const result = await uploadFile(file);
-    if (result.fileUrl) setMediaUrl(result.fileUrl);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch(URL_FILE_UPLOAD, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) throw new Error(`Erro no upload: ${response.status}`);
+      const result = await response.json();
+      if (result.fileUrl) {
+        setMediaUrl(result.fileUrl);
+        showSuccess("Upload concluído!");
+      } else {
+        throw new Error("URL do arquivo não encontrada.");
+      }
+    } catch (error) {
+      showError("Falha no upload: " + (error as Error).message);
+      setMediaUrl("");
+    }
   };
 
   const previewText = text.replace(/\{(\w+)\}/g, (match, key) => `<span class="bg-green-100 text-green-800 px-1 rounded">${match}</span>`);
 
   useEffect(() => {
     onUpdate({ type, text, mediaUrl });
-  }, [type, text, mediaUrl]);
+  }, [type, text, mediaUrl, onUpdate]);
 
   return (
     <Card className="bg-muted">
@@ -55,7 +75,7 @@ export const MessageBlock = ({ index, onUpdate }: MessageBlockProps) => {
           placeholder={type === "texto" ? "Digite sua mensagem..." : "Digite uma legenda (opcional)..."}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="mb-2"
+          className="mb-2 message-editor-textarea"
         />
         {type !== "texto" && (
           <div className="mb-2">

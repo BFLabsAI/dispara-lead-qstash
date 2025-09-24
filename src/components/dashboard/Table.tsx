@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import dayjs from "dayjs";
 
 interface TableProps {
   data: any[];
@@ -38,7 +39,7 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
             <TableBody>
               {paginatedData.map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell>{new Date(item.created_at).toLocaleString("pt-BR")}</TableCell>
+                  <TableCell>{item.date.format("DD/MM/YYYY HH:mm")}</TableCell>
                   <TableCell><Badge>{item.instancia}</Badge></TableCell>
                   <TableCell>{item.numero}</TableCell>
                   <TableCell>{item.tipo_envio}</TableCell>

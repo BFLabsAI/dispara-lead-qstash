@@ -53,10 +53,11 @@ export const Dashboard = () => {
     if (filters.tipo !== "all") {
       filtered = filtered.filter((item) => item.tipo_envio === filters.tipo);
     }
-    if (filters.dateRange?.start && filters.dateRange?.end) {
+    if (filters.dateRange?.from && filters.dateRange?.to) {
+      const start = dayjs(filters.dateRange.from).startOf("day");
+      const end = dayjs(filters.dateRange.to).endOf("day");
       filtered = filtered.filter((item) =>
-        item.date.isAfter(dayjs(filters.dateRange.start).startOf("day")) &&
-        item.date.isBefore(dayjs(filters.dateRange.end).endOf("day"))
+        item.date.isAfter(start) && item.date.isBefore(end)
       );
     }
     setFilteredData(filtered);

@@ -2,6 +2,7 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
+import dayjs from "dayjs";
 
 interface ChartsProps {
   filteredData: any[];
@@ -25,13 +26,13 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   // Hora chart data
   const horaData = Array(24).fill(0);
   filteredData.forEach((item) => {
-    const hour = new Date(item.created_at).getHours();
+    const hour = item.date.hour();
     horaData[hour]++;
   });
 
   // Timeline data
   const timelineData = filteredData.reduce((acc, item) => {
-    const day = new Date(item.created_at).toISOString().split("T")[0];
+    const day = item.date.format("YYYY-MM-DD");
     acc[day] = (acc[day] || 0) + 1;
     return acc;
   }, {} as any);
