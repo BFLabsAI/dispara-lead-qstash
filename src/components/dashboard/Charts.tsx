@@ -2,7 +2,7 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import { PieChart as PieIcon, Clock, Activity, BarChart3 } from "lucide-react"; // Ícones para empty states
+import { PieChart as PieIcon, Clock, Activity, BarChart3, LineChart as LineChartIcon } from "lucide-react";
 import dayjs from "dayjs";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -10,7 +10,7 @@ interface ChartsProps {
   filteredData: any[];
 }
 
-const GREEN_COLORS = ["#10B981", "#059669", "#34D399", "#6EE7B7", "#A7F3D0", "#D1FAE5"]; // Tons de verde para consistência
+const GREEN_COLORS = ["#10B981", "#059669", "#34D399", "#6EE7B7", "#A7F3D0", "#D1FAE5"];
 
 const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, isDark }: any) => {
   const RADIAN = Math.PI / 180;
@@ -34,7 +34,6 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, isDa
   );
 };
 
-// Tooltip genérico com estilo glass-card verde, igual aos KPIs
 const GenericTooltipContent = ({ active, payload, label, isDark }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -53,7 +52,6 @@ const GenericTooltipContent = ({ active, payload, label, isDark }: any) => {
   return null;
 };
 
-// Empty state genérico para gráficos (verde unificado)
 const EmptyChartState = ({ title, icon: Icon, isDark }: { title: string; icon: React.ComponentType<{ className?: string }>; isDark: boolean }) => (
   <div className={`flex flex-col items-center justify-center h-[350px] text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
     <div className={`p-4 bg-green-500/20 rounded-xl mb-4 animate-pulse-glow kpi-icon border border-green-500/30`}>
@@ -110,18 +108,17 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb"> {/* Grid igual aos KPIs */}
-      {/* Gráfico de Pizza: Envios por Tipo - Estilo KPI otimizado, unificado green */}
-      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${isDark ? '' : 'bg-green-50/70 border-green-200'}`}> {/* Unificado: só green */}
-        <CardContent className="p-0"> {/* Sem padding extra para gráfico ocupar espaço */}
-          <div className="flex items-center gap-3 mb-6"> {/* Header: ícone + título lado a lado (sem seta direita) */}
-            <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}> {/* Ícone com glow green */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb">
+      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${isDark ? '' : 'bg-green-50/70 border-green-200'}`}>
+        <CardContent className="p-0">
+          <div className="flex items-center gap-3 mb-6">
+            <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}>
               <PieIcon className="h-6 w-6 text-green-600" />
             </div>
-            <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Tipo</h3> {/* Título ao lado do ícone */}
+            <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Tipo</h3>
           </div>
           {hasData ? (
-            <div className="h-[350px]"> {/* Altura para gráfico */}
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -143,7 +140,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                   <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
                 </PieChart>
               </ResponsiveContainer>
-              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalTipo.toLocaleString()}</p> {/* Número em gradient-text, igual KPIs */}
+              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalTipo.toLocaleString()}</p>
             </div>
           ) : (
             <EmptyChartState title="Nenhum envio por tipo" icon={PieIcon} isDark={isDark} />
@@ -151,12 +148,11 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Gráfico de Pizza: Envios por Instância - Estilo KPI otimizado, unificado green */}
-      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${isDark ? '' : 'bg-green-50/70 border-green-200'}`} style={{animationDelay: '0.1s'}}> {/* Unificado: só green */}
+      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${isDark ? '' : 'bg-green-50/70 border-green-200'}`} style={{animationDelay: '0.1s'}}>
         <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6"> {/* Header: ícone + título lado a lado */}
-            <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}> {/* Ícone green unificado */}
-              <PieIcon className="h-6 w-6 text-green-600" /> {/* Ícone variado para diferenciação, mas green */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}>
+              <PieIcon className="h-6 w-6 text-green-600" />
             </div>
             <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Instância</h3>
           </div>
@@ -191,12 +187,11 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Gráfico de Barras: Envios por Hora - Estilo KPI otimizado, unificado green */}
-      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${isDark ? '' : 'bg-green-50/70 border-green-200'}`} style={{animationDelay: '0.2s'}}> {/* Unificado: só green */}
+      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${isDark ? '' : 'bg-green-50/70 border-green-200'}`} style={{animationDelay: '0.2s'}}>
         <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6"> {/* Header: ícone + título lado a lado */}
-            <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}> {/* Ícone green unificado */}
-              <Clock className="h-6 w-6 text-green-600" /> {/* Ícone green */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}>
+              <Clock className="h-6 w-6 text-green-600" />
             </div>
             <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Hora</h3>
           </div>
@@ -211,7 +206,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                   <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{filteredData.length.toLocaleString()}</p> {/* Total geral em gradient */}
+              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{filteredData.length.toLocaleString()}</p>
             </div>
           ) : (
             <EmptyChartState title="Nenhum envio por hora" icon={Clock} isDark={isDark} />
@@ -219,22 +214,20 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Gráfico de Linha: Timeline - Estilo KPI otimizado, span full em lg, com traçado verde e fill verde claro, unificado green */}
-      <Card className={`lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up ${isDark ? '' : 'bg-green-50/70 border-green-200'}`} style={{animationDelay: '0.3s'}}> {/* Adicionado bg/border green no light para unificar */}
+      <Card className={`lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up ${isDark ? '' : 'bg-green-50/70 border-green-200'}`} style={{animationDelay: '0.3s'}}>
         <CardContent className="p-8">
-          <div className="flex items-center justify-between mb-6"> {/* Header com justify-between: left (ícone+título), right (sem badge) */}
-            <div className="flex items-center gap-3"> {/* Left: ícone + título lado a lado */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
               <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}>
                 <Activity className="h-6 w-6 text-green-600" />
               </div>
               <h3 className={`font-bold text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-                <i className="fas fa-chart-line text-green-600"></i> Timeline de Envios {/* Título com ícone, igual KPIs */}
+                <LineChartIcon className="h-6 w-6 text-green-600" /> Timeline de Envios
               </h3>
             </div>
-            {/* Sem badge de média (removido, não solicitado) */}
           </div>
           {hasData ? (
-            <div className="h-[400px]"> {/* Altura aumentada para preencher espaço sem elementos no fundo */}
+            <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ right: 30, bottom: 80 }}>
                   <CartesianGrid className="chart-grid" strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
@@ -250,7 +243,6 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           ) : (
             <EmptyChartState title="Nenhum dado na timeline" icon={BarChart3} isDark={isDark} />
           )}
-          {/* Sem elementos aqui - gráfico ocupa todo o espaço restante, eliminando gap */}
         </CardContent>
       </Card>
     </div>
