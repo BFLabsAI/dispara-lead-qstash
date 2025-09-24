@@ -66,6 +66,8 @@ export const Dashboard = () => {
 
   const totalPages = Math.ceil(filteredData.length / 5);
 
+  const isDark = document.documentElement.classList.contains('dark');
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -92,7 +94,34 @@ export const Dashboard = () => {
   const totalSemIA = totalEnvios - totalIA;
 
   return (
-    <div>
+    <div className="space-y-8 max-w-7xl mx-auto px-4">
+      {/* Premium Green Header */}
+      <div className={`glass-card rounded-2xl p-6 mb-8 ${isDark ? '' : 'bg-green-50/50 border-green-200'}`}>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-center sm:text-left">
+            <div className={`w-20 h-1 bg-gradient-to-r from-[#10B981] to-[#059669] rounded-full mb-3 mx-auto sm:mx-0`}></div>
+            <h1 className={`text-3xl font-bold ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
+              <i className={`fas fa-chart-bar mr-3 ${isDark ? 'text-green-400' : 'text-green-600'}`}></i>
+              Dashboard Analytics & Insights
+            </h1>
+            <p className={`text-sm mt-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              <i className={`fas fa-info-circle mr-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}></i>
+              Monitore envios, performance e métricas em tempo real
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button className={`btn-premium px-6 py-3 ${isDark ? 'gradient-primary' : 'bg-white border-2 border-green-500 text-green-600 hover:bg-green-50'}`}>
+              <i className={`fas fa-download mr-2 ${isDark ? 'text-white' : 'text-green-600'}`}></i>
+              Exportar Relatório
+            </Button>
+            <Button className={`btn-premium px-6 py-3 gradient-primary text-white`}>
+              <i className="fas fa-sync-alt mr-2"></i>
+              Atualizar Dados
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <Filters onFilterChange={setFilters} />
       <KPIs totalEnvios={totalEnvios} totalIA={totalIA} totalSemIA={totalSemIA} />
       <Charts filteredData={filteredData} />
