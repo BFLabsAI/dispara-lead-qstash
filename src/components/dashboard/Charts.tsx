@@ -3,7 +3,7 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge"; // Para o box verde destacado
-import { PieChart as PieIcon, Clock, Activity } from "lucide-react"; // Ícones para cada gráfico (sem TrendingUp)
+import { PieChart as PieIcon, Clock, Activity, BarChart3 } from "lucide-react"; // Ícones para empty states (adicionado BarChart3 para timeline)
 import dayjs from "dayjs";
 
 interface ChartsProps {
@@ -53,8 +53,20 @@ const GenericTooltipContent = ({ active, payload, label, isDark }: any) => {
   return null;
 };
 
+// Empty state genérico para gráficos (verde unificado)
+const EmptyChartState = ({ title, icon: Icon, isDark }: { title: string; icon: React.ComponentType<{ className?: string }>; isDark: boolean }) => (
+  <div className={`flex flex-col items-center justify-center h-[350px] text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+    <div className={`p-4 bg-green-500/20 rounded-xl mb-4 animate-pulse-glow kpi-icon border border-green-500/30`}>
+      <Icon className="h-8 w-8 text-green-600" />
+    </div>
+    <h4 className={`font-bold text-lg mb-2 ${isDark ? 'gradient-text' : 'text-gray-900'}`}>{title}</h4>
+    <p className={`text-sm ${isDark ? 'text-green-400' : 'text-green-600'}`}>Aplique filtros ou aguarde dados</p>
+  </div>
+);
+
 export const Charts = ({ filteredData }: ChartsProps) => {
   const isDark = document.documentElement.classList.contains('dark');
+  const hasData = filteredData.length > 0;
 
   const tipoData = filteredData.reduce((acc: Record<string, number>, item) => {
     const key = item.tipo_envio || 'Desconhecido';
@@ -112,31 +124,35 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             </div>
             <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Tipo</h3> {/* Título ao lado do ícone */}
           </div>
-          <div className="h-[350px]"> {/* Altura para gráfico */}
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieDataTipo}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#10B981"
-                  dataKey="value"
-                  nameKey="name"
-                  labelLine={false}
-                  label={(entry) => <CustomLabel {...entry} isDark={isDark} />}
-                >
-                  {pieDataTipo.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
-                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalTipo.toLocaleString()}</p> {/* Número em gradient-text, igual KPIs */}
-          <p className={`text-sm font-medium text-green-600`}>Distribuição total</p> {/* Subtexto verde */}
+          {hasData ? (
+            <div className="h-[350px]"> {/* Altura para gráfico */}
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieDataTipo}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#10B981"
+                    dataKey="value"
+                    nameKey="name"
+                    labelLine={false}
+                    label={(entry) => <CustomLabel {...entry} isDark={isDark} />}
+                  >
+                    {pieDataTipo.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
+                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                </PieChart>
+              </ResponsiveContainer>
+              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalTipo.toLocaleString()}</p> {/* Número em gradient-text, igual KPIs */}
+              <p className={`text-sm font-medium text-green-600`}>Distribuição total</p> {/* Subtexto verde */}
+            </div>
+          ) : (
+            <EmptyChartState title="Nenhum envio por tipo" icon={PieIcon} isDark={isDark} />
+          )}
         </CardContent>
       </Card>
 
@@ -149,31 +165,35 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             </div>
             <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Instância</h3>
           </div>
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieDataInstancia}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#10B981"
-                  dataKey="value"
-                  nameKey="name"
-                  labelLine={false}
-                  label={(entry) => <CustomLabel {...entry} isDark={isDark} />}
-                >
-                  {pieDataInstancia.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
-                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalInstancia.toLocaleString()}</p>
-          <p className={`text-sm font-medium text-green-600`}>Por instância ativa</p> {/* Subtexto green unificado */}
+          {hasData ? (
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieDataInstancia}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#10B981"
+                    dataKey="value"
+                    nameKey="name"
+                    labelLine={false}
+                    label={(entry) => <CustomLabel {...entry} isDark={isDark} />}
+                  >
+                    {pieDataInstancia.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
+                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                </PieChart>
+              </ResponsiveContainer>
+              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalInstancia.toLocaleString()}</p>
+              <p className={`text-sm font-medium text-green-600`}>Por instância ativa</p> {/* Subtexto green unificado */}
+            </div>
+          ) : (
+            <EmptyChartState title="Nenhum envio por instância" icon={PieIcon} isDark={isDark} />
+          )}
         </CardContent>
       </Card>
 
@@ -186,19 +206,23 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             </div>
             <h3 className={`font-semibold text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Envios por Hora</h3>
           </div>
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={horaData.map((v, i) => ({ hour: i, value: v, name: `Hora ${i}h` }))} margin={{ bottom: 20 }}>
-                <CartesianGrid className="chart-grid" strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
-                <XAxis dataKey="hour" stroke={isDark ? 'white' : '#374151'} interval={3} angle={-45} textAnchor="end" height={80} tick={{ fill: isDark ? 'white' : '#374151', fontSize: 12, className: 'chart-axis' }} />
-                <YAxis stroke={isDark ? 'white' : '#374151'} width={50} tick={{ fill: isDark ? 'white' : '#374151', className: 'chart-axis' }} />
-                <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
-                <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-2xl font-bold gradient-text mt-4 mb-2">{filteredData.length.toLocaleString()}</p> {/* Total geral em gradient */}
-          <p className={`text-sm font-medium text-green-600`}>Distribuição horária</p> {/* Subtexto green unificado */}
+          {hasData ? (
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={horaData.map((v, i) => ({ hour: i, value: v, name: `Hora ${i}h` }))} margin={{ bottom: 20 }}>
+                  <CartesianGrid className="chart-grid" strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
+                  <XAxis dataKey="hour" stroke={isDark ? 'white' : '#374151'} interval={3} angle={-45} textAnchor="end" height={80} tick={{ fill: isDark ? 'white' : '#374151', fontSize: 12, className: 'chart-axis' }} />
+                  <YAxis stroke={isDark ? 'white' : '#374151'} width={50} tick={{ fill: isDark ? 'white' : '#374151', className: 'chart-axis' }} />
+                  <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
+                  <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <p className="text-2xl font-bold gradient-text mt-4 mb-2">{filteredData.length.toLocaleString()}</p> {/* Total geral em gradient */}
+              <p className={`text-sm font-medium text-green-600`}>Distribuição horária</p> {/* Subtexto green unificado */}
+            </div>
+          ) : (
+            <EmptyChartState title="Nenhum envio por hora" icon={Clock} isDark={isDark} />
+          )}
         </CardContent>
       </Card>
 
@@ -214,29 +238,35 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                 <i className="fas fa-chart-line text-green-600"></i> Timeline de Envios {/* Título com ícone, igual KPIs */}
               </h3>
             </div>
-            {/* Right: Box verde destacado com média (canto superior direito) */}
-            <div className="text-right">
-              <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg border-0">
-                <div className="text-white">
-                  <p className="text-xl font-bold">{mediaEnviosPorDia.toLocaleString()}</p>
-                  <p className="text-xs opacity-90 mt-0.5">Média de envios por dia</p>
-                </div>
-              </Badge>
+            {/* Right: Box verde destacado com média (canto superior direito) – só se tem dados */}
+            {hasData && (
+              <div className="text-right">
+                <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg border-0">
+                  <div className="text-white">
+                    <p className="text-xl font-bold">{mediaEnviosPorDia.toLocaleString()}</p>
+                    <p className="text-xs opacity-90 mt-0.5">Média de envios por dia</p>
+                  </div>
+                </Badge>
+              </div>
+            )}
+          </div>
+          {hasData ? (
+            <div className="h-[400px]"> {/* Altura aumentada para preencher espaço sem elementos no fundo */}
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ right: 30, bottom: 80 }}>
+                  <CartesianGrid className="chart-grid" strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
+                  <XAxis dataKey="day" stroke="#10B981" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fill: "#10B981", fontSize: 12, className: 'chart-axis' }} />
+                  <YAxis stroke="#10B981" width={50} tick={{ fill: "#10B981", className: 'chart-axis' }} />
+                  <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
+                  <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                  <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
+                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="top" />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-          </div>
-          <div className="h-[400px]"> {/* Altura aumentada para preencher espaço sem elementos no fundo */}
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ right: 30, bottom: 80 }}>
-                <CartesianGrid className="chart-grid" strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
-                <XAxis dataKey="day" stroke="#10B981" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fill: "#10B981", fontSize: 12, className: 'chart-axis' }} />
-                <YAxis stroke="#10B981" width={50} tick={{ fill: "#10B981", className: 'chart-axis' }} />
-                <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
-                <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
-                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="top" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          ) : (
+            <EmptyChartState title="Nenhum dado na timeline" icon={BarChart3} isDark={isDark} />
+          )}
           {/* Sem elementos aqui - gráfico ocupa todo o espaço restante, eliminando gap */}
         </CardContent>
       </Card>
