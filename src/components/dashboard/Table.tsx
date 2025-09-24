@@ -43,7 +43,9 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
                 <TableRow key={index} className="border-b border-green-200/20 dark:border-green-500/10 hover:bg-green-500/10">
                   <TableCell>{item.date.format("DD/MM/YYYY HH:mm")}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{item.instancia}</Badge>
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-300 border border-transparent hover:bg-green-200">
+                      {item.instancia}
+                    </Badge>
                   </TableCell>
                   <TableCell className="max-w-xs truncate" title={item.numero}>
                     {item.numero}

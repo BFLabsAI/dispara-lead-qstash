@@ -48,8 +48,8 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
     <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-8">
       <CardContent className="p-6">
         <div className="mb-4 flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          <h3 className="font-bold text-lg">Filtros Avançados</h3>
+          <Filter className="h-4 w-4 text-green-500" />
+          <h3 className="font-bold text-lg gradient-text">Filtros Avançados</h3>
         </div>
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[220px] space-y-1">

@@ -42,7 +42,7 @@ const GenericTooltipContent = ({ active, payload, label, theme }: any) => {
 
     return (
       <div className={`glass-card rounded-lg p-3 shadow-lg min-w-[140px] ${theme === 'dark' ? 'bg-black/80 border-white/10 text-white' : 'bg-white/95 border-green-200 text-gray-800'}`}>
-        <p className={`font-semibold text-sm mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{name}</p>
+        <p className="font-semibold text-sm mb-1 text-gray-900 dark:text-white">{name}</p>
         <p className={`font-medium text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>{value} envios</p>
         {isPie && <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>({data.percentage}%)</p>}
       </div>
@@ -70,16 +70,16 @@ export const Charts = ({ filteredData }: ChartsProps) => {
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const totalTipo = Object.values(tipoData).reduce((sum: number, v) => sum + v, 0);
-  const pieDataTipo = Object.entries(tipoData).map(([name, value]: [string, number]) => ({ name, value, percentage: totalTipo > 0 ? ((value / totalTipo) * 100).toFixed(1) : "0" }));
+  const totalTipo = Object.values(tipoData).reduce((sum: number, v) => sum + (v as number), 0);
+  const pieDataTipo = Object.entries(tipoData).map(([name, value]) => ({ name, value, percentage: totalTipo > 0 ? (((value as number) / totalTipo) * 100).toFixed(1) : "0" }));
 
   const instanciaData = filteredData.reduce((acc: Record<string, number>, item) => {
     const key = item.instancia || 'Desconhecida';
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const totalInstancia = Object.values(instanciaData).reduce((sum: number, v) => sum + v, 0);
-  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]: [string, number]) => ({ name, value, percentage: totalInstancia > 0 ? ((value / totalInstancia) * 100).toFixed(1) : "0" }));
+  const totalInstancia = Object.values(instanciaData).reduce((sum: number, v) => sum + (v as number), 0);
+  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]) => ({ name, value, percentage: totalInstancia > 0 ? (((value as number) / totalInstancia) * 100).toFixed(1) : "0" }));
 
   const horaData = Array(24).fill(0);
   filteredData.forEach((item) => horaData[item.date.hour()]++);
@@ -154,8 +154,8 @@ export const Charts = ({ filteredData }: ChartsProps) => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={horaData.map((v, i) => ({ hour: i, value: v, name: `${i}h` }))} margin={{ bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
-                  <XAxis dataKey="hour" stroke={theme === 'dark' ? 'white' : '#374151'} interval={3} angle={-45} textAnchor="end" height={80} tick={{ fill: theme === 'dark' ? 'white' : '#374151', fontSize: 12 }} />
-                  <YAxis stroke={theme === 'dark' ? 'white' : '#374151'} width={50} tick={{ fill: theme === 'dark' ? 'white' : '#374151' }} />
+                  <XAxis dataKey="hour" stroke="#10B981" interval={3} angle={-45} textAnchor="end" height={80} tick={{ fill: "#10B981", fontSize: 12 }} />
+                  <YAxis stroke="#10B981" width={50} tick={{ fill: "#10B981" }} />
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
                   <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -171,7 +171,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
               <Activity className="h-6 w-6 text-green-600" />
             </div>
-            <h3 className="font-bold text-xl text-shadow text-gray-900 dark:gradient-text">
+            <h3 className="font-bold text-xl text-shadow text-gray-900 dark:text-white">
               Timeline de Envios
             </h3>
           </div>
