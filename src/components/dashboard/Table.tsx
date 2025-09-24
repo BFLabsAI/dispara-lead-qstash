@@ -30,13 +30,13 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
         <div className={`overflow-x-auto rounded-xl border shadow-lg ${
           isDark 
             ? 'border-green-500/30 bg-green-900/10 backdrop-blur-sm' 
-            : 'border-green-200/50'
+            : 'border-green-200/50 bg-white/50'
         }`}>
           <Table>
             <TableHeader className={`table-header ${
               isDark 
-                ? 'bg-green-900/20 backdrop-blur-sm border-b border-green-500/30 shadow-sm' 
-                : 'bg-green-50/50 backdrop-blur-sm border-b border-green-200 shadow-sm'
+                ? 'bg-green-900/30 backdrop-blur-sm border-b border-green-500/40 shadow-sm' 
+                : 'bg-green-50/70 backdrop-blur-sm border-b border-green-200 shadow-sm'
             }`}>
               <TableRow className={`border-b ${
                 isDark 
@@ -67,12 +67,12 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
               {paginatedData.map((item, index) => (
                 <TableRow key={index} className={`border-b transition-colors ${
                   isDark 
-                    ? 'border-green-500/10 hover:bg-green-500/10' 
-                    : 'border-green-200/20 hover:bg-green-500/10'
+                    ? 'border-green-500/10 hover:bg-green-500/15' 
+                    : 'border-green-200/20 hover:bg-green-500/5'
                 } ${
                   index % 2 === 0 
-                    ? (isDark ? 'bg-green-900/10' : 'bg-green-50/20') 
-                    : (isDark ? 'bg-green-900/20' : 'bg-green-50/10')
+                    ? (isDark ? 'bg-green-900/15' : 'bg-green-50/30') 
+                    : (isDark ? 'bg-green-900/25' : 'bg-green-50/10')
                 }`}>
                   <TableCell className={`py-4 font-medium ${
                     isDark ? 'text-white' : 'text-gray-900'
@@ -80,45 +80,45 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
                   <TableCell className="py-4">
                     <Badge className={`font-medium rounded-lg shadow-lg animate-pulse-glow ${
                       isDark 
-                        ? 'bg-green-500/20 text-green-300 border-green-500/30' 
+                        ? 'bg-green-500/30 text-green-200 border-green-500/50' 
                         : 'bg-green-100 text-green-800 border-green-200'
                     }`}>
                       {item.instancia}
                     </Badge>
                   </TableCell>
                   <TableCell className={`py-4 max-w-xs truncate ${
-                    isDark ? 'text-gray-300' : 'text-gray-900'
+                    isDark ? 'text-gray-200' : 'text-gray-900'
                   }`} title={item.numero}>
                     {item.numero}
                   </TableCell>
                   <TableCell className={`py-4 capitalize ${
-                    isDark ? 'text-gray-300' : 'text-gray-900'
+                    isDark ? 'text-gray-200' : 'text-gray-900'
                   }`}>{item.tipo_envio}</TableCell>
                   <TableCell className="py-4 font-medium">
                     {item.usaria ? (
                       <Badge variant="default" className={`rounded-lg shadow-lg animate-pulse-glow ${
                         isDark 
-                          ? 'text-green-400 bg-green-500/20 border-green-500/30' 
+                          ? 'text-green-300 bg-green-500/30 border-green-500/50' 
                           : 'text-green-800 bg-green-500/20 border-green-500/30'
                       }`}>
                         <CheckCircle className={`h-3 w-3 inline mr-1 ${
-                          isDark ? 'text-green-400' : 'text-green-600'
+                          isDark ? 'text-green-300' : 'text-green-600'
                         }`} /> Sim
                       </Badge>
                     ) : (
                       <Badge variant="destructive" className={`rounded-lg shadow-lg ${
                         isDark 
-                          ? 'text-red-400 bg-red-500/20 border-red-500/30' 
+                          ? 'text-red-300 bg-red-500/30 border-red-500/50' 
                           : 'text-red-800 bg-red-500/20 border-red-500/30'
                       }`}>
                         <XCircle className={`h-3 w-3 inline mr-1 ${
-                          isDark ? 'text-red-400' : 'text-red-600'
+                          isDark ? 'text-red-300' : 'text-red-600'
                         }`} /> Não
                       </Badge>
                     )}
                   </TableCell>
                   <TableCell className={`py-4 max-w-lg ${
-                    isDark ? 'text-gray-400' : 'text-gray-700'
+                    isDark ? 'text-gray-300' : 'text-gray-700'
                   }`} title={item.texto}>
                     <span className="truncate block">{item.texto?.substring(0, 60)}...</span>
                   </TableCell>
@@ -146,8 +146,8 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
         ) : (
           <div className={`flex justify-center items-center space-x-4 mt-8 pt-6 border-t ${
             isDark 
-              ? 'border-green-500/30' 
-              : 'border-green-200/50'
+              ? 'border-green-500/30 bg-green-900/10' 
+              : 'border-green-200/50 bg-white/50'
           }`}>
             <Button 
               variant="outline" 
