@@ -202,7 +202,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Gráfico de Linha: Timeline - Estilo KPI otimizado, span full em lg */}
+      {/* Gráfico de Linha: Timeline - Estilo KPI otimizado, span full em lg, com traçado verde e fill verde claro */}
       <Card className="lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
         <CardContent className="p-8">
           <div className="flex items-center justify-between mb-6"> {/* Header com justify-between: left (ícone+título), right (box verde) */}
@@ -228,8 +228,8 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ right: 30, bottom: 80 }}>
                 <CartesianGrid className="chart-grid" strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
-                <XAxis dataKey="day" stroke={isDark ? 'white' : '#374151'} angle={-45} textAnchor="end" height={80} interval={0} tick={{ fill: isDark ? 'white' : '#374151', fontSize: 12, className: 'chart-axis' }} />
-                <YAxis stroke={isDark ? 'white' : '#374151'} width={50} tick={{ fill: isDark ? 'white' : '#374151', className: 'chart-axis' }} />
+                <XAxis dataKey="day" stroke="#10B981" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fill: "#10B981", fontSize: 12, className: 'chart-axis' }} />
+                <YAxis stroke="#10B981" width={50} tick={{ fill: "#10B981", className: 'chart-axis' }} />
                 <Tooltip content={(props) => <GenericTooltipContent {...props} isDark={isDark} />} />
                 <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2 }} activeDot={{ r: 6 }} />
                 <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
