@@ -2,8 +2,7 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge"; // Para o box verde destacado
-import { PieChart as PieIcon, Clock, Activity, BarChart3 } from "lucide-react"; // Ícones para empty states (adicionado BarChart3 para timeline)
+import { PieChart as PieIcon, Clock, Activity, BarChart3 } from "lucide-react"; // Ícones para empty states
 import dayjs from "dayjs";
 
 interface ChartsProps {
@@ -97,10 +96,6 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }, {} as Record<string, number>);
   const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
 
-  // Cálculo da média de envios por dia para Timeline
-  const totalDias = sortedTimeline.length;
-  const mediaEnviosPorDia = totalDias > 0 ? Math.round(filteredData.length / totalDias) : 0;
-
   const pieDataTipo = Object.entries(tipoData).map(([name, value]: [string, number]) => ({
     name,
     value,
@@ -148,7 +143,6 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                 </PieChart>
               </ResponsiveContainer>
               <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalTipo.toLocaleString()}</p> {/* Número em gradient-text, igual KPIs */}
-              <p className={`text-sm font-medium text-green-600`}>Distribuição total</p> {/* Subtexto verde */}
             </div>
           ) : (
             <EmptyChartState title="Nenhum envio por tipo" icon={PieIcon} isDark={isDark} />
@@ -189,7 +183,6 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                 </PieChart>
               </ResponsiveContainer>
               <p className="text-2xl font-bold gradient-text mt-4 mb-2">{totalInstancia.toLocaleString()}</p>
-              <p className={`text-sm font-medium text-green-600`}>Por instância ativa</p> {/* Subtexto green unificado */}
             </div>
           ) : (
             <EmptyChartState title="Nenhum envio por instância" icon={PieIcon} isDark={isDark} />
@@ -218,7 +211,6 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                 </BarChart>
               </ResponsiveContainer>
               <p className="text-2xl font-bold gradient-text mt-4 mb-2">{filteredData.length.toLocaleString()}</p> {/* Total geral em gradient */}
-              <p className={`text-sm font-medium text-green-600`}>Distribuição horária</p> {/* Subtexto green unificado */}
             </div>
           ) : (
             <EmptyChartState title="Nenhum envio por hora" icon={Clock} isDark={isDark} />
@@ -229,7 +221,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       {/* Gráfico de Linha: Timeline - Estilo KPI otimizado, span full em lg, com traçado verde e fill verde claro, unificado green */}
       <Card className={`lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up ${isDark ? '' : 'bg-green-50/70 border-green-200'}`} style={{animationDelay: '0.3s'}}> {/* Adicionado bg/border green no light para unificar */}
         <CardContent className="p-8">
-          <div className="flex items-center justify-between mb-6"> {/* Header com justify-between: left (ícone+título), right (box verde) */}
+          <div className="flex items-center justify-between mb-6"> {/* Header com justify-between: left (ícone+título), right (sem badge) */}
             <div className="flex items-center gap-3"> {/* Left: ícone + título lado a lado */}
               <div className={`p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40`}>
                 <Activity className="h-6 w-6 text-green-600" />
@@ -238,17 +230,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                 <i className="fas fa-chart-line text-green-600"></i> Timeline de Envios {/* Título com ícone, igual KPIs */}
               </h3>
             </div>
-            {/* Right: Box verde destacado com média (canto superior direito) – só se tem dados */}
-            {hasData && (
-              <div className="text-right">
-                <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg border-0">
-                  <div className="text-white">
-                    <p className="text-xl font-bold">{mediaEnviosPorDia.toLocaleString()}</p>
-                    <p className="text-xs opacity-90 mt-0.5">Média de envios por dia</p>
-                  </div>
-                </Badge>
-              </div>
-            )}
+            {/* Sem badge de média (removido, não solicitado) */}
           </div>
           {hasData ? (
             <div className="h-[400px]"> {/* Altura aumentada para preencher espaço sem elementos no fundo */}
