@@ -15,11 +15,7 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 section-mb">
-      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${
-        isDark 
-          ? 'bg-gradient-to-br from-green-900/20 to-emerald-800/20 backdrop-blur-sm border border-green-700/30 shadow-2xl' 
-          : 'bg-gradient-to-br from-green-50/70 to-emerald-50/70 backdrop-blur-sm border border-green-200 shadow-2xl'
-      }`}>
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8">
         <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40">
@@ -32,11 +28,7 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
         </CardContent>
       </Card>
       
-      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${
-        isDark 
-          ? 'bg-gradient-to-br from-green-900/20 to-emerald-800/20 backdrop-blur-sm border border-green-700/30 shadow-2xl' 
-          : 'bg-gradient-to-br from-green-50/70 to-emerald-50/70 backdrop-blur-sm border border-green-200 shadow-2xl'
-      }`} style={{animationDelay: '0.1s'}}>
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.1s'}}>
         <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40">
@@ -49,11 +41,7 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
         </CardContent>
       </Card>
       
-      <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up p-8 ${
-        isDark 
-          ? 'bg-gradient-to-br from-green-900/20 to-emerald-800/20 backdrop-blur-sm border border-green-700/30 shadow-2xl' 
-          : 'bg-gradient-to-br from-green-50/70 to-emerald-50/70 backdrop-blur-sm border border-green-200 shadow-2xl'
-      }`} style={{animationDelay: '0.2s'}}>
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.2s'}}>
         <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow kpi-icon border border-green-500/40">

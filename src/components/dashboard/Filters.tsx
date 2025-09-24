@@ -63,12 +63,8 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
   };
 
   return (
-    <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up mb-8 ${
-      isDark 
-        ? 'bg-gradient-to-br from-green-900/30 to-emerald-800/30 backdrop-blur-sm border border-green-700/50 shadow-2xl' 
-        : 'bg-gradient-to-br from-green-50/70 to-emerald-50/70 backdrop-blur-sm border border-green-200 shadow-2xl'
-    }`}>
-      <CardContent className={`p-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+    <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-8">
+      <CardContent className="p-6">
         <div className="mb-4">
           <div className="w-12 h-1 rounded-full mb-2 bg-gradient-to-r from-green-400 to-emerald-500"></div>
           <div className="flex items-center gap-2">

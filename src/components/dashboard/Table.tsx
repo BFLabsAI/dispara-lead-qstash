@@ -21,11 +21,7 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
   const paginatedData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up mb-12 section-mb ${
-      isDark 
-        ? 'bg-gradient-to-br from-green-900/20 to-emerald-800/20 backdrop-blur-sm border border-green-700/30 shadow-2xl' 
-        : 'bg-gradient-to-br from-green-50/70 to-emerald-50/70 backdrop-blur-sm border border-green-200 shadow-2xl'
-    }`}>
+    <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-12 section-mb">
       <CardContent className="p-8">
         <div className="flex items-center gap-2 mb-6">
           <i className="fas fa-table text-xl text-green-600 shadow-lg animate-pulse-glow"></i>
