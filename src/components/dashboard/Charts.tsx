@@ -10,18 +10,46 @@ interface ChartsProps {
 
 const COLORS = ["#10B981", "#059669", "#EF4444", "#3B82F6", "#F59E0B", "#8B5CF6"];
 
+const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, value, isDark }: any) => {
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const percentage = ((percent * 100).toFixed(0));
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill={isDark ? "white" : "black"}
+      textAnchor={x > cx ? "start" : "end"}
+      dominantBaseline="central"
+      fontSize="12"
+      fontWeight="bold"
+    >
+      {`${name}: ${value} (${percentage}%)`}
+    </text>
+  );
+};
+
 export const Charts = ({ filteredData }: ChartsProps) => {
   const isDark = document.documentElement.classList.contains('dark');
 
-  const tipoData = filteredData.reduce((acc, item) => {
-    acc[item.tipo_envio || 'Desconhecido'] = (acc[item.tipo_envio || 'Desconhecido'] || 0) + 1;
+  const tipoData = filteredData.reduce((acc: Record<string, number>, item) => {
+    const key = item.tipo_envio || 'Desconhecido';
+    acc[key] = (acc[key] || 0) + 1;
     return acc;
-  }, {} as any);
+  }, {} as Record<string, number>);
 
-  const instanciaData = filteredData.reduce((acc, item) => {
-    acc[item.instancia || 'Desconhecida'] = (acc[item.instancia || 'Desconhecida'] || 0) + 1;
+  const totalTipo = Object.values(tipoData).reduce((sum, v) => sum + (v as number), 0);
+
+  const instanciaData = filteredData.reduce((acc: Record<string, number>, item) => {
+    const key = item.instancia || 'Desconhecida';
+    acc[key] = (acc[key] || 0) + 1;
     return acc;
-  }, {} as any);
+  }, {} as Record<string, number>);
+
+  const totalInstancia = Object.values(instanciaData).reduce((sum, v) => sum + (v as number), 0);
 
   const horaData = Array(24).fill(0);
   filteredData.forEach((item) => {
@@ -29,12 +57,24 @@ export const Charts = ({ filteredData }: ChartsProps) => {
     horaData[hour]++;
   });
 
-  const timelineData = filteredData.reduce((acc, item) => {
+  const timelineData = filteredData.reduce((acc: Record<string, number>, item) => {
     const day = item.date.format("DD/MM");
     acc[day] = (acc[day] || 0) + 1;
     return acc;
-  }, {} as any);
+  }, {} as Record<string, number>);
   const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
+
+  const pieDataTipo = Object.entries(tipoData).map(([name, value]: [string, number]) => ({
+    name,
+    value,
+    percentage: ((value / totalTipo) * 100).toFixed(1)
+  }));
+
+  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]: [string, number]) => ({
+    name,
+    value,
+    percentage: ((value / totalInstancia) * 100).toFixed(1)
+  }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb">
@@ -46,12 +86,151 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={Object.entries(tipoData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={100} fill="#10B981" labelLine={false}>
-                  {Object.entries(tipoData).map((entry, index) => (
+                <Pie
+                  data={pieDataTipo}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  fill="#10B981"
+                  dataKey="value"
+                  nameKey="name"
+                  labelLine={false}
+                  label={(entry) => <CustomLabel {...entry} isDark={isDark} />}
+                >
+                  {pieDataTipo.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`${value} envios`, '']} />
+                <Tooltip 
+                  formatter={(value, name, props) => [
+                    `${value} envios (${props.payload.percentage}%)`,
+                    name
+                  ]} 
+                />
+                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.1s'}}>
+        <CardContent className="p-8">
+          <h5 className="font-bold mb-6 text-xl flex<dyad-problem-report summary="4 problems">
+<problem file="src/components/dashboard/Charts.tsx" line="44" column="64" code="2365">Operator '+' cannot be applied to types 'unknown' and 'unknown'.</problem>
+<problem file="src/components/dashboard/Charts.tsx" line="52" column="74" code="2365">Operator '+' cannot be applied to types 'unknown' and 'unknown'.</problem>
+<problem file="src/components/dashboard/Charts.tsx" line="70" column="27" code="2363">The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.</problem>
+<problem file="src/components/dashboard/Charts.tsx" line="76" column="27" code="2363">The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.</problem>
+</dyad-problem-report><dyad-write path="src/components/dashboard/Charts.tsx" description="Fix TS2365/2363: explicitly type v as number in reduce callbacks for safe + operations; ensure totalTipo/totalInstancia are number for / in percentage calc.">
+"use client";
+
+import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
+import { Card, CardContent } from "@/components/ui/card";
+import dayjs from "dayjs";
+
+interface ChartsProps {
+  filteredData: any[];
+}
+
+const COLORS = ["#10B981", "#059669", "#EF4444", "#3B82F6", "#F59E0B", "#8B5CF6"];
+
+const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, value, isDark }: any) => {
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const percentage = ((percent * 100).toFixed(0));
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill={isDark ? "white" : "black"}
+      textAnchor={x > cx ? "start" : "end"}
+      dominantBaseline="central"
+      fontSize="12"
+      fontWeight="bold"
+    >
+      {`${name}: ${value} (${percentage}%)`}
+    </text>
+  );
+};
+
+export const Charts = ({ filteredData }: ChartsProps) => {
+  const isDark = document.documentElement.classList.contains('dark');
+
+  const tipoData = filteredData.reduce((acc: Record<string, number>, item) => {
+    const key = item.tipo_envio || 'Desconhecido';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const totalTipo: number = Object.values(tipoData).reduce((sum, v: number) => sum + v, 0);
+
+  const instanciaData = filteredData.reduce((acc: Record<string, number>, item) => {
+    const key = item.instancia || 'Desconhecida';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const totalInstancia: number = Object.values(instanciaData).reduce((sum, v: number) => sum + v, 0);
+
+  const horaData = Array(24).fill(0);
+  filteredData.forEach((item) => {
+    const hour = item.date.hour();
+    horaData[hour]++;
+  });
+
+  const timelineData = filteredData.reduce((acc: Record<string, number>, item) => {
+    const day = item.date.format("DD/MM");
+    acc[day] = (acc[day] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
+
+  const pieDataTipo = Object.entries(tipoData).map(([name, value]: [string, number]) => ({
+    name,
+    value,
+    percentage: ((value / totalTipo) * 100).toFixed(1)
+  }));
+
+  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]: [string, number]) => ({
+    name,
+    value,
+    percentage: ((value / totalInstancia) * 100).toFixed(1)
+  }));
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb">
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
+        <CardContent className="p-8">
+          <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
+            <i className="fas fa-chart-pie"></i> Envios por Tipo
+          </h5>
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieDataTipo}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  fill="#10B981"
+                  dataKey="value"
+                  nameKey="name"
+                  labelLine={false}
+                  label={(entry) => <CustomLabel {...entry} isDark={isDark} />}
+                >
+                  {pieDataTipo.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value, name, props) => [
+                    `${value} envios (${props.payload.percentage}%)`,
+                    name
+                  ]} 
+                />
                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
               </PieChart>
             </ResponsiveContainer>
@@ -67,12 +246,27 @@ export const Charts = ({ filteredData }: ChartsProps) => {
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={Object.entries(instanciaData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={100} fill="#10B981" labelLine={false}>
-                  {Object.entries(instanciaData).map((entry, index) => (
+                <Pie
+                  data={pieDataInstancia}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  fill="#10B981"
+                  dataKey="value"
+                  nameKey="name"
+                  labelLine={false}
+                  label={(entry) => <CustomLabel {...entry} isDark={isDark} />}
+                >
+                  {pieDataInstancia.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`${value} envios`, '']} />
+                <Tooltip 
+                  formatter={(value, name, props) => [
+                    `${value} envios (${props.payload.percentage}%)`,
+                    name
+                  ]} 
+                />
                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
               </PieChart>
             </ResponsiveContainer>
