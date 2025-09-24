@@ -84,6 +84,10 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }, {} as Record<string, number>);
   const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
 
+  // Cálculo da média de envios por dia para Timeline
+  const totalDias = sortedTimeline.length;
+  const mediaEnviosPorDia = totalDias > 0 ? Math.round(filteredData.length / totalDias) : 0;
+
   const pieDataTipo = Object.entries(tipoData).map(([name, value]: [string, number]) => ({
     name,
     value,
@@ -221,8 +225,8 @@ export const Charts = ({ filteredData }: ChartsProps) => {
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-3xl font-bold gradient-text mt-4 mb-2">{filteredData.length.toLocaleString()}</p> {/* Número total em gradient */}
-          <p className={`text-sm font-medium text-green-600`}>Evolução ao longo do tempo</p>
+          <p className="text-3xl font-bold gradient-text mt-2 mb-2">{mediaEnviosPorDia.toLocaleString()}</p> {/* Média calculada em gradient-text, com mt-2 para menos espaçamento */}
+          <p className={`text-sm font-medium text-green-600`}>Média de envios por dia</p> {/* Subtítulo alterado */}
         </CardContent>
       </Card>
     </div>
