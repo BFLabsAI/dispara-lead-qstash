@@ -321,12 +321,10 @@
   .text-shadow { text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); } 
   .font-outfit { font-family: 'Outfit', sans-serif; }
   
-  /* High contrast in dark */
+  /* High contrast in dark - REMOVIDO O !IMPORTANT AGRESSIVO */
   .dark {
     --text-contrast: 0 0% 98%; /* Pure white */
-  }
-  .dark * {
-    color: hsl(var(--text-contrast)) !important; /* Force white text */
+    color: hsl(var(--text-contrast)); /* Apply to body, not all elements */
   }
   
   /* Section spacing */
@@ -371,5 +369,35 @@
   }
   .light .chart-grid { 
     stroke: rgba(16, 185, 129, 0.1); /* Green-tinted grid lines */
+  }
+
+  /* Dark mode text corrections - Garantir contraste sem forçar tudo */
+  .dark .glass-card h3, .dark .glass-card h5 { 
+    color: #ffffff; /* White for headers in dark */
+    font-weight: 700;
+  }
+  .dark .glass-card p { 
+    color: #e5e7eb; /* Light gray for body text in dark */
+  }
+  .dark .text-gray-900 { 
+    color: #ffffff !important; /* Override dark text in dark mode */
+  }
+  .dark .text-gray-700 { 
+    color: #d1d5db !important; /* Light gray in dark mode */
+  }
+  .dark .text-gray-800 { 
+    color: #f3f4f6 !important; /* Very light gray in dark mode */
+  }
+  .dark .table-header { 
+    background: rgba(16, 185, 129, 0.1); /* Subtle green tint for table headers in dark */
+    color: #ffffff;
+    border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+  }
+  .dark .chart-axis { 
+    stroke: #ffffff !important; /* White axes in dark mode */
+    fill: #ffffff !important;
+  }
+  .dark .chart-grid { 
+    stroke: rgba(255, 255, 255, 0.1); /* White-tinted grid lines in dark */
   }
 }
