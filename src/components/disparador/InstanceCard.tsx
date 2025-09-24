@@ -35,17 +35,17 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
     ? {
         text: "Ativa e Operacional",
         badgeClass:
-          "bg-green-500/10 text-green-700 border border-green-500/20",
+          "bg-green-500/10 text-green-700 dark:text-green-300 border border-green-500/20",
         dotClass: "bg-green-500",
-        textClass: "text-green-700",
+        textClass: "text-green-700 dark:text-green-300",
         Icon: CheckCircle,
       }
     : {
         text: "Desconectada",
         badgeClass:
-          "bg-red-500/10 text-red-700 border border-red-500/20",
+          "bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20",
         dotClass: "bg-red-500",
-        textClass: "text-red-700",
+        textClass: "text-red-700 dark:text-red-300",
         Icon: XCircle,
       };
 
@@ -56,7 +56,7 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
 
   return (
     <Card
-      className="rounded-2xl border border-green-400 dark:border-green-500 shadow-sm animate-slide-in-up p-5 sm:p-6 transition-all hover:border-primary/50 hover:shadow-lg bg-green-100 text-slate-800"
+      className="rounded-2xl border border-green-400 dark:border-green-500/40 shadow-sm animate-slide-in-up p-5 sm:p-6 transition-all hover:border-primary/50 hover:shadow-lg bg-green-100 dark:bg-green-500/10"
       style={{ animationDelay: `${index * 0.06}s` }}
     >
       {/* Header */}
@@ -64,7 +64,7 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
         <div className="flex items-start gap-3 min-w-0">
           <div className="relative">
             <div className="p-3 rounded-xl bg-green-500/15 border border-green-500/30 shadow-[0_10px_25px_-10px_rgba(16,185,129,0.6)]">
-              <QrCode className="h-6 w-6 text-green-600" />
+              <QrCode className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
             <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full ring-2 ring-card ${statusConfig.dotClass}`} />
           </div>
@@ -81,7 +81,7 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
           variant="ghost"
           size="icon"
           onClick={loadInstances}
-          className="h-8 w-8 text-slate-500 hover:text-slate-800"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
           title="Atualizar"
         >
           <i className="fas fa-sync-alt text-sm" />
@@ -89,7 +89,7 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
       </div>
 
       {/* Info strip */}
-      <div className="rounded-lg border bg-white/60 px-3 py-2 mb-4">
+      <div className="rounded-lg border bg-muted/40 px-3 py-2 mb-4">
         <div className={`flex items-center justify-center gap-2 text-sm font-medium ${statusConfig.textClass}`}>
           {React.createElement(statusConfig.Icon, { className: "h-4 w-4" })}
           <span>{statusConfig.text}</span>
