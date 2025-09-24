@@ -100,9 +100,8 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {isConnected ? (
           <Button
-            variant="destructive"
             onClick={() => fetchQrCode(instance.name)}
-            className="w-full"
+            className="w-full bg-red-600 hover:bg-red-700 text-white"
           >
             <i className="fas fa-power-off mr-2" />
             Desconectar
