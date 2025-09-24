@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
 @layer base {
   :root {
     --background: 220 20% 96%; /* Um cinza muito claro */
@@ -57,7 +55,7 @@
   }
 
   * { @apply border-border; }
-  body { @apply bg-background text-foreground font-outfit; }
+  body { @apply bg-background text-foreground font-sans; }
 }
 
 /* Premium Animations */
