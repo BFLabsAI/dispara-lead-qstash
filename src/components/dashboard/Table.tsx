@@ -20,12 +20,12 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
 
   return (
     <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-12 section-mb">
-      <CardContent className="p-8"> {/* Increased padding */}
+      <CardContent className="p-8">
         <div className="flex items-center gap-2 mb-6">
           <i className="fas fa-table text-green-400 text-xl"></i>
           <h5 className="font-bold text-xl gradient-text">Registros de Disparo</h5>
         </div>
-        <div className="overflow-x-auto rounded-xl border border-white/10"> {/* Smooth border */}
+        <div className="overflow-x-auto rounded-xl border border-white/10">
           <Table>
             <TableHeader className="bg-black/20 backdrop-blur-sm">
               <TableRow className="border-b border-white/10">

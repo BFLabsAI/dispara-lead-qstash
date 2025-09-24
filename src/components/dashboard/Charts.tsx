@@ -11,6 +11,8 @@ interface ChartsProps {
 const COLORS = ["#10B981", "#059669", "#EF4444", "#3B82F6", "#F59E0B", "#8B5CF6"];
 
 export const Charts = ({ filteredData }: ChartsProps) => {
+  const isDark = document.documentElement.classList.contains('dark');
+
   const tipoData = filteredData.reduce((acc, item) => {
     acc[item.tipo_envio || 'Desconhecido'] = (acc[item.tipo_envio || 'Desconhecido'] || 0) + 1;
     return acc;
@@ -35,13 +37,13 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb"> {/* Increased gap/mb for beauty */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 section-mb">
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
-        <CardContent className="p-8"> {/* Increased padding */}
+        <CardContent className="p-8">
           <h5 className="font-bold mb-6 text-xl flex items-center gap-2 gradient-text text-shadow">
             <i className="fas fa-chart-pie"></i> Envios por Tipo
           </h5>
-          <div className="h-[350px]"> {/* Taller for no cut-off */}
+          <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={Object.entries(tipoData)} dataKey="1" nameKey="0" cx="50%" cy="50%" outerRadius={100} fill="#10B981" labelLine={false}>
