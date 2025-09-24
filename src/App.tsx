@@ -21,9 +21,11 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-            <Route path="/instancias" element={<DashboardLayout><Instancias /></DashboardLayout>} />
-            <Route path="/disparo" element={<DashboardLayout><Disparo /></DashboardLayout>} />
+            <Route element={<DashboardLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/instancias" element={<Instancias />} />
+              <Route path="/disparo" element={<Disparo />} />
+            </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
