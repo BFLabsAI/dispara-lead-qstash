@@ -37,7 +37,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
   };
 
   return (
-    <Card className={`rounded-2xl card-premium animate-slide-in-up mb-12 section-mb ${isDark ? 'glass-card' : 'bg-gradient-to-br from-[#10B981] to-[#059669] shadow-2xl border-0'}`}>
+    <Card className={`rounded-2xl card-premium animate-slide-in-up mb-12 section-mb ${isDark ? 'glass-card' : 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-2xl border-0'}`}>
       <CardContent className={`p-8 ${isDark ? '' : 'text-white'}`}>
         <div className="mb-6">
           <div className={`w-16 h-1 rounded-full mb-3 ${isDark ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-white/30'}`}></div>
@@ -106,13 +106,14 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             <Button 
               variant="outline" 
               onClick={handleReset} 
-              className={`w-full h-12 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all ${isDark ? 'bg-red-600/80' : ''}`}
+              className={`glass-card w-full h-12 border-2 ${isDark ? 'border-white/20 bg-black/20 text-gray-300 hover:bg-red-500/20 hover:text-red-400' : 'bg-white border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600'}`}
             >
               <i className="fas fa-times mr-2"></i> Limpar
             </Button>
             <Button 
+              variant="outline" 
               onClick={handleApply} 
-              className="w-full h-12 bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-semibold shadow-lg hover:shadow-xl transition-all rounded-xl"
+              className={`w-full h-12 border-2 ${isDark ? 'border-green-400 text-green-300 hover:bg-green-500/20' : 'bg-white border-green-500 text-green-600 hover:bg-green-50 hover:border-green-600 font-semibold shadow-md'}`}
             >
               <i className="fas fa-search mr-2"></i> Aplicar Filtros
             </Button>

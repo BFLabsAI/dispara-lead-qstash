@@ -100,7 +100,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up">
         <CardContent className="p-8">
           <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className={`fas fa-chart-pie ${isDark ? 'text-green-400' : 'text-green-600'}`}></i> Envios por Tipo
+            <i className="fas fa-chart-pie"></i> Envios por Tipo
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -131,7 +131,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.1s'}}>
         <CardContent className="p-8">
           <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className={`fas fa-server ${isDark ? 'text-green-400' : 'text-green-600'}`}></i> Envios por Instância
+            <i className="fas fa-server"></i> Envios por Instância
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -162,7 +162,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.2s'}}>
         <CardContent className="p-8">
           <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className={`fas fa-clock ${isDark ? 'text-green-400' : 'text-green-600'}`}></i> Envios por Hora
+            <i className="fas fa-clock"></i> Envios por Hora
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -181,7 +181,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       <Card className="lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
         <CardContent className="p-8">
           <h5 className={`font-bold mb-6 text-xl flex items-center gap-2 text-shadow ${isDark ? 'gradient-text' : 'text-gray-900'}`}>
-            <i className={`fas fa-chart-line ${isDark ? 'text-green-400' : 'text-green-600'}`}></i> Timeline de Envios
+            <i className="fas fa-chart-line"></i> Timeline de Envios
           </h5>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
