@@ -1,3 +1,4 @@
+40 char threshold, ellipsis preserving second date), X gradient-danger/80 with white icon and red glow. No other changes.">
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,17 +39,17 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
 
   // Função para format curto e tooltip full
   const getDateDisplay = (range: DateRange | undefined) => {
-    if (!range?.from) return "Selecionar período";
+    if (!range?.from) return <span className={isDark ? 'text-gray-400' : 'text-white/80'}>Selecionar período</span>;
     const fromStr = format(range.from, "MMM d, yyyy"); // Curto: "Sep 1, 2025"
     if (range.to) {
       const toStr = format(range.to, "MMM d, yyyy");
-      const fullRange = `${fromStr} - ${toStr}`;
+      const fullRange = `${fromStr} to ${toStr}`; // 'to' encurta vs ' - '
       return (
         <span 
           className="truncate block" 
           title={fullRange} // Tooltip full para hover
         >
-          {fullRange.length > 25 ? `${fromStr}...` : fullRange} {/* Ellipsis se muito longo */}
+          {fullRange.length > 40 ? `${fromStr}...${toStr.slice(-10)}` : fullRange} {/* Ellipsis só se >40; mostra fim da toStr se cortado */}
         </span>
       );
     }
@@ -124,11 +125,11 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             </Popover>
           </div>
           
-          {/* Limpar: Ícone X premium vermelho (fundo todo red, ícone branco, glow como gráficos) */}
+          {/* Limpar: Ícone X premium gradiente red (não full color, glow como gráficos) */}
           <Button 
             variant="ghost" 
             onClick={handleReset} 
-            className={`h-10 w-10 p-0 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg border-0 animate-pulse-glow kpi-icon border border-red-500/40`} // Circle full red, white icon, glow red premium
+            className={`h-10 w-10 p-0 rounded-full gradient-danger/80 hover:gradient-danger text-white shadow-lg border-0 animate-pulse-glow kpi-icon border border-red-500/40`} // Gradiente red com /80 (subtil), white icon, glow red premium
           >
             <X className="h-4 w-4" /> {/* Ícone branco, tamanho médio */}
           </Button>
