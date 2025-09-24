@@ -36,6 +36,32 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
     setDateRange({ from: undefined, to: undefined });
   };
 
+  // Função para format curto e tooltip full
+  const getDateDisplay = (range: DateRange | undefined) => {
+    if (!range?.from) return "Selecionar período";
+    const fromStr = format(range.from, "MMM d, yyyy"); // Curto: "Sep 1, 2025"
+    if (range.to) {
+      const toStr = format(range.to, "MMM d, yyyy");
+      const fullRange = `${fromStr} - ${toStr}`;
+      return (
+        <span 
+          className="truncate block" 
+          title={fullRange} // Tooltip full para hover
+        >
+          {fullRange.length > 25 ? `${fromStr}...` : fullRange} {/* Ellipsis se muito longo */}
+        </span>
+      );
+    }
+    return (
+      <span 
+        className="truncate block" 
+        title={fromStr}
+      >
+        {fromStr}
+      </span>
+    );
+  };
+
   return (
     <Card className={`rounded-2xl card-premium animate-slide-in-up mb-8 ${isDark ? 'glass-card' : 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-2xl border-0'}`}>
       <CardContent className={`p-6 ${isDark ? '' : 'text-white'}`}>
@@ -80,7 +106,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             </Select>
           </div>
           
-          {/* Período - Mesmo estilo, maior espaço */}
+          {/* Período - Mesmo estilo, maior espaço, texto curto sem overflow */}
           <div className="flex-1 min-w-[220px] space-y-1">
             <Label className={`flex items-center gap-1 text-sm font-medium ${isDark ? 'text-gray-300' : 'text-white/90'}`}>
               <CalendarIcon className={`h-3 w-3 ${isDark ? 'text-green-400' : 'text-white'}`} />
@@ -89,17 +115,7 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className={`glass-card w-full justify-start text-left h-10 ${isDark ? 'border-white/20 bg-black/20 text-white hover:bg-green-500/10' : 'bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30'}`}>
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "PPP")} - {format(dateRange.to, "PPP")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "PPP")
-                    )
-                  ) : (
-                    <span className={isDark ? 'text-gray-400' : 'text-white/80'}>Selecionar período</span>
-                  )}
+                  {getDateDisplay(dateRange)}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className={`glass-card w-auto p-0 ${isDark ? 'border-white/20 bg-black/20 max-w-none' : 'bg-white border-green-200 text-gray-900'}`} align="start">
@@ -108,13 +124,13 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             </Popover>
           </div>
           
-          {/* Limpar: Apenas ícone X vermelho, glass-card unificado, no fim da linha */}
+          {/* Limpar: Ícone X premium vermelho (fundo todo red, ícone branco, glow como gráficos) */}
           <Button 
             variant="ghost" 
             onClick={handleReset} 
-            className={`glass-card h-10 w-10 p-0 rounded-lg ${isDark ? 'border-white/20 bg-black/20 hover:bg-red-500/20' : 'bg-white/20 border-white/30 hover:bg-red-50'}`} // h-10 w-10, glass-card, hover red
+            className={`h-10 w-10 p-0 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg border-0 animate-pulse-glow kpi-icon border border-red-500/40`} // Circle full red, white icon, glow red premium
           >
-            <X className={`h-4 w-4 ${isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-500'}`} /> {/* Ícone X vermelho */}
+            <X className="h-4 w-4" /> {/* Ícone branco, tamanho médio */}
           </Button>
         </div>
       </CardContent>
