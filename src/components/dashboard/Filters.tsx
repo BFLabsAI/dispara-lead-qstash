@@ -1,4 +1,4 @@
-40 char threshold, ellipsis preserving second date), X gradient-danger/80 with white icon and red glow. No other changes.">
+35 chars); adding flex nowrap to button text for better fit. X gradient red: changing to bg-gradient-to-r from-red-500 to-red-600 (not full solid), hover from-red-600 to-red-700, white icon, rounded-full with red glow (animate-pulse-glow border-red-500/40). Clean code without erroneous description text to fix all 31 TS errors (description was parsed as code).">
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,13 +43,13 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
     const fromStr = format(range.from, "MMM d, yyyy"); // Curto: "Sep 1, 2025"
     if (range.to) {
       const toStr = format(range.to, "MMM d, yyyy");
-      const fullRange = `${fromStr} to ${toStr}`; // 'to' encurta vs ' - '
+      const fullRange = `${fromStr} - ${toStr}`; // ' - ' separator for shortness
       return (
         <span 
-          className="truncate block" 
+          className="truncate block flex nowrap" 
           title={fullRange} // Tooltip full para hover
         >
-          {fullRange.length > 40 ? `${fromStr}...${toStr.slice(-10)}` : fullRange} {/* Ellipsis só se >40; mostra fim da toStr se cortado */}
+          {fullRange.length > 35 ? `${fromStr} - ${toStr.slice(-10)}...` : fullRange} {/* Higher limit 35; preserves end of second date if truncated */}
         </span>
       );
     }
@@ -125,11 +125,11 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             </Popover>
           </div>
           
-          {/* Limpar: Ícone X premium gradiente red (não full color, glow como gráficos) */}
+          {/* Limpar: Ícone X premium gradiente vermelho (não full solid, ícone branco, glow como gráficos) */}
           <Button 
             variant="ghost" 
             onClick={handleReset} 
-            className={`h-10 w-10 p-0 rounded-full gradient-danger/80 hover:gradient-danger text-white shadow-lg border-0 animate-pulse-glow kpi-icon border border-red-500/40`} // Gradiente red com /80 (subtil), white icon, glow red premium
+            className={`h-10 w-10 p-0 rounded-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg border-0 animate-pulse-glow kpi-icon border border-red-500/40`} // Gradient red, white icon, red glow premium
           >
             <X className="h-4 w-4" /> {/* Ícone branco, tamanho médio */}
           </Button>
