@@ -149,19 +149,29 @@
 }
 
 /* === INÍCIO DA CORREÇÃO DEFINITIVA === */
-/* Força o hover verde nos botões/links do menu lateral */
-aside nav a:hover,
-aside nav button:hover {
-  background-color: hsl(var(--sidebar-accent)) !important;
-  color: hsl(var(--sidebar-accent-foreground)) !important;
-}
+@layer components {
+  /*
+    Regra de alta especificidade para o HOVER dos itens da navegação lateral.
+    - Fundo: Verde muito sutil e transparente.
+    - Cor (Texto e Ícone): Verde primário vibrante.
+  */
+  aside nav a:hover,
+  aside nav button:hover {
+    background-color: hsla(142, 76%, 36%, 0.1) !important;
+    color: hsl(var(--primary)) !important;
+  }
 
-/* Força a cor verde no item ativo/selecionado do menu */
-aside nav a.active,
-aside nav a[aria-current="page"],
-aside nav [data-state="active"] {
-  background-color: hsl(var(--sidebar-accent)) !important;
-  color: hsl(var(--sidebar-accent-foreground)) !important;
-  font-weight: 600;
+  /*
+    Regra para o item ATIVO (página atual).
+    - Fundo: Verde um pouco mais visível que o hover.
+    - Cor: Verde primário vibrante.
+  */
+  aside nav a.active,
+  aside nav a[aria-current="page"],
+  aside nav [data-state="active"] {
+    background-color: hsla(142, 76%, 36%, 0.15) !important;
+    color: hsl(var(--primary)) !important;
+    font-weight: 600;
+  }
 }
 /* === FIM DA CORREÇÃO DEFINITIVA === */
