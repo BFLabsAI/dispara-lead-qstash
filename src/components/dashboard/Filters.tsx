@@ -63,89 +63,65 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
   };
 
   return (
-    <Card className={`rounded-2xl card-premium animate-slide-in-up mb-8 ${
+    <Card className={`glass-card rounded-2xl card-premium animate-slide-in-up mb-8 ${
       isDark 
-        ? 'bg-gradient-to-br from-green-900 to-emerald-800 shadow-2xl border border-green-700/50' 
-        : 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-2xl border-0'
+        ? 'bg-gradient-to-br from-green-900/30 to-emerald-800/30 backdrop-blur-sm border border-green-700/50 shadow-2xl' 
+        : 'bg-gradient-to-br from-green-50/70 to-emerald-50/70 backdrop-blur-sm border border-green-200 shadow-2xl'
     }`}>
-      <CardContent className={`p-6 ${isDark ? 'text-white' : 'text-white'}`}>
+      <CardContent className={`p-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
         <div className="mb-4">
-          <div className="w-12 h-1 rounded-full mb-2 bg-white/30"></div>
+          <div className="w-12 h-1 rounded-full mb-2 bg-gradient-to-r from-green-400 to-emerald-500"></div>
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-white" />
-            <h3 className="font-bold text-lg text-white drop-shadow-md">Filtros Avançados</h3>
+            <Filter className="h-4 w-4 text-green-500" />
+            <h3 className="font-bold text-lg text-green-600">Filtros Avançados</h3>
           </div>
         </div>
         <div className="flex flex-wrap gap-3 items-end">
           {/* Instância */}
           <div className="flex-1 min-w-[220px] space-y-1">
-            <Label className={`flex items-center gap-1 text-sm font-medium ${isDark ? 'text-white/90' : 'text-gray-700'}`}>
-              <i className={`fas fa-server text-xs ${isDark ? 'text-white' : 'text-gray-600'}`}></i> Instância
+            <Label className="flex items-center gap-1 text-sm font-medium text-gray-700">
+              <i className="fas fa-server text-xs text-green-600"></i> Instância
             </Label>
             <Select value={instance} onValueChange={(value) => { setInstance(value); }}>
-              <SelectTrigger className={`glass-card h-10 ${
-                isDark 
-                  ? 'bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20' 
-                  : 'bg-white/20 backdrop-blur-sm border-green-200 text-gray-800 hover:bg-white/30'
-              }`}>
+              <SelectTrigger className="glass-card h-10 bg-white/20 backdrop-blur-sm border-green-200 text-gray-800 hover:bg-white/30">
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
-              <SelectContent className={`glass-card max-h-48 ${
-                isDark 
-                  ? 'bg-gray-800 border-gray-700 text-white' 
-                  : 'bg-white border-green-200 text-gray-800'
-              }`}>
-                <SelectItem value="all" className={isDark ? 'text-white hover:bg-gray-700/50' : 'text-gray-800 hover:bg-green-50'}>Todas</SelectItem>
+              <SelectContent className="glass-card max-h-48 bg-white border-green-200 text-gray-800">
+                <SelectItem value="all" className="text-gray-800 hover:bg-green-50">Todas</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
           {/* Tipo */}
           <div className="flex-1 min-w-[220px] space-y-1">
-            <Label className={`flex items-center gap-1 text-sm font-medium ${isDark ? 'text-white/90' : 'text-gray-700'}`}>
-              <i className={`fas fa-tag text-xs ${isDark ? 'text-white' : 'text-gray-600'}`}></i> Tipo
+            <Label className="flex items-center gap-1 text-sm font-medium text-gray-700">
+              <i className="fas fa-tag text-xs text-green-600"></i> Tipo
             </Label>
             <Select value={tipo} onValueChange={(value) => { setTipo(value); }}>
-              <SelectTrigger className={`glass-card h-10 ${
-                isDark 
-                  ? 'bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20' 
-                  : 'bg-white/20 backdrop-blur-sm border-green-200 text-gray-800 hover:bg-white/30'
-              }`}>
+              <SelectTrigger className="glass-card h-10 bg-white/20 backdrop-blur-sm border-green-200 text-gray-800 hover:bg-white/30">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
-              <SelectContent className={`glass-card max-h-48 ${
-                isDark 
-                  ? 'bg-gray-800 border-gray-700 text-white' 
-                  : 'bg-white border-green-200 text-gray-800'
-              }`}>
-                <SelectItem value="all" className={isDark ? 'text-white hover:bg-gray-700/50' : 'text-gray-800 hover:bg-green-50'}>Todos</SelectItem>
-                <SelectItem value="texto" className={isDark ? 'text-white hover:bg-gray-700/50' : 'text-gray-800 hover:bg-green-50'}>Texto</SelectItem>
-                <SelectItem value="imagem" className={isDark ? 'text-white hover:bg-gray-700/50' : 'text-gray-800 hover:bg-green-50'}>Imagem</SelectItem>
+              <SelectContent className="glass-card max-h-48 bg-white border-green-200 text-gray-800">
+                <SelectItem value="all" className="text-gray-800 hover:bg-green-50">Todos</SelectItem>
+                <SelectItem value="texto" className="text-gray-800 hover:bg-green-50">Texto</SelectItem>
+                <SelectItem value="imagem" className="text-gray-800 hover:bg-green-50">Imagem</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
           {/* Período */}
           <div className="flex-1 min-w-[220px] space-y-1">
-            <Label className={`flex items-center gap-1 text-sm font-medium ${isDark ? 'text-white/90' : 'text-gray-700'}`}>
-              <CalendarIcon className={`h-3 w-3 ${isDark ? 'text-white' : 'text-gray-600'}`} />
+            <Label className="flex items-center gap-1 text-sm font-medium text-gray-700">
+              <CalendarIcon className="h-3 w-3 text-green-600" />
               Período
             </Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={`glass-card w-full justify-start text-left h-10 ${
-                  isDark 
-                    ? 'bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20' 
-                    : 'bg-white/20 backdrop-blur-sm border-green-200 text-gray-800 hover:bg-white/30'
-                }`}>
+                <Button variant="outline" className="glass-card w-full justify-start text-left h-10 bg-white/20 backdrop-blur-sm border-green-200 text-gray-800 hover:bg-white/30">
                   {getDateDisplay(dateRange)}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className={`glass-card w-auto p-0 ${
-                isDark 
-                  ? 'bg-gray-800 border-gray-700 text-white' 
-                  : 'bg-white border-green-200 text-gray-800'
-              }`} align="start">
+              <PopoverContent className="glass-card w-auto p-0 bg-white border-green-200 text-gray-800" align="start">
                 <Calendar mode="range" selected={dateRange} onSelect={(range) => { setDateRange(range); }} numberOfMonths={2} className="rounded-md border-0" />
               </PopoverContent>
             </Popover>
