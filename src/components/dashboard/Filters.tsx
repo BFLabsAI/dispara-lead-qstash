@@ -39,9 +39,12 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
   return (
     <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-12 section-mb">
       <CardContent className="p-8">
-        <div className="flex items-center gap-2 mb-6">
-          <Filter className={`h-5 w-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
-          <h3 className={`font-bold text-xl ${isDark ? 'gradient-text' : 'text-gray-900'}`}>Filtros Avançados</h3>
+        <div className="mb-6">
+          <div className="w-16 h-1 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full mb-3"></div>
+          <div className="flex items-center gap-2">
+            <Filter className={`h-5 w-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+            <h3 className={`font-bold text-xl ${isDark ? 'gradient-text' : 'text-gray-900'}`}>Filtros Avançados</h3>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
           <div className="space-y-2">
@@ -103,13 +106,14 @@ export const Filters = ({ onFilterChange }: FiltersProps) => {
             <Button 
               variant="outline" 
               onClick={handleReset} 
-              className={`glass-card w-full h-12 ${isDark ? 'border-white/20 bg-black/20 text-gray-300 hover:bg-red-500/20 hover:text-red-400' : 'border-gray-300 text-gray-700 hover:bg-red-50 hover:text-red-600 border-red-200'}`}
+              className={`glass-card w-full h-12 border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 ${isDark ? 'border-white/20 bg-black/20 text-gray-300 hover:bg-red-500/20 hover:text-red-400' : ''}`}
             >
               <i className="fas fa-times mr-2"></i> Limpar
             </Button>
             <Button 
+              variant="outline" 
               onClick={handleApply} 
-              className="btn-premium w-full h-12 gradient-primary text-white shadow-lg"
+              className={`w-full h-12 border-2 border-green-500 text-green-600 hover:bg-green-50 hover:border-green-600 font-semibold shadow-md ${isDark ? 'border-green-400 text-green-300 hover:bg-green-500/20' : ''}`}
             >
               <i className="fas fa-search mr-2"></i> Aplicar Filtros
             </Button>
