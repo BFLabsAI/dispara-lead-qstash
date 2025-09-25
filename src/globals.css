@@ -91,7 +91,7 @@
 }
 
 /* Gradients */
-.gradient-primary { background: linear-gradient(135deg, rgba(16, 185, 129, 0.7) 0%, rgba(5, 150, 105, 0.7) 100%) } /* Opacidade ajustada */
+.gradient-primary { background: linear-gradient(135deg, #10B981 0%, #059669 100%) } /* Opacidade total */
 .gradient-text {
   background: linear-gradient(135deg, #10B981, #34D399);
   -webkit-background-clip: text;

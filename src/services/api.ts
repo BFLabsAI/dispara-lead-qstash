@@ -1,9 +1,10 @@
-export const API_BASE_URL = "https://webhook.bflabs.com.br/webhook";
+import { useApiSettingsStore } from "@/store/apiSettingsStore";
 
-export const ENDPOINTS = {
-  BUSCA_INSTANCIAS: `${API_BASE_URL}/busca-instancias-nw`,
-  QR_CODE: `${API_BASE_URL}/atualizar-qr-code-nw`,
-  DISPARO: `${API_BASE_URL}/disparar`,
-  FILE_UPLOAD: `${API_BASE_URL}/file-upload`,
-  DASHBOARD_DATA: `${API_BASE_URL}/busca-dados-r7`,
+export const getEndpoints = () => {
+  // This function should be called within a React component or a context
+  // where the Zustand store is accessible.
+  // For service files, we'll get the current state directly.
+  // This is a simplified approach; in a larger app, you might pass endpoints
+  // as arguments or use a context provider.
+  return useApiSettingsStore.getState().endpoints;
 };

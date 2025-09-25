@@ -1,8 +1,9 @@
-import { ENDPOINTS } from "./api";
+import { getEndpoints } from "./api";
 import dayjs from "dayjs";
 
 export const getDashboardData = async () => {
-  const response = await fetch(ENDPOINTS.DASHBOARD_DATA);
+  const endpoints = getEndpoints();
+  const response = await fetch(endpoints.DASHBOARD_DATA);
   if (!response.ok) {
     throw new Error("Erro ao carregar dados do dashboard.");
   }

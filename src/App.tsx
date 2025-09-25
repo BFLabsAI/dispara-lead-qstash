@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
+import ApiSettings from "./pages/ApiSettings"; // Importar a nova página
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./context/ThemeContext";
 
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/instancias" element={<Instancias />} />
               <Route path="/disparo" element={<Disparo />} />
+              <Route path="/api-settings" element={<ApiSettings />} /> {/* Nova rota */}
             </Route>
             
             {/* Rotas que não usam o layout, como a página 404 */}
