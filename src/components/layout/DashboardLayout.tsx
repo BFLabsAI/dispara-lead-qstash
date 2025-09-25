@@ -1,17 +1,18 @@
 "use client";
 
 import { Outlet } from "react-router-dom";
-import { Sidebar, useSidebar } from "@/components/ui/sidebar"; // Importar useSidebar
-import { cn } from "@/lib/utils"; // Importar cn para classes condicionais
-import { useIsMobile } from "@/hooks/use-mobile"; // Importar useIsMobile
+import { useSidebar } from "@/components/ui/sidebar"; // Mantemos o useSidebar para controlar a margem do conteúdo principal
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { AppSidebar } from "./AppSidebar"; // Importa o novo AppSidebar
 
 export function DashboardLayout() {
-  const { isSidebarOpen } = useSidebar(); // Obter o estado da sidebar
+  const { isSidebarOpen } = useSidebar();
   const isMobile = useIsMobile();
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
-      <Sidebar />
+      <AppSidebar /> {/* Usamos o novo AppSidebar aqui */}
       <main
         className={cn(
           "flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto transition-all duration-300 ease-in-out",
