@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -11,7 +11,11 @@ import {
   ShieldCheck,
   Clock,
   ArrowRight,
+  ListChecks,
+  ThumbsUp,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import React from "react";
 
 const practiceItems = [
   "Segmente sua base por perfil",
@@ -60,35 +64,44 @@ const Home = () => {
       </section>
 
       {/* 3 & 4. Seção combinada de Primeiros Passos e Boas Práticas */}
-      <section className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+      <section className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-stretch">
         {/* Coluna da Esquerda: Primeiros Passos */}
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-3xl font-bold text-center lg:text-left">Primeiros Passos</h2>
-          <div className="space-y-6">
+        <div className="lg:col-span-2 flex flex-col">
+          <div className="flex items-center mb-6">
+            <ListChecks className="h-8 w-8 mr-3 text-primary" />
+            <h2 className="text-3xl font-bold">Primeiros Passos</h2>
+          </div>
+          <div className="space-y-6 flex flex-col flex-1">
             <StepCard
               icon={CheckCircle}
               title="Conecte suas Instâncias"
               description="Antes de tudo, vá para a seção de Instâncias e conecte os números que serão usados nos envios."
+              className="flex-1"
             />
             <StepCard
               icon={ShieldCheck}
               title="Use Números Dedicados"
               description="Proteja sua conta principal. Utilize apenas números comprados especificamente para as campanhas."
+              className="flex-1"
             />
             <StepCard
               icon={Clock}
               title="Configure Intervalos"
               description="Defina um tempo de espera seguro entre as mensagens para simular o comportamento humano e evitar bloqueios."
+              className="flex-1"
             />
           </div>
         </div>
 
         {/* Coluna da Direita: Boas Práticas */}
-        <div className="lg:col-span-3 space-y-6">
-          <h2 className="text-3xl font-bold text-center lg:text-left">Boas Práticas</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="lg:col-span-3 flex flex-col">
+          <div className="flex items-center mb-6">
+            <ThumbsUp className="h-8 w-8 mr-3 text-primary" />
+            <h2 className="text-3xl font-bold">Boas Práticas</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 content-between">
             {practiceItems.map((item, index) => (
-              <div key={index} className="flex items-center gap-3 rounded-lg bg-card p-4">
+              <div key={index} className="flex items-center gap-3 rounded-lg bg-card p-4 h-full">
                 <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
                 <span className="text-card-foreground">{item}</span>
               </div>
@@ -138,18 +151,18 @@ const NavigationCard = ({ to, icon: Icon, title, description }: any) => (
 );
 
 // Componente para os cards de primeiros passos
-const StepCard = ({ icon: Icon, title, description }: any) => (
-  <Card className="glass-card">
-    <CardContent className="p-6">
+const StepCard = ({ icon: Icon, title, description, className }: { icon: React.ElementType, title: string, description: string, className?: string }) => (
+  <Card className={cn("glass-card flex flex-col", className)}>
+    <CardContent className="p-6 flex-1 flex flex-col">
       <div className="flex items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
           <Icon className="h-6 w-6 text-primary" />
         </div>
         <div>
           <h3 className="text-lg font-bold">{title}</h3>
-          <p className="mt-1 text-muted-foreground">{description}</p>
         </div>
       </div>
+      <p className="mt-4 text-muted-foreground flex-1">{description}</p>
     </CardContent>
   </Card>
 );
