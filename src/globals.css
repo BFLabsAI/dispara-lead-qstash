@@ -56,10 +56,11 @@
 
   * { @apply border-border; }
   body { 
-    @apply text-foreground font-sans bg-gradient-to-br from-green-50 via-emerald-100 to-teal-100;
+    @apply text-foreground font-sans;
+    background: radial-gradient(125% 125% at 50% 10%, hsl(var(--background)) 40%, #34D399 100%);
   }
   .dark body {
-    @apply bg-gradient-to-br from-[#0a1f15] via-[#14532d] to-[#042f2e];
+    background: radial-gradient(125% 125% at 50% 10%, #0a1f15 40%, #16a34a 100%);
   }
 }
 
