@@ -75,17 +75,17 @@ const Home = () => {
             <StepCard
               icon={CheckCircle}
               title="Conecte suas Instâncias"
-              description="O primeiro passo é essencial: acesse a seção 'Instâncias' no menu lateral para conectar todos os números de WhatsApp que pretende utilizar. Siga as instruções para escanear o QR Code com cada aparelho e aguarde a confirmação. Uma conexão estável é a base para o sucesso de qualquer campanha, então certifique-se de que o status da instância apareça como 'Ativa' antes de prosseguir."
+              description="O primeiro passo é essencial: acesse a seção 'Instâncias' no menu lateral. Lá, você poderá conectar todos os números de WhatsApp que pretende utilizar. Siga as instruções para escanear o QR Code e garantir que suas contas estejam prontas para os envios."
             />
             <StepCard
               icon={ShieldCheck}
               title="Use Números Dedicados"
-              description="Para garantir a segurança da sua conta principal, é crucial utilizar números de telefone comprados exclusivamente para as campanhas de disparo. Nunca use seu número pessoal ou o contato principal da sua empresa, pois isso pode levar a bloqueios permanentes e irreversíveis. Isolar a operação de disparo em números secundários protege a reputação do seu contato principal e minimiza os riscos."
+              description="Para garantir a segurança da sua conta principal, é crucial utilizar números de telefone comprados exclusivamente para as campanhas de disparo. Nunca use seu número pessoal ou o número principal da sua empresa, pois isso pode levar a bloqueios permanentes."
             />
             <StepCard
               icon={Clock}
               title="Configure Intervalos"
-              description="Para evitar ser identificado como spam pelo WhatsApp, configure um intervalo de tempo realista entre cada mensagem. Recomendamos um tempo de espera dinâmico entre 2 a 5 segundos para simular um comportamento humano e aumentar a taxa de entrega. Intervalos muito curtos ou fixos são um sinal claro de automação para os algoritmos do WhatsApp e aumentam drasticamente o risco de banimento."
+              description="Para evitar ser identificado como spam pelo WhatsApp, configure um intervalo de tempo realista entre cada mensagem. Recomendamos um tempo de espera entre 2 a 5 segundos para simular um comportamento humano e aumentar a taxa de entrega das suas campanhas."
             />
           </div>
         </div>
