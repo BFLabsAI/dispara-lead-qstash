@@ -130,11 +130,10 @@ export const InstanceManager = () => {
             </Button>
           </Card>
         ) : (
-          instances.map((instance, index) => (
+          instances.map((instance) => (
             <InstanceCard
               key={instance.name}
               instance={instance}
-              index={index}
               loadInstances={loadInstances}
               openWebhook={openWebhook}
             />
