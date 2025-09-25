@@ -1,15 +1,25 @@
 "use client";
 
-import * as React from "react";
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@radix-ui/react-collapsible";
-import { ChevronDown, Menu, X, LayoutDashboard, Server, Send, Settings } from "lucide-react"; // Adicionado LayoutDashboard, Server, Send, Settings
 import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  LayoutDashboard,
+  Server,
+  Send,
+  Settings,
+  ChevronRight,
+  ChevronLeft,
+  Sun,
+  Moon,
+  Calendar as CalendarIcon, // Importar CalendarIcon
+} from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-// Context for sidebar state
+// Contexto para controlar o estado da sidebar
 interface SidebarContextType {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
@@ -18,18 +28,16 @@ interface SidebarContextType {
 const SidebarContext = React.createContext<SidebarContextType | undefined>(undefined);
 
 export const SidebarProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const isMobile = useIsMobile();
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(!isMobile); // Aberta por padrão no desktop, fechada no mobile
 
   React.useEffect(() => {
-    if (!isMobile) {
-      setIsSidebarOpen(true); // Sidebar open by default on desktop
-    } else {
-      setIsSidebarOpen(false); // Closed by default on mobile
-    }
+    setIsSidebarOpen(!isMobile); // Ajusta ao mudar de mobile para desktop
   }, [isMobile]);
 
-  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prev => !prev);
+  };
 
   return (
     <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
@@ -41,142 +49,174 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
 export const useSidebar = () => {
   const context = React.useContext(SidebarContext);
   if (context === undefined) {
-    throw new Error("useSidebar must be used within a SidebarProvider");
+    throw new Error('useSidebar must be used within a SidebarProvider');
   }
   return context;
 };
 
-// SidebarLink component for non-collapsible items
-interface SidebarLinkProps {
-  to: string;
-  icon: React.ElementType;
-  label: string;
-  className?: string;
-}
 
-export const SidebarLink = ({ to, icon: Icon, label, className }: SidebarLinkProps) => {
+const navItems = [
+  {
+    label: "Principal",
+    items: [
+      {
+        label: "Home",
+        href: "/",
+        icon: LayoutDashboard,
+      },
+      {
+        label: "Dashboard",
+        href: "/dashboard",
+        icon: LayoutDashboard,
+      },
+    ],
+  },
+  {
+    label: "Ferramentas",
+    items: [
+      {
+        label: "Instâncias",
+        href: "/instancias",
+        icon: Server,
+      },
+      {
+        label: "Campanhas",
+        icon: Send,
+        items: [
+          {
+            label: "Disparo Único",
+            href: "/disparo",
+            icon: Send,
+          },
+          {
+            label: "Agendar Campanha", // Novo link
+            href: "/agendar-campanha",
+            icon: CalendarIcon, // Usar CalendarIcon para agendamento
+          },
+        ],
+      },
+      {
+        label: "Configurações",
+        href: "/api-settings",
+        icon: Settings,
+      },
+    ],
+  },
+];
+
+export function Sidebar() {
   const location = useLocation();
-  const isActive = location.pathname === to;
-  const { toggleSidebar } = useSidebar();
-  const isMobile = useIsMobile();
-
-  const handleClick = () => {
-    if (isMobile) {
-      toggleSidebar();
-    }
-  };
-
-  return (
-    <Link
-      to={to}
-      onClick={handleClick}
-      className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        isActive && "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
-        className
-      )}
-    >
-      <Icon className="h-5 w-5" />
-      {label}
-    </Link>
-  );
-};
-
-// SidebarCollapsibleItem for expandable sections
-interface SidebarCollapsibleItemProps {
-  icon: React.ElementType;
-  label: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}
-
-export const SidebarCollapsibleItem = ({ icon: Icon, label, children, defaultOpen = false }: SidebarCollapsibleItemProps) => {
-  const [isOpen, setIsOpen] = React.useState(defaultOpen);
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="grid gap-2">
-      <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex items-center justify-between w-full px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        >
-          <div className="flex items-center gap-3">
-            <Icon className="h-5 w-5" />
-            {label}
-          </div>
-          <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-        <div className="grid gap-2 pl-8">
-          {children}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
-};
-
-// Main Sidebar component
-export const Sidebar = () => {
+  const { theme, toggleTheme } = useTheme();
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const isMobile = useIsMobile();
-  const { theme, toggleTheme } = useTheme();
 
   return (
     <>
-      {isMobile && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="fixed top-4 left-4 z-50 bg-card dark:bg-card-foreground text-foreground"
+      {/* Overlay para mobile quando sidebar está aberta */}
+      {isMobile && isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
           onClick={toggleSidebar}
-        >
-          {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+        />
       )}
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r bg-sidebar transition-transform duration-300 ease-in-out",
-          !isSidebarOpen && "-translate-x-full",
-          isMobile && "shadow-lg",
+          "fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r bg-sidebar transition-transform duration-300 ease-in-out",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+          "lg:translate-x-0 lg:static lg:z-auto" // Sempre visível no desktop
         )}
       >
-        <div className="flex h-16 items-center border-b px-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold text-xl text-primary">
-            {/* Assuming logo.svg exists, otherwise use text */}
-            {/* <img src="/logo.svg" alt="DisparaLead Logo" className="h-8 w-auto" /> */}
-            DisparaLead
+        <div className="flex h-16 items-center justify-between border-b px-4 lg:px-6">
+          <Link to="/" className="flex items-center gap-2 font-semibold">
+            <img src="/logo.svg" alt="DisparaLead Logo" className="h-8 w-auto" />
+            <span className="text-lg text-sidebar-foreground">DisparaLead</span>
           </Link>
+          {isMobile && (
+            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+              <ChevronLeft className="h-5 w-5 text-sidebar-foreground" />
+            </Button>
+          )}
         </div>
-        <nav className="flex-1 overflow-auto px-4 py-6">
-          <ul className="grid gap-2">
-            <li>
-              <SidebarLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-            </li>
-            <SidebarCollapsibleItem icon={Server} label="Instâncias" defaultOpen={true}> {/* Default open para Instâncias */}
-              <SidebarLink to="/instancias" icon={Server} label="Gerenciar Instâncias" />
-              <SidebarLink to="/api-settings" icon={Settings} label="Configurações da API" />
-            </SidebarCollapsibleItem>
-            <SidebarCollapsibleItem icon={Send} label="Campanhas">
-              <SidebarLink to="/disparo" icon={Send} label="Novo Disparo" />
-              {/* Add other campaign related links here if any */}
-            </SidebarCollapsibleItem>
-          </ul>
-        </nav>
-        <div className="mt-auto p-4 border-t">
-          <Button variant="ghost" className="w-full justify-start" onClick={toggleTheme}>
-            {theme === 'dark' ? (
-              <i className="fas fa-sun mr-2 h-4 w-4" />
-            ) : (
-              <i className="fas fa-moon mr-2 h-4 w-4" />
-            )}
-            Alternar Tema
+        <ScrollArea className="flex-1 py-4">
+          <nav className="grid items-start gap-2 px-4 text-sm font-medium lg:px-6">
+            {navItems.map((section, sectionIndex) => (
+              <div key={sectionIndex} className="mb-4">
+                <h3 className="mb-2 px-3 text-xs font-semibold uppercase text-sidebar-foreground/60">
+                  {section.label}
+                </h3>
+                {section.items.map((item, itemIndex) => (
+                  item.items ? ( // Se for um item com sub-itens (colapsável)
+                    <div key={itemIndex} className="space-y-1">
+                      <button
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
+                          location.pathname.startsWith(item.href || "") && "bg-sidebar-accent text-sidebar-accent-foreground"
+                        )}
+                        onClick={() => { /* Lógica para expandir/colapsar, se necessário */ }}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                        <ChevronRight className="ml-auto h-4 w-4 transition-transform" />
+                      </button>
+                      <div className="ml-4 border-l border-sidebar-border pl-4 space-y-1">
+                        {item.items.map((subItem, subItemIndex) => (
+                          <Link
+                            key={subItemIndex}
+                            to={subItem.href}
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
+                              location.pathname === subItem.href && "bg-sidebar-accent text-sidebar-accent-foreground"
+                            )}
+                            onClick={isMobile ? toggleSidebar : undefined}
+                          >
+                            <subItem.icon className="h-4 w-4" />
+                            {subItem.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ) : ( // Item normal
+                    <Link
+                      key={itemIndex}
+                      to={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
+                        location.pathname === item.href && "bg-sidebar-accent text-sidebar-accent-foreground"
+                      )}
+                      onClick={isMobile ? toggleSidebar : undefined}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  )
+                ))}
+              </div>
+            ))}
+          </nav>
+        </ScrollArea>
+        <div className="mt-auto border-t p-4 lg:p-6 flex items-center justify-between">
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-sidebar-foreground hover:text-sidebar-primary">
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
+          <span className="text-xs text-sidebar-foreground/60">v1.0.0</span>
         </div>
       </aside>
-      {isMobile && isSidebarOpen && (
-        <div className="fixed inset-0 z-30 bg-black/50" onClick={toggleSidebar}></div>
+
+      {/* Botão para abrir/fechar sidebar no mobile */}
+      {isMobile && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "fixed top-4 left-4 z-50 bg-card shadow-md",
+            isSidebarOpen && "hidden"
+          )}
+          onClick={toggleSidebar}
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
       )}
     </>
   );
-};
+}

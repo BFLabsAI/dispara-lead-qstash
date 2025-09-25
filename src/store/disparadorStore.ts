@@ -35,6 +35,20 @@ interface DisparadorState {
     content: string;
   }) => Promise<{ sucessos: number; erros: number; log: string }>;
   stopSending: () => void;
+  scheduleCampaign: (params: { // Nova função para agendar campanha
+    campaignGroupId: string;
+    dispatchOrder: number;
+    campaignName: string;
+    publicTarget: string;
+    content: string;
+    contatos: any[];
+    instances: string[];
+    templates: any[];
+    tempoMin: number;
+    tempoMax: number;
+    usarIA: boolean;
+    horaAgendamento: string;
+  }) => Promise<void>;
 }
 
 export const useDisparadorStore = create<DisparadorState>((set, get) => ({
@@ -199,6 +213,39 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
     URL.revokeObjectURL(a.href);
     showSuccess(get().interromper ? "Envio interrompido!" : "Envio concluído!");
     return { sucessos, erros, log: finalLog };
+  },
+
+  scheduleCampaign: async (params) => {
+    try {
+      const endpoints = useApiSettingsStore.getState().endpoints;
+      const response = await fetch(endpoints.SCHEDULE_CAMPAIGN, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_group_id: params.campaignGroupId,
+          nome_campanha: params.campaignName,
+          publico_alvo: params.publicTarget,
+          criativo_campanha: params.content,
+          hora_agendamento: params.horaAgendamento,
+          dispatch_order: params.dispatchOrder,
+          instancias_selecionadas: params.instances,
+          templates_mensagem: params.templates,
+          usar_ia: params.usarIA,
+          tempo_min_intervalo: params.tempoMin,
+          tempo_max_intervalo: params.tempoMax,
+          contatos_json: params.contatos,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Falha ao agendar disparo: ${response.status} - ${errorText}`);
+      }
+      // showSuccess("Disparo agendado com sucesso!"); // Removido daqui, será mostrado após todos os disparos
+    } catch (error) {
+      showError("Erro ao agendar disparo: " + (error as Error).message);
+      throw error;
+    }
   },
 
   stopSending: () => set({ interromper: true }),

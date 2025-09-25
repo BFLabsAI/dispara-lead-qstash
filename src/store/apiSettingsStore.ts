@@ -6,6 +6,7 @@ interface ApiEndpoints {
   DISPARO: string;
   FILE_UPLOAD: string;
   DASHBOARD_DATA: string;
+  SCHEDULE_CAMPAIGN: string; // Novo endpoint para agendamento
 }
 
 interface ApiSettingsState {
@@ -31,6 +32,7 @@ const getInitialState = () => {
       DISPARO: `${base}/disparar`,
       FILE_UPLOAD: `${base}/file-upload`,
       DASHBOARD_DATA: `${base}/busca-dados-r7`,
+      SCHEDULE_CAMPAIGN: `${base}/schedule-campaign-webhook`, // URL padrão para o novo endpoint
     };
 
     if (storedEndpoints) {
@@ -56,6 +58,7 @@ const getInitialState = () => {
       DISPARO: `${DEFAULT_API_BASE_URL}/disparar`,
       FILE_UPLOAD: `${DEFAULT_API_BASE_URL}/file-upload`,
       DASHBOARD_DATA: `${DEFAULT_API_BASE_URL}/busca-dados-r7`,
+      SCHEDULE_CAMPAIGN: `${DEFAULT_API_BASE_URL}/schedule-campaign-webhook`,
     },
   };
 };
@@ -71,6 +74,7 @@ export const useApiSettingsStore = create<ApiSettingsState>((set, get) => ({
         DISPARO: `${url}/disparar`,
         FILE_UPLOAD: `${url}/file-upload`,
         DASHBOARD_DATA: `${url}/busca-dados-r7`,
+        SCHEDULE_CAMPAIGN: `${url}/schedule-campaign-webhook`,
       };
       localStorage.setItem('apiBaseUrl', url);
       localStorage.setItem('apiEndpoints', JSON.stringify(newEndpoints));
