@@ -29,7 +29,11 @@ export const PremiumInstanceSelector = ({ instances, selectedInstances, onSelect
     onSelectionChange(newSelected);
   };
 
-  const connectedInstances = instances.filter(i => i.connectionStatus === "open" || i.connectionStatus === "connected");
+  // Garantir que instances seja um array e filtrar instâncias conectadas
+  const instancesArray = Array.isArray(instances) ? instances : [];
+  const connectedInstances = instancesArray.filter(i => 
+    i && i.connectionStatus === "open" || i.connectionStatus === "connected"
+  );
 
   return (
     <Card className="rounded-b-lg rounded-t-none glass-card">
