@@ -44,11 +44,11 @@ export const FinalReview = ({
         <div className="space-y-6">
           <h4 className="text-lg font-bold">Resumo da Campanha</h4>
           
-          {/* Big Numbers */}
-          <div className="grid grid-cols-3 gap-4">
-            <SummaryMetric icon={Users} label="Contatos" value={summary.contacts} />
-            <SummaryMetric icon={Server} label="Instâncias" value={summary.instances} />
-            <SummaryMetric icon={MessageSquare} label="Mensagens" value={summary.messages} />
+          {/* Big Numbers - Estilo Progress Circle */}
+          <div className="flex justify-around items-center pt-4">
+            <SummaryCircle icon={Users} label="Contatos" value={summary.contacts} color="text-green-500" ringColor="border-green-500/30" />
+            <SummaryCircle icon={Server} label="Instâncias" value={summary.instances} color="text-emerald-500" ringColor="border-emerald-500/30" />
+            <SummaryCircle icon={MessageSquare} label="Mensagens" value={summary.messages} color="text-teal-500" ringColor="border-teal-500/30" />
           </div>
 
           {/* Detailed List */}
@@ -98,11 +98,17 @@ export const FinalReview = ({
   );
 };
 
-const SummaryMetric = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
-  <div className="bg-card/80 p-3 rounded-lg text-center animate-scale-in shadow-sm">
-    <Icon className="h-6 w-6 mx-auto mb-1 text-primary" />
-    <p className="text-2xl font-bold">{value}</p>
-    <p className="text-xs text-muted-foreground">{label}</p>
+const SummaryCircle = ({ icon: Icon, label, value, color, ringColor }: { icon: React.ElementType, label: string, value: string | number, color: string, ringColor: string }) => (
+  <div className="flex flex-col items-center gap-2 animate-scale-in">
+    <div className={`relative flex items-center justify-center w-28 h-28 rounded-full border-8 bg-card/50 ${ringColor}`}>
+      <div className="absolute -top-4 p-2 bg-card rounded-full shadow-md border">
+        <Icon className={`h-6 w-6 ${color}`} />
+      </div>
+      <div className="text-center">
+        <p className={`text-4xl font-bold ${color}`}>{value}</p>
+      </div>
+    </div>
+    <p className="font-semibold text-muted-foreground mt-2">{label}</p>
   </div>
 );
 
