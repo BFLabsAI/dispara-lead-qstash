@@ -145,32 +145,32 @@ export const Filters = ({
           </div>
           
           <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
-              <CalendarIcon className="h-4 w-4" /> Período
-            </Label>
-            <div className="flex items-end gap-2"> {/* Novo flex container para o Popover e o botão */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left font-normal bg-white/10 border-white/20 hover:bg-white/20 text-white"
-                  >
-                    {dateRange?.from ? format(dateRange.from, "LLL dd, y") : <span>Selecionar período</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={dateRange?.from} onSelect={(day) => setDateRange({from: day, to: day})} />
-                </PopoverContent>
-              </Popover>
+            <div className="flex justify-between items-center"> {/* Novo flex container para label e botão */}
+              <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+                <CalendarIcon className="h-4 w-4" /> Período
+              </Label>
               <Button 
                 variant="destructive" 
                 onClick={handleReset} 
-                className="h-10 w-10 p-0 flex-shrink-0"
+                className="h-8 w-8 p-0 flex-shrink-0" // Tamanho ajustado
                 title="Limpar Filtros"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-left font-normal bg-white/10 border-white/20 hover:bg-white/20 text-white"
+                >
+                  {dateRange?.from ? format(dateRange.from, "LLL dd, y") : <span>Selecionar período</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateRange?.from} onSelect={(day) => setDateRange({from: day, to: day})} />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </CardContent>
