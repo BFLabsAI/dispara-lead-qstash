@@ -1,13 +1,15 @@
 "use client";
 
-import React from "react";
+import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Server, Send, Settings, Menu, X } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@radix-ui/react-collapsible";
+import { ChevronDown, Menu, X, LayoutDashboard, Server, Send, Settings } from "lucide-react"; // Adicionado LayoutDashboard, Server, Send, Settings
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/context/ThemeContext";
 
+// Context for sidebar state
 interface SidebarContextType {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
@@ -21,9 +23,9 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
 
   React.useEffect(() => {
     if (!isMobile) {
-      setIsSidebarOpen(true); // Sidebar aberta por padrão em desktop
+      setIsSidebarOpen(true); // Sidebar open by default on desktop
     } else {
-      setIsSidebarOpen(false); // Fechada por padrão em mobile
+      setIsSidebarOpen(false); // Closed by default on mobile
     }
   }, [isMobile]);
 
@@ -44,13 +46,15 @@ export const useSidebar = () => {
   return context;
 };
 
+// SidebarLink component for non-collapsible items
 interface SidebarLinkProps {
   to: string;
   icon: React.ElementType;
   label: string;
+  className?: string;
 }
 
-const SidebarLink = ({ to, icon: Icon, label }: SidebarLinkProps) => {
+export const SidebarLink = ({ to, icon: Icon, label, className }: SidebarLinkProps) => {
   const location = useLocation();
   const isActive = location.pathname === to;
   const { toggleSidebar } = useSidebar();
@@ -58,7 +62,7 @@ const SidebarLink = ({ to, icon: Icon, label }: SidebarLinkProps) => {
 
   const handleClick = () => {
     if (isMobile) {
-      toggleSidebar(); // Fecha a sidebar em mobile após clicar em um link
+      toggleSidebar();
     }
   };
 
@@ -69,6 +73,7 @@ const SidebarLink = ({ to, icon: Icon, label }: SidebarLinkProps) => {
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         isActive && "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
+        className
       )}
     >
       <Icon className="h-5 w-5" />
@@ -77,6 +82,40 @@ const SidebarLink = ({ to, icon: Icon, label }: SidebarLinkProps) => {
   );
 };
 
+// SidebarCollapsibleItem for expandable sections
+interface SidebarCollapsibleItemProps {
+  icon: React.ElementType;
+  label: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+export const SidebarCollapsibleItem = ({ icon: Icon, label, children, defaultOpen = false }: SidebarCollapsibleItemProps) => {
+  const [isOpen, setIsOpen] = React.useState(defaultOpen);
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="grid gap-2">
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex items-center justify-between w-full px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
+          <div className="flex items-center gap-3">
+            <Icon className="h-5 w-5" />
+            {label}
+          </div>
+          <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+        <div className="grid gap-2 pl-8">
+          {children}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
+// Main Sidebar component
 export const Sidebar = () => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const isMobile = useIsMobile();
@@ -104,7 +143,8 @@ export const Sidebar = () => {
       >
         <div className="flex h-16 items-center border-b px-6">
           <Link to="/" className="flex items-center gap-2 font-semibold text-xl text-primary">
-            <img src="/logo.svg" alt="DisparaLead Logo" className="h-8 w-auto" />
+            {/* Assuming logo.svg exists, otherwise use text */}
+            {/* <img src="/logo.svg" alt="DisparaLead Logo" className="h-8 w-auto" /> */}
             DisparaLead
           </Link>
         </div>
@@ -113,15 +153,14 @@ export const Sidebar = () => {
             <li>
               <SidebarLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
             </li>
-            <li>
-              <SidebarLink to="/instancias" icon={Server} label="Instâncias" />
-            </li>
-            <li>
-              <SidebarLink to="/disparo" icon={Send} label="Campanhas" />
-            </li>
-            <li>
-              <SidebarLink to="/api-settings" icon={Settings} label="Configurações da API" /> {/* Novo link */}
-            </li>
+            <SidebarCollapsibleItem icon={Server} label="Instâncias" defaultOpen={true}> {/* Default open para Instâncias */}
+              <SidebarLink to="/instancias" icon={Server} label="Gerenciar Instâncias" />
+              <SidebarLink to="/api-settings" icon={Settings} label="Configurações da API" />
+            </SidebarCollapsibleItem>
+            <SidebarCollapsibleItem icon={Send} label="Campanhas">
+              <SidebarLink to="/disparo" icon={Send} label="Novo Disparo" />
+              {/* Add other campaign related links here if any */}
+            </SidebarCollapsibleItem>
           </ul>
         </nav>
         <div className="mt-auto p-4 border-t">

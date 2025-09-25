@@ -8,9 +8,10 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
-import ApiSettings from "./pages/ApiSettings"; // Importar a nova página
+import ApiSettings from "./pages/ApiSettings";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./context/ThemeContext";
+import { SidebarProvider } from "./components/ui/sidebar"; // Importar SidebarProvider
 
 const queryClient = new QueryClient();
 
@@ -21,19 +22,21 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            {/* Rotas que usam o DashboardLayout */}
-            <Route element={<DashboardLayout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/instancias" element={<Instancias />} />
-              <Route path="/disparo" element={<Disparo />} />
-              <Route path="/api-settings" element={<ApiSettings />} /> {/* Nova rota */}
-            </Route>
-            
-            {/* Rotas que não usam o layout, como a página 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <SidebarProvider> {/* SidebarProvider aqui */}
+            <Routes>
+              {/* Rotas que usam o DashboardLayout */}
+              <Route element={<DashboardLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/instancias" element={<Instancias />} />
+                <Route path="/disparo" element={<Disparo />} />
+                <Route path="/api-settings" element={<ApiSettings />} />
+              </Route>
+              
+              {/* Rotas que não usam o layout, como a página 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SidebarProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
