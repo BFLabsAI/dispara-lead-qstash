@@ -6,7 +6,8 @@ interface ApiEndpoints {
   DISPARO: string;
   FILE_UPLOAD: string;
   DASHBOARD_DATA: string;
-  SCHEDULE_CAMPAIGN: string; // Novo endpoint para agendamento
+  SCHEDULE_CAMPAIGN: string;
+  COPY_AGENT_WEBHOOK: string; // Novo endpoint para o Copy Agent
 }
 
 interface ApiSettingsState {
@@ -32,7 +33,8 @@ const getInitialState = () => {
       DISPARO: `${base}/disparar`,
       FILE_UPLOAD: `${base}/file-upload`,
       DASHBOARD_DATA: `${base}/busca-dados-r7`,
-      SCHEDULE_CAMPAIGN: `${base}/schedule-campaign-webhook`, // URL padrão para o novo endpoint
+      SCHEDULE_CAMPAIGN: `${base}/schedule-campaign-webhook`,
+      COPY_AGENT_WEBHOOK: `${base}/copy-expert`, // URL padrão para o novo endpoint
     };
 
     if (storedEndpoints) {
@@ -59,6 +61,7 @@ const getInitialState = () => {
       FILE_UPLOAD: `${DEFAULT_API_BASE_URL}/file-upload`,
       DASHBOARD_DATA: `${DEFAULT_API_BASE_URL}/busca-dados-r7`,
       SCHEDULE_CAMPAIGN: `${DEFAULT_API_BASE_URL}/schedule-campaign-webhook`,
+      COPY_AGENT_WEBHOOK: `${DEFAULT_API_BASE_URL}/copy-expert`,
     },
   };
 };
@@ -75,6 +78,7 @@ export const useApiSettingsStore = create<ApiSettingsState>((set, get) => ({
         FILE_UPLOAD: `${url}/file-upload`,
         DASHBOARD_DATA: `${url}/busca-dados-r7`,
         SCHEDULE_CAMPAIGN: `${url}/schedule-campaign-webhook`,
+        COPY_AGENT_WEBHOOK: `${url}/copy-expert`,
       };
       localStorage.setItem('apiBaseUrl', url);
       localStorage.setItem('apiEndpoints', JSON.stringify(newEndpoints));

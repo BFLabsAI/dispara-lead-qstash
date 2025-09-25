@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, LayoutDashboard, Server, Send, Settings, CalendarDays,
-  MessageSquare, HardDrive, Link as LinkIcon,
+  MessageSquare, HardDrive, Link as LinkIcon, Bot, // Importar o ícone Bot
   ChevronLeft, ChevronRight, Sun, Moon
 } from 'lucide-react';
 import {
@@ -49,6 +49,7 @@ export const AppSidebar = () => {
         { name: 'Agendar Campanha', href: '/agendar-campanha', icon: CalendarDays },
       ],
     },
+    { name: 'Copy Agent', href: '/copy-agent', icon: Bot, type: 'link' }, // Novo item de navegação
     {
       name: 'Configurações',
       icon: Settings,

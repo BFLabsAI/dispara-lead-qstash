@@ -9,10 +9,11 @@ import Dashboard from "./pages/Dashboard";
 import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
 import ApiSettings from "./pages/ApiSettings";
-import CampaignSchedulerPage from "./pages/CampaignSchedulerPage"; // Importar a nova página
+import CampaignSchedulerPage from "./pages/CampaignSchedulerPage";
+import CopyAgentPage from "./pages/CopyAgentPage"; // Importar a nova página
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./context/ThemeContext";
-import { SidebarProvider } from "./components/ui/sidebar"; // Importar SidebarProvider
+import { SidebarProvider } from "./components/ui/sidebar";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SidebarProvider> {/* SidebarProvider aqui */}
+          <SidebarProvider>
             <Routes>
               {/* Rotas que usam o DashboardLayout */}
               <Route element={<DashboardLayout />}>
@@ -31,7 +32,8 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/instancias" element={<Instancias />} />
                 <Route path="/disparo" element={<Disparo />} />
-                <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} /> {/* Nova rota */}
+                <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} />
+                <Route path="/copy-agent" element={<CopyAgentPage />} /> {/* Nova rota para o Copy Agent */}
                 <Route path="/api-settings" element={<ApiSettings />} />
               </Route>
               
