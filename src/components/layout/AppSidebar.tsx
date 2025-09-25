@@ -22,7 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"; // Importar DropdownMenu para sub-menus recolhidos
+} from "@/components/ui/dropdown-menu";
 
 export const AppSidebar = () => {
   const { theme, toggleTheme } = useTheme();
@@ -76,36 +76,36 @@ export const AppSidebar = () => {
 
         {/* Links de Navegação */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-          <Accordion type="multiple" className="w-full">
-            {navItems.map((item) => {
-              const isActive = item.type === 'link' ? location.pathname === item.href : item.subItems?.some(sub => location.pathname === sub.href);
+          {navItems.map((item) => {
+            const isActive = item.type === 'link' ? location.pathname === item.href : item.subItems?.some(sub => location.pathname === sub.href);
 
-              if (item.type === 'link') {
+            if (item.type === 'link') {
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center p-2 rounded-md text-sm font-medium transition-colors",
+                    isSidebarOpen ? "justify-start gap-3" : "justify-center",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {isSidebarOpen && <span>{item.name}</span>}
+                </Link>
+              );
+            } else if (item.type === 'accordion' && item.subItems) {
+              if (isSidebarOpen) {
+                // Renderiza como Accordion quando a sidebar está aberta
                 return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={cn(
-                      "flex items-center p-2 rounded-md text-sm font-medium transition-colors",
-                      isSidebarOpen ? "justify-start gap-3" : "justify-center",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {isSidebarOpen && <span>{item.name}</span>}
-                  </Link>
-                );
-              } else if (item.type === 'accordion' && item.subItems) {
-                if (isSidebarOpen) {
-                  // Renderiza como Accordion quando a sidebar está aberta
-                  return (
-                    <AccordionItem key={item.name} value={item.name} className="border-none">
+                  <Accordion type="single" collapsible key={item.name} className="w-full">
+                    <AccordionItem value={item.name} className="border-none">
                       <AccordionTrigger
                         className={cn(
                           "flex items-center p-2 rounded-md text-sm font-medium transition-colors hover:no-underline",
-                          "justify-start gap-3", // Sempre justificado à esquerda quando aberto
+                          "justify-start gap-3",
                           isActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground"
                             : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -114,7 +114,7 @@ export const AppSidebar = () => {
                       >
                         <item.icon className="h-5 w-5" />
                         <span>{item.name}</span>
-                        <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 ml-auto" /> {/* Seta padrão do AccordionTrigger */}
+                        {/* A seta padrão do AccordionTrigger é renderizada automaticamente pelo componente */}
                       </AccordionTrigger>
                       <AccordionContent className="pb-0">
                         <div className="ml-8 space-y-1">
@@ -139,54 +139,54 @@ export const AppSidebar = () => {
                         </div>
                       </AccordionContent>
                     </AccordionItem>
-                  );
-                } else {
-                  // Renderiza como DropdownMenu quando a sidebar está recolhida
-                  return (
-                    <DropdownMenu key={item.name}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className={cn(
-                            "flex items-center p-2 rounded-md text-sm font-medium transition-colors w-full",
-                            "justify-center", // Centraliza o ícone quando recolhido
-                            isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                          )}
-                        >
-                          <item.icon className="h-5 w-5" />
-                          <span className="sr-only">{item.name}</span> {/* Rótulo acessível para leitores de tela */}
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side="right" align="start" className="w-48"> {/* Abre para a direita */}
-                        {item.subItems.map((subItem) => {
-                          const isSubItemActive = location.pathname === subItem.href;
-                          return (
-                            <DropdownMenuItem key={subItem.name} asChild>
-                              <Link
-                                to={subItem.href}
-                                className={cn(
-                                  "flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors",
-                                  isSubItemActive
-                                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                                )}
-                              >
-                                {subItem.icon && <subItem.icon className="h-4 w-4" />}
-                                <span>{subItem.name}</span>
-                              </Link>
-                            </DropdownMenuItem>
-                          );
-                        })}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  );
-                }
+                  </Accordion>
+                );
+              } else {
+                // Renderiza como DropdownMenu quando a sidebar está recolhida
+                return (
+                  <DropdownMenu key={item.name}>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "flex items-center p-2 rounded-md text-sm font-medium transition-colors w-full",
+                          "justify-center",
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span className="sr-only">{item.name}</span> {/* Rótulo acessível para leitores de tela */}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="right" align="start" className="w-48">
+                      {item.subItems.map((subItem) => {
+                        const isSubItemActive = location.pathname === subItem.href;
+                        return (
+                          <DropdownMenuItem key={subItem.name} asChild>
+                            <Link
+                              to={subItem.href}
+                              className={cn(
+                                "flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors",
+                                isSubItemActive
+                                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                              )}
+                            >
+                              {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                              <span>{subItem.name}</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
               }
-              return null;
-            })}
-          </Accordion>
+            }
+            return null;
+          })}
         </nav>
 
         {/* Alternador de Tema (apenas ícone clicável) */}
