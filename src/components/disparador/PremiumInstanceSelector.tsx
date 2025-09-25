@@ -32,7 +32,7 @@ export const PremiumInstanceSelector = ({ instances, selectedInstances, onSelect
   const connectedInstances = instances.filter(i => i.connectionStatus === "open" || i.connectionStatus === "connected");
 
   return (
-    <Card className="rounded-b-xl border-t-0">
+    <Card className="rounded-b-xl border-t-0 glass-card">
       <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {connectedInstances.map(instance => {
           const isSelected = selectedInstances.includes(instance.name);

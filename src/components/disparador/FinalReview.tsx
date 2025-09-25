@@ -31,7 +31,7 @@ export const FinalReview = ({
   summary
 }: FinalReviewProps) => {
   return (
-    <Card className="rounded-b-xl border-t-0">
+    <Card className="rounded-b-xl border-t-0 glass-card">
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="space-y-4">
