@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { CalendarIcon, Filter, X, Server, Tag, Megaphone, Users, Palette } from "lucide-react"; // Adicionado Megaphone, Users, Palette
+import { CalendarIcon, Filter, X, Server, Tag, Megaphone, Users, Palette } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { DateRange } from "react-day-picker";
@@ -15,9 +15,9 @@ interface FiltersProps {
   onFilterChange: (filters: any) => void;
   instanceOptions: string[];
   tipoOptions: string[];
-  campaignOptions: string[]; // Nova prop
-  publicoOptions: string[];   // Nova prop
-  criativoOptions: string[];  // Nova prop
+  campaignOptions: string[];
+  publicoOptions: string[];
+  criativoOptions: string[];
 }
 
 export const Filters = ({ 
@@ -30,9 +30,9 @@ export const Filters = ({
 }: FiltersProps) => {
   const [instance, setInstance] = useState("all");
   const [tipo, setTipo] = useState("all");
-  const [campaign, setCampaign] = useState("all"); // Novo estado
-  const [publico, setPublico] = useState("all");   // Novo estado
-  const [criativo, setCriativo] = useState("all"); // Novo estado
+  const [campaign, setCampaign] = useState("all");
+  const [publico, setPublico] = useState("all");
+  const [criativo, setCriativo] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
@@ -45,9 +45,9 @@ export const Filters = ({
   const handleReset = () => {
     setInstance("all");
     setTipo("all");
-    setCampaign("all"); // Resetar novo estado
-    setPublico("all");   // Resetar novo estado
-    setCriativo("all"); // Resetar novo estado
+    setCampaign("all");
+    setPublico("all");
+    setCriativo("all");
     setDateRange({ from: undefined, to: undefined });
   };
 
@@ -93,7 +93,6 @@ export const Filters = ({
             </Select>
           </div>
 
-          {/* Novos Filtros */}
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <Megaphone className="h-4 w-4" /> Campanha
@@ -149,28 +148,30 @@ export const Filters = ({
             <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <CalendarIcon className="h-4 w-4" /> Período
             </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start text-left font-normal bg-white/10 border-white/20 hover:bg-white/20 text-white"
-                >
-                  {dateRange?.from ? format(dateRange.from, "LLL dd, y") : <span>Selecionar período</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange?.from} onSelect={(day) => setDateRange({from: day, to: day})} />
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-end gap-2"> {/* Novo flex container para o Popover e o botão */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left font-normal bg-white/10 border-white/20 hover:bg-white/20 text-white"
+                  >
+                    {dateRange?.from ? format(dateRange.from, "LLL dd, y") : <span>Selecionar período</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateRange?.from} onSelect={(day) => setDateRange({from: day, to: day})} />
+                </PopoverContent>
+              </Popover>
+              <Button 
+                variant="destructive" 
+                onClick={handleReset} 
+                className="h-10 w-10 p-0 flex-shrink-0"
+                title="Limpar Filtros"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          
-          <Button 
-            variant="destructive" 
-            onClick={handleReset} 
-            className="h-10 w-10 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       </CardContent>
     </Card>

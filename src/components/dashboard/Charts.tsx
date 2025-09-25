@@ -2,7 +2,7 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import { PieChart as PieIcon, Clock, Activity, BarChart3, Megaphone, Users, Palette } from "lucide-react";
+import { PieChart as PieIcon, Clock, Activity, BarChart3, Megaphone, Users, Palette, LayoutGrid, HardDrive } from "lucide-react"; // Adicionado LayoutGrid, HardDrive
 import { useTheme } from "@/context/ThemeContext";
 
 interface ChartsProps {
@@ -225,7 +225,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
-              <PieIcon className="h-6 w-6 text-green-600" />
+              <LayoutGrid className="h-6 w-6 text-green-600" /> {/* Ícone alterado */}
             </div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Tipo</h3>
           </div>
@@ -241,7 +241,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          ) : <EmptyChartState title="Nenhum envio por tipo" icon={PieIcon} />}
+          ) : <EmptyChartState title="Nenhum envio por tipo" icon={LayoutGrid} />} {/* Ícone alterado */}
         </CardContent>
       </Card>
 
@@ -250,7 +250,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
-              <PieIcon className="h-6 w-6 text-green-600" />
+              <HardDrive className="h-6 w-6 text-green-600" /> {/* Ícone alterado */}
             </div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Instância</h3>
           </div>
@@ -266,7 +266,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          ) : <EmptyChartState title="Nenhum envio por instância" icon={PieIcon} />}
+          ) : <EmptyChartState title="Nenhum envio por instância" icon={HardDrive} />} {/* Ícone alterado */}
         </CardContent>
       </Card>
 

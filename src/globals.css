@@ -57,10 +57,10 @@
   * { @apply border-border; }
   body { 
     @apply text-foreground font-sans;
-    background: radial-gradient(125% 125% at 50% 10%, hsl(var(--background)) 40%, #34D399 100%);
+    background: radial-gradient(125% 125% at 50% 10%, hsl(var(--background)) 40%, rgba(52, 211, 153, 0.7) 100%); /* Opacidade ajustada */
   }
   .dark body {
-    background: radial-gradient(125% 125% at 50% 10%, #0a1f15 40%, #16a34a 100%);
+    background: radial-gradient(125% 125% at 50% 10%, #0a1f15 40%, rgba(22, 163, 74, 0.7) 100%); /* Opacidade ajustada */
   }
 }
 
@@ -91,7 +91,7 @@
 }
 
 /* Gradients */
-.gradient-primary { background: linear-gradient(135deg, #10B981 0%, #059669 100%) }
+.gradient-primary { background: linear-gradient(135deg, rgba(16, 185, 129, 0.7) 0%, rgba(5, 150, 105, 0.7) 100%) } /* Opacidade ajustada */
 .gradient-text {
   background: linear-gradient(135deg, #10B981, #34D399);
   -webkit-background-clip: text;
