@@ -2,97 +2,139 @@
 
 import * as React from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { cva } from "class-variance-authority";
 import {
-  LayoutDashboard,
-  Send,
-  Server,
   ChevronLeft,
-  ChevronRight,
+  LayoutDashboard,
+  Server,
+  Rocket,
+  Menu,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-const SidebarContext = React.createContext<{
+// --- Contexto ---
+interface SidebarContextProps {
   isCollapsed: boolean;
-  toggleSidebar: () => void;
-}>({
-  isCollapsed: false,
-  toggleSidebar: () => {},
-});
+  setCollapsed: (collapsed: boolean) => void;
+}
+
+const SidebarContext = React.createContext<SidebarContextProps | undefined>(
+  undefined
+);
+
+export function useSidebar() {
+  const context = React.useContext(SidebarContext);
+  if (!context) throw new Error("useSidebar must be used within a SidebarProvider");
+  return context;
+}
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  const isMobile = useIsMobile();
-  const [isCollapsed, setIsCollapsed] = React.useState(isMobile);
-
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
-  React.useEffect(() => {
-    setIsCollapsed(isMobile);
-  }, [isMobile]);
-
+  const [isCollapsed, setCollapsed] = React.useState(false);
   return (
-    <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
+    <SidebarContext.Provider value={{ isCollapsed, setCollapsed }}>
       {children}
     </SidebarContext.Provider>
   );
 }
 
-export function useSidebar() {
-  return React.useContext(SidebarContext);
-}
+// --- Componentes ---
+const navItems = [
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/instancias", icon: Server, label: "Instâncias" },
+  { href: "/disparo", icon: Rocket, label: "Disparo" },
+];
 
 export function Sidebar() {
-  const { isCollapsed, toggleSidebar } = useSidebar();
-  const location = useLocation();
+  const isMobile = useIsMobile();
+  const { isCollapsed } = useSidebar();
 
-  const navItems = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/instancias", icon: Server, label: "Instâncias" },
-    { to: "/disparo", icon: Send, label: "Disparo" },
-  ];
+  if (isMobile) return <MobileSidebar />;
 
   return (
     <aside
       className={cn(
-        "relative flex h-screen flex-col border-r bg-card/80 backdrop-blur-lg p-4 transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-20" : "w-64",
+        "relative hidden h-screen flex-col bg-card transition-all duration-300 ease-in-out md:flex",
+        isCollapsed ? "w-24" : "w-72"
       )}
     >
-      <div className="flex items-center justify-between">
-        {!isCollapsed && (
-          <h1 className="text-2xl font-bold text-primary">DisparaLead</h1>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className="absolute -right-4 top-8 z-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          {isCollapsed ? <ChevronRight /> : <ChevronLeft />}
-        </Button>
+      <div className="flex h-16 items-center px-6">
+        <Rocket className="h-7 w-7 text-primary" />
+        <h1 className={cn("ml-3 text-xl font-bold overflow-hidden whitespace-nowrap transition-opacity", isCollapsed && "opacity-0 w-0")}>
+          DisparaLead
+        </h1>
       </div>
-
-      <nav className="mt-10 flex flex-1 flex-col gap-2">
+      <nav className="flex flex-1 flex-col gap-2 p-4">
         {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-accent hover:text-accent-foreground",
-                isActive && "bg-accent text-accent-foreground",
-                isCollapsed && "justify-center",
-              )
-            }
-          >
-            <item.icon className="h-5 w-5" />
-            {!isCollapsed && <span>{item.label}</span>}
-          </NavLink>
+          <NavItem key={item.href} {...item} />
         ))}
       </nav>
+      <div className="mt-auto flex flex-col gap-2 p-4">
+        <CollapseButton />
+      </div>
     </aside>
+  );
+}
+
+function MobileSidebar() {
+  const [isOpen, setIsOpen] = React.useState(false);
+  return (
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="fixed left-4 top-4 z-50 md:hidden">
+          <Menu />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="flex w-72 flex-col bg-card p-0">
+        <div className="flex h-16 items-center px-6">
+          <Rocket className="h-7 w-7 text-primary" />
+          <h1 className="ml-3 text-xl font-bold">DisparaLead</h1>
+        </div>
+        <nav className="flex flex-1 flex-col gap-2 p-4">
+          {navItems.map((item) => (
+            <NavItem key={item.href} {...item} onClick={() => setIsOpen(false)} />
+          ))}
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+const navLinkVariants = cva(
+  "flex items-center gap-4 rounded-lg px-4 py-3 text-base font-semibold transition-colors",
+  {
+    variants: {
+      state: {
+        default: "text-muted-foreground hover:bg-primary/10 hover:text-primary",
+        active: "gradient-primary text-white shadow-lg btn-premium",
+      },
+    },
+    defaultVariants: { state: "default" },
+  }
+);
+
+function NavItem({ href, icon: Icon, label, onClick }: any) {
+  const { isCollapsed } = useSidebar();
+  const location = useLocation();
+  const isActive = location.pathname.startsWith(href);
+
+  return (
+    <NavLink to={href} onClick={onClick} className={navLinkVariants({ state: isActive ? "active" : "default" })}>
+      <Icon className="h-6 w-6" />
+      <span className={cn("overflow-hidden whitespace-nowrap", isCollapsed && "hidden")}>{label}</span>
+    </NavLink>
+  );
+}
+
+function CollapseButton() {
+  const { isCollapsed, setCollapsed } = useSidebar();
+  return (
+    <Button variant="ghost" onClick={() => setCollapsed(!isCollapsed)} className="w-full justify-start gap-4 rounded-lg px-4 py-3 text-base font-semibold text-muted-foreground">
+      <ChevronLeft className={cn("h-6 w-6 transition-transform", isCollapsed && "rotate-180")} />
+      <span className={cn(isCollapsed && "hidden")}>Esconder</span>
+    </Button>
   );
 }
