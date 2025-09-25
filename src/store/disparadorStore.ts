@@ -1,22 +1,30 @@
-import { create } from 'zustand';
-import { ENDPOINTS } from '../services/api';
-import { showSuccess, showError } from '../utils/toast';
+import { create } from "zustand";
+import { showError, showSuccess } from "@/utils/toast";
+import { ENDPOINTS } from "../services/api";
+import * as XLSX from "xlsx";
+
+const { BUSCA_INSTANCIAS, QR_CODE, DISPARO, FILE_UPLOAD } = ENDPOINTS;
+
+interface Instance {
+  name: string;
+  connectionStatus: string;
+}
 
 interface DisparadorState {
-  instances: any[];
-  isLoading: boolean;
+  instances: Instance[];
   qrCode: string | null;
   qrInstance: string | null;
+  qrCountdown: number;
+  isLoading: boolean;
   contatos: any[];
   interromper: boolean;
-  
-  // Actions
+  templates: any[];
+
   loadInstances: () => Promise<void>;
   fetchQrCode: (instanceName: string) => Promise<void>;
   resetQr: () => void;
-  setContatos: (contatos: any[]) => void;
-  uploadFile: (file: File) => Promise<{ variables: string[] }>;
-  mediaUpload: (file: File) => Promise<string>;
+  uploadFile: (file: File) => Promise<{ contatos: any[]; variables: string[] }>;
+  mediaUpload: (file: File) => Promise<string | null>;
   sendMessages: (params: {
     contatos: any[];
     instances: string[];
@@ -24,86 +32,116 @@ interface DisparadorState {
     tempoMax: number;
     usarIA: boolean;
     templates: any[];
-    campaignName: string;
-    publicTarget: string;
-    content: string;
   }) => Promise<{ sucessos: number; erros: number; log: string }>;
-  setInterromper: (value: boolean) => void;
+  stopSending: () => void;
+  setTemplates: (templates: any[]) => void;
+  setContatos: (contatos: any[]) => void;
 }
 
 export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   instances: [],
-  isLoading: false,
   qrCode: null,
   qrInstance: null,
+  qrCountdown: 0,
+  isLoading: false,
   contatos: [],
   interromper: false,
+  templates: [],
+
+  resetQr: () => {
+    set({ qrCode: null, qrInstance: null, qrCountdown: 0 });
+  },
 
   loadInstances: async () => {
     set({ isLoading: true });
     try {
-      const response = await fetch(ENDPOINTS.BUSCA_INSTANCIAS);
+      const response = await fetch(BUSCA_INSTANCIAS);
+      if (!response.ok) throw new Error("Falha ao buscar instâncias.");
       const data = await response.json();
-      set({ instances: data });
+      const instances = data.instances || data;
+      set({ instances: Array.isArray(instances) ? instances : [] });
     } catch (error) {
-      showError("Erro ao carregar instâncias");
+      showError("Erro ao carregar instâncias: " + (error as Error).message);
+      set({ instances: [] });
     } finally {
       set({ isLoading: false });
     }
   },
 
   fetchQrCode: async (instanceName: string) => {
+    if (get().qrInstance === instanceName && get().qrCode) return;
+    
+    set({ qrCode: null, qrInstance: instanceName, qrCountdown: 30 });
     try {
-      const response = await fetch(`${ENDPOINTS.QR_CODE}?instanceName=${encodeURIComponent(instanceName)}`);
+      const response = await fetch(`${QR_CODE}?instanceName=${instanceName}`);
+      if (!response.ok) throw new Error("Falha ao gerar QR Code.");
       const data = await response.json();
-      set({ qrCode: data.qrCode, qrInstance: instanceName });
+      if (data.code) {
+        set({ qrCode: `data:image/png;base64,${data.code}` });
+      } else {
+        set({ qrCode: null });
+        showError("Já está conectado ou houve um erro.");
+      }
     } catch (error) {
-      showError("Erro ao gerar QR Code");
+      showError("Erro ao buscar QR Code: " + (error as Error).message);
+      set({ qrCode: null });
     }
   },
 
-  resetQr: () => {
-    set({ qrCode: null, qrInstance: null });
-  },
-
-  setContatos: (contatos: any[]) => {
-    set({ contatos });
-  },
-
   uploadFile: async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    
     try {
-      const response = await fetch(ENDPOINTS.FILE_UPLOAD, {
-        method: 'POST',
-        body: formData,
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const arr = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+      const header = (arr.shift() as string[]).map((h: string) => String(h).trim());
+      const rows = arr as any[][];
+      const phoneField = header.find((h: string) => h.toLowerCase().includes("telefone")) || header[0];
+      const contatos: any[] = [];
+      const extractPhones = (raw: string) =>
+        String(raw || "")
+          .split(",")
+          .map((p) => p.replace(/\D/g, ""))
+          .filter((n) => n.length >= 10)
+          .map((n) => (n.length <= 11 ? "55" + n : n.length === 12 && !n.startsWith("55") ? "55" + n : n));
+      rows.forEach((r) => {
+        const obj: any = {};
+        header.forEach((h, i) => (obj[h] = r[i] || ""));
+        extractPhones(obj[phoneField]).forEach((num) => contatos.push({ ...obj, telefone: num }));
       });
-      const result = await response.json();
-      return { variables: result.variables || [] };
+      const variables = header.filter((h: string) => h !== phoneField);
+      set({ contatos });
+      showSuccess(`${contatos.length} contatos carregados.`);
+      return { contatos, variables };
     } catch (error) {
-      throw new Error("Erro ao fazer upload do arquivo");
+      showError("Erro ao processar arquivo: " + (error as Error).message);
+      return { contatos: [], variables: [] };
     }
   },
 
   mediaUpload: async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    
     try {
-      const response = await fetch(ENDPOINTS.FILE_UPLOAD, {
-        method: 'POST',
-        body: formData,
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase();
+      const response = await fetch(FILE_UPLOAD, {
+        method: "POST",
+        headers: { "Content-Type": file.type, "X-File-Name": sanitizedName },
+        body: file,
       });
+      if (!response.ok) throw new Error(`Erro no upload: ${response.status}`);
       const result = await response.json();
-      return result.url || '';
+      if (result.fileUrl) {
+        showSuccess("Upload concluído!");
+        return result.fileUrl;
+      }
+      throw new Error("URL do arquivo não encontrada.");
     } catch (error) {
-      throw new Error("Erro ao fazer upload do arquivo");
+      showError("Falha no upload: " + (error as Error).message);
+      return null;
     }
   },
 
   sendMessages: async (params) => {
-    const { contatos, instances, tempoMin, tempoMax, usarIA, templates, campaignName, publicTarget, content } = params;
+    const { contatos, instances, tempoMin, tempoMax, usarIA, templates } = params;
     set({ interromper: false });
     let sucessos = 0;
     let erros = 0;
@@ -124,7 +162,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       });
       const choice = instances[i % instances.length];
       try {
-        const res = await fetch(ENDPOINTS.DISPARO, {
+        const res = await fetch(DISPARO, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -134,9 +172,6 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             tempoMax,
             usarIA,
             instancia: choice,
-            campaignName,
-            publicTarget,
-            content
           }),
         });
         const txt = await res.text();
@@ -161,7 +196,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
     return { sucessos, erros, log: finalLog };
   },
 
-  setInterromper: (value: boolean) => {
-    set({ interromper: value });
-  },
+  stopSending: () => set({ interromper: true }),
+
+  setTemplates: (templates) => set({ templates }),
+
+  setContatos: (contatos) => set({ contatos }),
 }));

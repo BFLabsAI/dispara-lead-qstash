@@ -1,39 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { showError } from "@/utils/toast";
 import { useDisparadorStore } from "../../store/disparadorStore";
-import { showError, showSuccess } from "@/utils/toast";
+import { QrDialog } from "./QrDialog";
+import { ErrorDialog } from "./ErrorDialog";
+import { SectionHeader } from "./SectionHeader";
+import { PremiumInstanceSelector } from "./PremiumInstanceSelector";
 import { AudienceDefinition } from "./AudienceDefinition";
 import { MessageCreator } from "./MessageCreator";
-import { PremiumInstanceSelector } from "./PremiumInstanceSelector";
 import { FinalReview } from "./FinalReview";
+import { Server, Users, MessageSquare, Settings } from "lucide-react";
 
 export const ShooterConfig = () => {
-  // Estados do componente
+  // State
+  const [campaignName, setCampaignName] = useState("");
+  const [publicTarget, setPublicTarget] = useState("");
+  const [content, setContent] = useState("");
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
-  const [tempoMin, setTempoMin] = useState<number>(2);
-  const [tempoMax, setTempoMax] = useState<number>(5);
-  const [usarIA, setUsarIA] = useState<boolean>(false);
-  const [isSending, setIsSending] = useState<boolean>(false);
-  const [campaignName, setCampaignName] = useState<string>("");
-  const [publicTarget, setPublicTarget] = useState<string>("");
-  const [content, setContent] = useState<string>("");
+  const [variables, setVariables] = useState<string[]>([]);
   const [templates, setTemplates] = useState<any[]>([{ type: 'texto', text: '', mediaUrl: '' }]);
+  const [tempoMin, setTempoMin] = useState(2);
+  const [tempoMax, setTempoMax] = useState(5);
+  const [usarIA, setUsarIA] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  // Estados do store
-  const { instances, contatos, loadInstances } = useDisparadorStore();
+  // Store
+  const { instances, contatos, sendMessages, loadInstances } = useDisparadorStore();
 
-  // Carregar instâncias ao montar o componente
-  useState(() => {
+  useEffect(() => {
     loadInstances();
-  });
+  }, [loadInstances]);
 
   const handleSend = async () => {
     if (selectedInstances.length === 0) return showError("Nenhuma instância selecionada.");
@@ -41,73 +41,64 @@ export const ShooterConfig = () => {
     if (tempoMin < 1 || tempoMax < 1 || tempoMax < tempoMin) return showError("Tempos inválidos.");
 
     setIsSending(true);
-    try {
-      await useDisparadorStore.getState().sendMessages({ 
-        contatos, 
-        instances: selectedInstances, 
-        tempoMin, 
-        tempoMax, 
-        usarIA, 
-        templates,
-        campaignName,
-        publicTarget,
-        content
-      });
-      showSuccess("Campanha enviada com sucesso!");
-    } catch (error) {
-      showError("Erro ao enviar campanha");
-    } finally {
-      setIsSending(false);
-    }
+    await sendMessages({ contatos, instances: selectedInstances, tempoMin, tempoMax, usarIA, templates });
+    setIsSending(false);
   };
 
-  const summary = {
+  const summary = useMemo(() => ({
     contacts: contatos.length,
     instances: selectedInstances.length,
-    messages: contatos.length * templates.length
-  };
+    messages: templates.length,
+  }), [contatos.length, selectedInstances.length, templates.length]);
 
   return (
     <div className="space-y-8">
-      {/* Seção 1: Definição do Público */}
-      <AudienceDefinition
-        campaignName={campaignName}
-        setCampaignName={setCampaignName}
-        publicTarget={publicTarget}
-        setPublicTarget={setPublicTarget}
-        content={content}
-        setContent={setContent}
-        onUpload={(variables) => {}}
-      />
+      <section>
+        <SectionHeader icon={Server} number={1} title="Selecione as Instâncias de Envio" subtitle="Escolha uma ou mais instâncias ativas que serão usadas para realizar os disparos." />
+        <PremiumInstanceSelector instances={instances} selectedInstances={selectedInstances} onSelectionChange={setSelectedInstances} />
+      </section>
 
-      {/* Seção 2: Seleção de Instâncias */}
-      <PremiumInstanceSelector
-        instances={instances}
-        selectedInstances={selectedInstances}
-        onSelectionChange={setSelectedInstances}
-      />
+      <section>
+        <SectionHeader icon={Users} number={2} title="Defina o Público da Campanha" subtitle="Carregue um arquivo, ou digite os números manualmente." />
+        <AudienceDefinition
+          campaignName={campaignName} setCampaignName={setCampaignName}
+          publicTarget={publicTarget} setPublicTarget={setPublicTarget}
+          content={content} setContent={setContent}
+          onUpload={setVariables}
+        />
+        {variables.length > 0 && (
+          <Card className="mt-4">
+            <CardContent className="p-4">
+              <Label>Variáveis Disponíveis:</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {variables.map(v => <Badge key={v}>{`{${v}}`}</Badge>)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </section>
 
-      {/* Seção 3: Criador de Mensagens */}
-      <MessageCreator
-        templates={templates}
-        setTemplates={setTemplates}
-      />
+      <section>
+        <SectionHeader icon={MessageSquare} number={3} title="Crie a Mensagem da Campanha" subtitle="Construa a sua mensagem e use as variáveis para máxima personalização." />
+        <MessageCreator templates={templates} setTemplates={setTemplates} />
+      </section>
 
-      {/* Seção 4: Revisão Final */}
-      <FinalReview
-        tempoMin={tempoMin}
-        setTempoMin={setTempoMin}
-        tempoMax={tempoMax}
-        setTempoMax={setTempoMax}
-        usarIA={usarIA}
-        setUsarIA={setUsarIA}
-        onSend={handleSend}
-        isSending={isSending}
-        summary={summary}
-        campaignName={campaignName}
-        publicTarget={publicTarget}
-        content={content}
-      />
+      <section>
+        <SectionHeader icon={Settings} number={4} title="Ajustes Finais e Envio" subtitle="Configure os últimos detalhes e revise sua campanha antes de disparar." />
+        <FinalReview
+          tempoMin={tempoMin} setTempoMin={setTempoMin}
+          tempoMax={tempoMax} setTempoMax={setTempoMax}
+          usarIA={usarIA} setUsarIA={setUsarIA}
+          onSend={handleSend} isSending={isSending}
+          summary={summary}
+          campaignName={campaignName}
+          publicTarget={publicTarget}
+          content={content}
+        />
+      </section>
+
+      <QrDialog />
+      <ErrorDialog />
     </div>
   );
 };
