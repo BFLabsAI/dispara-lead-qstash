@@ -16,6 +16,7 @@ import * as React from "react";
 
 // Usando Font Awesome para os ícones de navegação, como no design original
 const navItems = [
+  { href: "/", iconClass: "fa-solid fa-house", label: "Início" },
   { href: "/dashboard", iconClass: "fa-solid fa-table-cells-large", label: "Dashboard" },
   { href: "/instancias", iconClass: "fa-solid fa-server", label: "Instâncias" },
   { href: "/disparo", iconClass: "fa-solid fa-rocket", label: "Disparo" },
