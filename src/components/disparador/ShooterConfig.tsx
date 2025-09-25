@@ -91,6 +91,9 @@ export const ShooterConfig = () => {
           usarIA={usarIA} setUsarIA={setUsarIA}
           onSend={handleSend} isSending={isSending}
           summary={summary}
+          campaignName={campaignName}
+          publicTarget={publicTarget}
+          content={content}
         />
       </section>
 

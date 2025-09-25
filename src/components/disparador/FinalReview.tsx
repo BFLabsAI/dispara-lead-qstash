@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Users, Server, MessageSquare, ChevronsDown, ChevronsUp, Bot, Play, AlertTriangle } from "lucide-react";
+import { Users, Server, MessageSquare, ChevronsDown, ChevronsUp, Bot, Play, AlertTriangle, FileText, Clock } from "lucide-react";
+import React from "react";
 
 interface FinalReviewProps {
   tempoMin: number;
@@ -21,6 +22,9 @@ interface FinalReviewProps {
     instances: number;
     messages: number;
   };
+  campaignName: string;
+  publicTarget: string;
+  content: string;
 }
 
 export const FinalReview = ({
@@ -28,17 +32,35 @@ export const FinalReview = ({
   tempoMax, setTempoMax,
   usarIA, setUsarIA,
   onSend, isSending,
-  summary
+  summary,
+  campaignName,
+  publicTarget,
+  content
 }: FinalReviewProps) => {
   return (
     <Card className="rounded-b-lg rounded-t-none glass-card">
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Coluna da Esquerda: Resumo */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <h4 className="text-lg font-bold">Resumo da Campanha</h4>
-          <SummaryItem icon={Users} label="Contatos" value={summary.contacts} color="text-blue-500" />
-          <SummaryItem icon={Server} label="Instâncias" value={summary.instances} color="text-purple-500" />
-          <SummaryItem icon={MessageSquare} label="Mensagens" value={summary.messages} color="text-green-500" />
+          
+          {/* Big Numbers */}
+          <div className="grid grid-cols-3 gap-4">
+            <SummaryMetric icon={Users} label="Contatos" value={summary.contacts} />
+            <SummaryMetric icon={Server} label="Instâncias" value={summary.instances} />
+            <SummaryMetric icon={MessageSquare} label="Mensagens" value={summary.messages} />
+          </div>
+
+          {/* Detailed List */}
+          <div className="bg-card/80 p-4 rounded-lg">
+            <ul className="space-y-2 text-sm">
+              <DetailListItem icon={FileText} label="Campanha" value={campaignName || "Não definida"} />
+              <DetailListItem icon={Users} label="Público" value={publicTarget || "Não definido"} />
+              <DetailListItem icon={FileText} label="Conteúdo" value={content || "Não definido"} />
+              <DetailListItem icon={Clock} label="Intervalo" value={`${tempoMin}s - ${tempoMax}s`} />
+              <DetailListItem icon={Bot} label="Inteligência Artificial" value={usarIA ? "Ativada" : "Desativada"} />
+            </ul>
+          </div>
         </div>
         
         {/* Coluna da Direita: Ajustes e Disparo */}
@@ -76,14 +98,20 @@ export const FinalReview = ({
   );
 };
 
-const SummaryItem = ({ icon: Icon, label, value, color }: { icon: React.ElementType, label: string, value: string | number, color: string }) => (
-  <div className="bg-card/80 p-4 rounded-lg flex items-center gap-4 animate-scale-in shadow-sm">
-    <div className={`p-3 rounded-md bg-primary/10 ${color}`}>
-      <Icon className="h-6 w-6" />
-    </div>
-    <div>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-sm text-muted-foreground">{label}</p>
-    </div>
+const SummaryMetric = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
+  <div className="bg-card/80 p-3 rounded-lg text-center animate-scale-in shadow-sm">
+    <Icon className="h-6 w-6 mx-auto mb-1 text-primary" />
+    <p className="text-2xl font-bold">{value}</p>
+    <p className="text-xs text-muted-foreground">{label}</p>
   </div>
+);
+
+const DetailListItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
+  <li className="flex justify-between items-center">
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <Icon className="h-4 w-4" />
+      <span>{label}</span>
+    </div>
+    <span className="font-semibold text-right">{value}</span>
+  </li>
 );
