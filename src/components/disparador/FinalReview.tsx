@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Users, Server, MessageSquare, Timer, BrainCircuit, Play, AlertTriangle } from "lucide-react";
+import { Users, Server, MessageSquare, ChevronsDown, ChevronsUp, Bot, Play, AlertTriangle } from "lucide-react";
 
 interface FinalReviewProps {
   tempoMin: number;
@@ -36,22 +36,22 @@ export const FinalReview = ({
         <div className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5"><Timer className="h-4 w-4" /> Tempo mínimo (s)</Label>
+              <Label className="flex items-center gap-1.5"><ChevronsDown className="h-4 w-4" /> Tempo mínimo (s)</Label>
               <Input type="number" value={tempoMin} onChange={e => setTempoMin(Number(e.target.value))} />
             </div>
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5"><Timer className="h-4 w-4" /> Tempo máximo (s)</Label>
+              <Label className="flex items-center gap-1.5"><ChevronsUp className="h-4 w-4" /> Tempo máximo (s)</Label>
               <Input type="number" value={tempoMax} onChange={e => setTempoMax(Number(e.target.value))} />
             </div>
           </div>
-          <div className="flex items-start gap-4">
-            <Switch id="ai-switch" checked={usarIA} onCheckedChange={setUsarIA} className="mt-1" />
-            <div className="flex-1">
-              <Label htmlFor="ai-switch" className="flex items-center gap-1.5 font-semibold"><BrainCircuit className="h-4 w-4" /> Usar IA</Label>
-              <div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-md border border-blue-200 text-sm">
-                <AlertTriangle className="h-4 w-4 inline-block mr-1" />
-                Ao ativar, nosso sistema criará leves variações da sua mensagem para melhorar a entrega.
-              </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-4">
+              <Switch id="ai-switch" checked={usarIA} onCheckedChange={setUsarIA} />
+              <Label htmlFor="ai-switch" className="flex items-center gap-2 font-semibold"><Bot className="h-5 w-5" /> Usar IA</Label>
+            </div>
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-md border border-blue-200 dark:border-blue-800 text-sm">
+              <AlertTriangle className="h-4 w-4 inline-block mr-1" />
+              Ao ativar, nosso sistema criará leves variações da sua mensagem para melhorar a entrega.
             </div>
           </div>
         </div>
@@ -62,10 +62,10 @@ export const FinalReview = ({
             <SummaryItem icon={Users} label="Contatos" value={summary.contacts} color="text-blue-500" />
             <SummaryItem icon={Server} label="Instâncias" value={summary.instances} color="text-purple-500" />
             <SummaryItem icon={MessageSquare} label="Mensagens" value={summary.messages} color="text-green-500" />
-            <SummaryItem icon={Timer} label="Intervalo" value={`${tempoMin}s - ${tempoMax}s`} color="text-orange-500" />
+            <SummaryItem icon={ChevronsUp} label="Intervalo" value={`${tempoMin}s - ${tempoMax}s`} color="text-orange-500" />
           </div>
           <div className="mt-6">
-            <Button size="lg" onClick={onSend} disabled={isSending} className="w-full">
+            <Button size="lg" onClick={onSend} disabled={isSending} className="w-full btn-premium">
               <Play className="mr-2 h-5 w-5" />
               {isSending ? 'Disparando...' : 'Disparar Campanha'}
             </Button>
@@ -77,7 +77,7 @@ export const FinalReview = ({
 };
 
 const SummaryItem = ({ icon: Icon, label, value, color }: { icon: React.ElementType, label: string, value: string | number, color: string }) => (
-  <div className="bg-card p-3 rounded-md flex items-center gap-3">
+  <div className="bg-card p-3 rounded-md flex items-center gap-3 animate-scale-in">
     <div className={`p-2 rounded bg-primary/10 ${color}`}>
       <Icon className="h-5 w-5" />
     </div>
