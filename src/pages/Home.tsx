@@ -59,52 +59,50 @@ const Home = () => {
         />
       </section>
 
-      {/* 3. Bloco de Alerta Crítico */}
-      <section>
-        <Card className="border-destructive/50 bg-destructive/10 text-destructive-foreground animate-scale-in">
-          <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-            <AlertTriangle className="h-8 w-8 text-destructive" />
-            <CardTitle className="text-destructive text-2xl">
-              AVISO IMPORTANTE
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-semibold text-destructive">
-              NUNCA faça disparos em massa do seu número principal!
-            </p>
-            <p className="mt-2 text-destructive/90">
-              Utilizar seu número pessoal ou principal para envios em massa
-              resultará em banimento pelo WhatsApp. É obrigatório o uso de
-              números de telefone dedicados exclusivamente para esta finalidade.
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* 4. Seção "Primeiros Passos" */}
-      <section className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold">Primeiros Passos</h2>
-          <p className="text-muted-foreground">
-            Siga estas etapas para garantir o sucesso da sua campanha.
-          </p>
+      {/* 3 & 4. Seção combinada de Aviso e Primeiros Passos */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Coluna da Esquerda: Aviso Importante */}
+        <div className="animate-scale-in">
+          <Card className="border-amber-500/50 bg-amber-500/10 h-full">
+            <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+              <AlertTriangle className="h-8 w-8 text-amber-600" />
+              <CardTitle className="text-amber-700 dark:text-amber-400 text-2xl">
+                AVISO IMPORTANTE
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-lg font-semibold text-amber-700 dark:text-amber-400">
+                NUNCA faça disparos em massa do seu número principal!
+              </p>
+              <p className="mt-2 text-amber-600/90 dark:text-amber-500/90">
+                Utilizar seu número pessoal ou principal para envios em massa
+                resultará em banimento pelo WhatsApp. É obrigatório o uso de
+                números de telefone dedicados exclusivamente para esta finalidade.
+              </p>
+            </CardContent>
+          </Card>
         </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <StepCard
-            icon={CheckCircle}
-            title="Conecte suas Instâncias"
-            description="Antes de tudo, vá para a seção de Instâncias e conecte os números que serão usados nos envios."
-          />
-          <StepCard
-            icon={ShieldCheck}
-            title="Use Números Dedicados"
-            description="Proteja sua conta principal. Utilize apenas números comprados especificamente para as campanhas."
-          />
-          <StepCard
-            icon={Clock}
-            title="Configure Intervalos"
-            description="Defina um tempo de espera seguro entre as mensagens para simular o comportamento humano e evitar bloqueios."
-          />
+
+        {/* Coluna da Direita: Primeiros Passos */}
+        <div className="space-y-6">
+          <h2 className="text-3xl font-bold">Primeiros Passos</h2>
+          <div className="space-y-6">
+            <StepCard
+              icon={CheckCircle}
+              title="Conecte suas Instâncias"
+              description="Antes de tudo, vá para a seção de Instâncias e conecte os números que serão usados nos envios."
+            />
+            <StepCard
+              icon={ShieldCheck}
+              title="Use Números Dedicados"
+              description="Proteja sua conta principal. Utilize apenas números comprados especificamente para as campanhas."
+            />
+            <StepCard
+              icon={Clock}
+              title="Configure Intervalos"
+              description="Defina um tempo de espera seguro entre as mensagens para simular o comportamento humano e evitar bloqueios."
+            />
+          </div>
         </div>
       </section>
 
