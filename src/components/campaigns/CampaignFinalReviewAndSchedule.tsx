@@ -1,10 +1,10 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Card } from "@/components/ui/card"; // Importar Card
+import { Button } from "@/components/ui/button"; // Importar Button
+import { Input } from "@/components/ui/input"; // Importar Input
+import { Label } from "@/components/ui/label"; // Importar Label
+import { Switch } from "@/components/ui/switch"; // Importar Switch
 import { Users, Server, MessageSquare, ChevronsDown, ChevronsUp, Bot, Play, AlertTriangle, FileText, Clock, Calendar as CalendarIcon } from "lucide-react";
 import React from "react";
 

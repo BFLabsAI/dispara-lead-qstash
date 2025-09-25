@@ -11,7 +11,9 @@ import { useDisparadorStore } from "@/store/disparadorStore";
 import { showError, showSuccess } from "@/utils/toast";
 import { Server, Users, Settings, MessageSquare } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid'; // Para gerar o campaign_group_id
-import { Card, CardContent, Badge, Label } from "@/components/ui/index"; // Importar Card, CardContent, Badge, Label
+import { Card, CardContent } from "@/components/ui/card"; // Importar Card e CardContent
+import { Badge } from "@/components/ui/badge"; // Importar Badge
+import { Label } from "@/components/ui/label"; // Importar Label
 
 interface DispatchConfig {
   id: string;

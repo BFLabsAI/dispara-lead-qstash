@@ -1,7 +1,12 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, Button, Input, Label, Popover, PopoverContent, PopoverTrigger, Badge } from "@/components/ui/index";
+import { Card, CardContent } from "@/components/ui/card"; // Importar Card e CardContent
+import { Button } from "@/components/ui/button"; // Importar Button
+import { Input } from "@/components/ui/input"; // Importar Input
+import { Label } from "@/components/ui/label"; // Importar Label
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"; // Importar Popover
+import { Badge } from "@/components/ui/badge"; // Importar Badge
 import { Calendar } from "@/components/ui/calendar";
 import { MessageCreator } from "@/components/disparador/MessageCreator";
 import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
