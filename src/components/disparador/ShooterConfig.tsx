@@ -1,22 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Label } from "@/components/ui/label";
 import { showError } from "@/utils/toast";
 import { useDisparadorStore } from "../../store/disparadorStore";
-import { MessageBlock } from "./MessageBlock";
-import { InstanceSelector } from "./InstanceSelector";
+import { StyledInstanceSelector } from "./StyledInstanceSelector";
+import { CampaignStep } from "./CampaignStep";
+import { AudienceStep } from "./AudienceStep";
+import { MessagesStep } from "./MessagesStep";
+import { FinalStep } from "./FinalStep";
 import { QrDialog } from "./QrDialog";
 import { ErrorDialog } from "./ErrorDialog";
-import { ContactUploader } from "./ContactUploader";
 
 export const ShooterConfig = () => {
+  // Estados da página
+  const [currentStep, setCurrentStep] = useState(1);
+  const [campaignName, setCampaignName] = useState("");
+  const [publicTarget, setPublicTarget] = useState("");
+  const [content, setContent] = useState("");
   const [qtdMensagens, setQtdMensagens] = useState(1);
   const [tempoMin, setTempoMin] = useState(2);
   const [tempoMax, setTempoMax] = useState(5);
@@ -27,7 +28,8 @@ export const ShooterConfig = () => {
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [variables, setVariables] = useState<string[]>([]);
 
-  const { instances, contatos, setTemplates, sendMessages, stopSending, loadInstances } = useDisparadorStore();
+  // Estados da store
+  const { instances, contatos, templates, setTemplates, sendMessages, stopSending, loadInstances } = useDisparadorStore();
 
   useEffect(() => {
     loadInstances();
@@ -40,7 +42,6 @@ export const ShooterConfig = () => {
 
     setIsSending(true);
     setProgress(0);
-    const templates = useDisparadorStore.getState().templates;
     const result = await sendMessages({
       contatos,
       instances: selectedInstances,
@@ -58,95 +59,94 @@ export const ShooterConfig = () => {
     [instances]
   );
 
-  const handleTemplateUpdate = useCallback((index: number, tpl: any) => {
-    const currentTemplates = useDisparadorStore.getState().templates;
-    const newTemplates = [...currentTemplates];
-    newTemplates[index] = tpl;
-    setTemplates(newTemplates);
-  }, [setTemplates]);
+  const steps = [
+    { id: 1, name: 'Campanha', component: CampaignStep },
+    { id: 2, name: 'Público', component: AudienceStep },
+    { id: 3, name: 'Mensagens', component: MessagesStep },
+    { id: 4, name: 'Ajustes', component: FinalStep },
+  ];
 
-  const handleQtdChange = (newQtd: number) => {
-    const clampedQtd = Math.max(1, newQtd || 1);
-    setQtdMensagens(clampedQtd);
-    setTemplates(Array(clampedQtd).fill(null).map(() => ({ type: 'texto', text: '', mediaUrl: '' })));
+  const nextStep = () => {
+    if (currentStep < steps.length) setCurrentStep(currentStep + 1);
   };
 
-  return (
-    <Card className="border-0 shadow-sm">
-      <CardContent className="p-6">
-        <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <i className="bi bi-rocket-takeoff"></i>Configuração de Disparo
-        </h4>
-        <InstanceSelector 
-          instances={connectedInstances} 
-          selectedInstances={selectedInstances}
-          onSelectionChange={setSelectedInstances} 
-        />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <ContactUploader onUpload={setVariables} />
-          <div>
-            <Label className="flex items-center gap-1 mb-2">
-              <i className="bi bi-tags"></i>Variáveis disponíveis
-            </Label>
-            <div className="border p-2 rounded-md bg-muted h-full min-h-[100px] overflow-y-auto flex flex-wrap gap-1 content-start">
-              {variables.length > 0 ? (
-                variables.map((key) => (
-                  <Badge key={key} variant="secondary" className="cursor-pointer">
-                    {`{${key}}`}
-                  </Badge>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground p-2">Carregue um arquivo para ver as variáveis.</p>
-              )}
-            </div>
-          </div>
-        </div>
+  const prevStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
+  };
 
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div>
-            <Label>Tempo min (s)</Label>
-            <Input type="number" value={tempoMin} onChange={(e) => setTempoMin(+e.target.value)} min={1} />
+  const CurrentStepComponent = steps.find(step => step.id === currentStep)?.component;
+
+  return (
+    <div className="max-w-6xl mx-auto">
+      {/* Navegação por Passos */}
+      <div className="flex justify-between mb-8">
+        {steps.map((step) => (
+          <div key={step.id} className="flex items-center">
+            <button
+              onClick={() => setCurrentStep(step.id)}
+              className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-medium transition-all ${
+                currentStep === step.id
+                  ? 'bg-green-500 text-white border-green-500'
+                  : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              {step.id}
+            </button>
+            <span className={`ml-2 font-medium ${currentStep === step.id ? 'text-green-600' : 'text-gray-500 dark:text-gray-400'}`}>
+              {step.name}
+            </span>
+            {step.id < steps.length && (
+              <div className={`w-16 h-1 mx-4 ${currentStep > step.id ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+            )}
           </div>
-          <div>
-            <Label>Tempo max (s)</Label>
-            <Input type="number" value={tempoMax} onChange={(e) => setTempoMax(+e.target.value)} min={1} />
-          </div>
-          <div>
-            <Label>Qtd. Mensagens</Label>
-            <Input type="number" value={qtdMensagens} onChange={(e) => handleQtdChange(+e.target.value)} min={1} />
-          </div>
-        </div>
-        <div className="space-y-4 mb-4">
-          {Array.from({ length: qtdMensagens }).map((_, i) => (
-            <MessageBlock key={i} index={i} onUpdate={handleTemplateUpdate} />
-          ))}
-        </div>
-        <div className="flex items-center space-x-2 mb-4">
-          <Switch id="usarIA" checked={usarIA} onCheckedChange={setUsarIA} />
-          <Label htmlFor="usarIA" className="flex items-center gap-1">
-            <i className="bi bi-robot"></i>Usar IA
-          </Label>
-        </div>
-        <div className="flex gap-2">
-          <Button className="flex-1" onClick={handleSend} disabled={isSending}>
-            <i className="bi bi-send-fill mr-2"></i>Disparar Mensagens
-          </Button>
-          {isSending && (
-            <Button variant="destructive" className="flex-1" onClick={stopSending}>
-              ⏹️ Parar
-            </Button>
-          )}
-        </div>
-        {progress > 0 && (
-          <div className="mt-4">
-            <Progress value={progress} className="h-2" />
-            <p className="text-center text-sm text-muted-foreground mt-1">{status}</p>
-          </div>
+        ))}
+      </div>
+
+      {/* Conteúdo do Passo Atual */}
+      <div className="mb-8">
+        {CurrentStepComponent && (
+          <CurrentStepComponent
+            campaignName={campaignName}
+            setCampaignName={setCampaignName}
+            publicTarget={publicTarget}
+            setPublicTarget={setPublicTarget}
+            content={content}
+            setContent={setContent}
+            variables={variables}
+            onUpload={setVariables}
+            qtdMensagens={qtdMensagens}
+            setQtdMensagens={setQtdMensagens}
+            templates={templates}
+            setTemplates={setTemplates}
+            tempoMin={tempoMin}
+            setTempoMin={setTempoMin}
+            tempoMax={tempoMax}
+            setTempoMax={setTempoMax}
+            usarIA={usarIA}
+            setUsarIA={setUsarIA}
+            isSending={isSending}
+            onSend={handleSend}
+            onStop={stopSending}
+            progress={progress}
+            status={status}
+          />
         )}
-      </CardContent>
+      </div>
+
+      {/* Navegação */}
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
+          Anterior
+        </Button>
+        {currentStep < steps.length && (
+          <Button onClick={nextStep}>
+            Próximo
+          </Button>
+        )}
+      </div>
+
       <QrDialog />
       <ErrorDialog />
-    </Card>
+    </div>
   );
 };
