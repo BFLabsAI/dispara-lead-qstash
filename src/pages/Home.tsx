@@ -75,17 +75,17 @@ const Home = () => {
             <StepCard
               icon={CheckCircle}
               title="Conecte suas Instâncias"
-              description="O primeiro passo é essencial: acesse a seção 'Instâncias' no menu lateral. Lá, você poderá conectar todos os números de WhatsApp que pretende utilizar. Siga as instruções para escanear o QR Code e garantir que suas contas estejam prontas para os envios."
+              description="O passo inicial é acessar a seção 'Instâncias' no menu. Lá, você poderá conectar todos os números de WhatsApp que pretende usar. Siga as instruções para escanear o QR Code e deixar suas contas prontas para os envios."
             />
             <StepCard
               icon={ShieldCheck}
               title="Use Números Dedicados"
-              description="Para garantir a segurança da sua conta principal, é crucial utilizar números de telefone comprados exclusivamente para as campanhas de disparo. Nunca use seu número pessoal ou o número principal da sua empresa, pois isso pode levar a bloqueios permanentes."
+              description="Para garantir a segurança da sua conta principal, é crucial usar números de telefone comprados exclusivamente para as campanhas. Evite usar seu número pessoal ou o principal da sua empresa, pois isso pode levar a bloqueios."
             />
             <StepCard
               icon={Clock}
               title="Configure Intervalos"
-              description="Para evitar ser identificado como spam pelo WhatsApp, configure um intervalo de tempo realista entre cada mensagem. Recomendamos um tempo de espera entre 2 a 5 segundos para simular um comportamento humano e aumentar a taxa de entrega das suas campanhas."
+              description="Para evitar ser identificado como spam, configure um intervalo de tempo realista entre cada mensagem. Recomendamos de 2 a 5 segundos para simular um comportamento humano e aumentar a taxa de entrega das suas campanhas."
             />
           </div>
         </div>
