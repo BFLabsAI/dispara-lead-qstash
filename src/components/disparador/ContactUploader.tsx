@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useDisparadorStore } from "../../store/disparadorStore";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UploadCloud, CheckCircle, FileText } from "lucide-react";
-import { showError } from "@/utils/toast";
+import { UploadCloud, CheckCircle } from "lucide-react";
 
 interface ContactUploaderProps {
   onUpload: (variables: string[]) => void;
@@ -14,54 +14,49 @@ interface ContactUploaderProps {
 
 export const ContactUploader = ({ onUpload }: ContactUploaderProps) => {
   const { uploadFile, contatos } = useDisparadorStore();
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    setFileName(file.name);
-    try {
-      const { variables } = await uploadFile(file);
-      onUpload(variables);
-    } catch (err) {
-      showError("Falha ao processar o arquivo.");
-      setFileName(null);
-    } finally {
-      setIsUploading(false);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFile(e.target.files[0]);
     }
   };
 
+  const handleUpload = async () => {
+    if (!file) return;
+    setIsUploading(true);
+    const { variables } = await uploadFile(file);
+    onUpload(variables);
+    setIsUploading(false);
+    setFile(null); // Reset file input after upload
+  };
+
   return (
-    <div className="border-2 border-dashed rounded-lg p-6 text-center space-y-4">
-      <div className="mx-auto h-12 w-12 text-muted-foreground">
-        <UploadCloud size={48} />
-      </div>
-      <Label htmlFor="file-upload" className="font-semibold text-lg">Arraste ou selecione seu arquivo</Label>
-      <p className="text-sm text-muted-foreground">Suporte para arquivos .xlsx ou .xls</p>
-      <Input
-        id="file-upload"
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx, .xls"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-      <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-        <FileText className="h-4 w-4 mr-2" />
-        {isUploading ? "Processando..." : "Escolher Arquivo"}
-      </Button>
-      {fileName && (
-        <div className="flex items-center justify-center gap-2 text-sm text-green-600">
-          <CheckCircle className="h-5 w-5" />
-          <p>
-            <span className="font-bold">{contatos.length}</span> contatos carregados de <span className="italic">{fileName}</span>.
-          </p>
+    <Card className="bg-muted">
+      <CardContent className="p-4 space-y-4">
+        <div>
+          <Label className="flex items-center gap-2 mb-2 font-semibold">
+            <i className="bi bi-file-earmark-arrow-up"></i>
+            Carregar Contatos (XLSX)
+          </Label>
+          <div className="flex gap-2">
+            <Input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="flex-1" />
+            <Button onClick={handleUpload} disabled={!file || isUploading}>
+              <UploadCloud className="h-4 w-4 mr-2" />
+              {isUploading ? "Carregando..." : "Carregar"}
+            </Button>
+          </div>
         </div>
-      )}
-    </div>
+        {contatos.length > 0 && (
+          <div className="flex items-center gap-2 text-sm text-green-600">
+            <CheckCircle className="h-5 w-5" />
+            <p>
+              <span className="font-bold">{contatos.length}</span> contatos carregados com sucesso.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
