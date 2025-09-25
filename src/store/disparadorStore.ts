@@ -1,9 +1,7 @@
-import { create } from "zustand";
-import { showError, showSuccess } from "@/utils/toast";
-import { ENDPOINTS } from "../services/api";
-import * as XLSX from "xlsx";
-
-const { BUSCA_INSTANCIAS, QR_CODE, DISPARO, FILE_UPLOAD } = ENDPOINTS;
+import { create } from 'zustand';
+import { ENDPOINTS } from '../services/api';
+import { showSuccess, showError } from '../utils/toast';
+import * as XLSX from "xlsx"; // Importar XLSX para a função uploadFile
 
 interface Instance {
   name: string;
@@ -11,20 +9,20 @@ interface Instance {
 }
 
 interface DisparadorState {
-  instances: Instance[];
+  instances: Instance[]; // Usar a interface Instance
+  isLoading: boolean;
   qrCode: string | null;
   qrInstance: string | null;
-  qrCountdown: number;
-  isLoading: boolean;
   contatos: any[];
   interromper: boolean;
-  templates: any[];
-
+  
+  // Actions
   loadInstances: () => Promise<void>;
   fetchQrCode: (instanceName: string) => Promise<void>;
   resetQr: () => void;
-  uploadFile: (file: File) => Promise<{ contatos: any[]; variables: string[] }>;
-  mediaUpload: (file: File) => Promise<string | null>;
+  setContatos: (contatos: any[]) => void;
+  uploadFile: (file: File) => Promise<{ contatos: any[]; variables: string[] }>; // Ajustado para retornar contatos
+  mediaUpload: (file: File) => Promise<string | null>; // Ajustado para retornar string ou null
   sendMessages: (params: {
     contatos: any[];
     instances: string[];
@@ -32,30 +30,29 @@ interface DisparadorState {
     tempoMax: number;
     usarIA: boolean;
     templates: any[];
+    campaignName: string; // Novo
+    publicTarget: string; // Novo
+    content: string; // Novo
   }) => Promise<{ sucessos: number; erros: number; log: string }>;
-  stopSending: () => void;
-  setTemplates: (templates: any[]) => void;
-  setContatos: (contatos: any[]) => void;
+  stopSending: () => void; // Adicionado
 }
 
 export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   instances: [],
+  isLoading: false,
   qrCode: null,
   qrInstance: null,
-  qrCountdown: 0,
-  isLoading: false,
   contatos: [],
   interromper: false,
-  templates: [],
 
   resetQr: () => {
-    set({ qrCode: null, qrInstance: null, qrCountdown: 0 });
+    set({ qrCode: null, qrInstance: null });
   },
 
   loadInstances: async () => {
     set({ isLoading: true });
     try {
-      const response = await fetch(BUSCA_INSTANCIAS);
+      const response = await fetch(ENDPOINTS.BUSCA_INSTANCIAS);
       if (!response.ok) throw new Error("Falha ao buscar instâncias.");
       const data = await response.json();
       const instances = data.instances || data;
@@ -71,9 +68,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   fetchQrCode: async (instanceName: string) => {
     if (get().qrInstance === instanceName && get().qrCode) return;
     
-    set({ qrCode: null, qrInstance: instanceName, qrCountdown: 30 });
+    set({ qrCode: null, qrInstance: instanceName }); // Removido qrCountdown
     try {
-      const response = await fetch(`${QR_CODE}?instanceName=${instanceName}`);
+      const response = await fetch(`${ENDPOINTS.QR_CODE}?instanceName=${encodeURIComponent(instanceName)}`);
       if (!response.ok) throw new Error("Falha ao gerar QR Code.");
       const data = await response.json();
       if (data.code) {
@@ -122,7 +119,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   mediaUpload: async (file: File) => {
     try {
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase();
-      const response = await fetch(FILE_UPLOAD, {
+      const response = await fetch(ENDPOINTS.FILE_UPLOAD, {
         method: "POST",
         headers: { "Content-Type": file.type, "X-File-Name": sanitizedName },
         body: file,
@@ -141,7 +138,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   },
 
   sendMessages: async (params) => {
-    const { contatos, instances, tempoMin, tempoMax, usarIA, templates } = params;
+    const { contatos, instances, tempoMin, tempoMax, usarIA, templates, campaignName, publicTarget, content } = params;
     set({ interromper: false });
     let sucessos = 0;
     let erros = 0;
@@ -162,7 +159,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       });
       const choice = instances[i % instances.length];
       try {
-        const res = await fetch(DISPARO, {
+        const res = await fetch(ENDPOINTS.DISPARO, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -172,6 +169,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             tempoMax,
             usarIA,
             instancia: choice,
+            campaignName, // Adicionado
+            publicTarget, // Adicionado
+            content // Adicionado
           }),
         });
         const txt = await res.text();
@@ -197,8 +197,6 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   },
 
   stopSending: () => set({ interromper: true }),
-
-  setTemplates: (templates) => set({ templates }),
 
   setContatos: (contatos) => set({ contatos }),
 }));

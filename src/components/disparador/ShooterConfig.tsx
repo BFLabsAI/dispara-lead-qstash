@@ -41,7 +41,17 @@ export const ShooterConfig = () => {
     if (tempoMin < 1 || tempoMax < 1 || tempoMax < tempoMin) return showError("Tempos inválidos.");
 
     setIsSending(true);
-    await sendMessages({ contatos, instances: selectedInstances, tempoMin, tempoMax, usarIA, templates });
+    await sendMessages({ 
+      contatos, 
+      instances: selectedInstances, 
+      tempoMin, 
+      tempoMax, 
+      usarIA, 
+      templates,
+      campaignName, // Passando o nome da campanha
+      publicTarget, // Passando o público-alvo
+      content // Passando o conteúdo
+    });
     setIsSending(false);
   };
 
