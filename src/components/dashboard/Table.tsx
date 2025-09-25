@@ -34,6 +34,7 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
                 <TableHead>Instância</TableHead>
                 <TableHead>Número</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Modo de Disparo</TableHead> {/* Nova coluna */}
                 <TableHead>Usou IA?</TableHead>
                 <TableHead>Mensagem</TableHead>
               </TableRow>
@@ -51,6 +52,17 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
                     {item.numero}
                   </TableCell>
                   <TableCell className="capitalize">{item.tipo_envio}</TableCell>
+                  <TableCell className="capitalize">
+                    {item.tipo_campanha === 'agendada' ? (
+                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-300 border border-transparent hover:bg-blue-200">
+                        Agendada
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">
+                        Pontual
+                      </Badge>
+                    )}
+                  </TableCell> {/* Exibindo o modo de disparo */}
                   <TableCell>
                     {item.usaria ? (
                       <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
