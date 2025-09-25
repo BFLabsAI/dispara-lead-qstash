@@ -48,7 +48,7 @@ export const AudienceDefinition = ({
   };
 
   return (
-    <Card className="rounded-b-xl border-t-0 glass-card">
+    <Card className="rounded-b-lg rounded-t-none glass-card">
       <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">

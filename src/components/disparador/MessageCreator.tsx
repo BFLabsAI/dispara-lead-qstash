@@ -44,7 +44,7 @@ export const MessageCreator = ({ templates, setTemplates }: MessageCreatorProps)
   };
 
   return (
-    <Card className="rounded-b-xl border-t-0 glass-card">
+    <Card className="rounded-b-lg rounded-t-none glass-card">
       <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-4">
           {templates.map((template, index) => (

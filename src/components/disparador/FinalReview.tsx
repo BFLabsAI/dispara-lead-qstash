@@ -31,7 +31,7 @@ export const FinalReview = ({
   summary
 }: FinalReviewProps) => {
   return (
-    <Card className="rounded-b-xl border-t-0 glass-card">
+    <Card className="rounded-b-lg rounded-t-none glass-card">
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="space-y-4">
@@ -56,34 +56,32 @@ export const FinalReview = ({
           </div>
         </div>
         
-        <div className="bg-muted/50 p-6 rounded-lg">
-          <h4 className="text-lg font-bold mb-4">Resumo da Campanha</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <SummaryItem icon={Users} label="Contatos" value={summary.contacts} color="text-blue-500" />
-            <SummaryItem icon={Server} label="Instâncias" value={summary.instances} color="text-purple-500" />
-            <SummaryItem icon={MessageSquare} label="Mensagens" value={summary.messages} color="text-green-500" />
-            <SummaryItem icon={ChevronsUp} label="Intervalo" value={`${tempoMin}s - ${tempoMax}s`} color="text-orange-500" />
+        <div className="bg-muted/50 p-6 rounded-lg flex flex-col justify-between">
+          <div>
+            <h4 className="text-lg font-bold mb-4 text-center">Resumo da Campanha</h4>
+            <div className="flex justify-around items-center text-center">
+              <SummaryCircle label="Contatos" value={summary.contacts} color="text-blue-400" ringColor="border-blue-400/30" />
+              <SummaryCircle label="Instâncias" value={summary.instances} color="text-purple-400" ringColor="border-purple-400/30" />
+              <SummaryCircle label="Mensagens" value={summary.messages} color="text-green-400" ringColor="border-green-400/30" />
+            </div>
           </div>
-          <div className="mt-6">
-            <Button size="lg" onClick={onSend} disabled={isSending} className="w-full btn-premium">
-              <Play className="mr-2 h-5 w-5" />
-              {isSending ? 'Disparando...' : 'Disparar Campanha'}
-            </Button>
-          </div>
+          <Button size="lg" onClick={onSend} disabled={isSending} className="w-full btn-premium mt-6">
+            <Play className="mr-2 h-5 w-5" />
+            {isSending ? 'Disparando...' : 'Disparar Campanha'}
+          </Button>
         </div>
       </div>
     </Card>
   );
 };
 
-const SummaryItem = ({ icon: Icon, label, value, color }: { icon: React.ElementType, label: string, value: string | number, color: string }) => (
-  <div className="bg-card p-3 rounded-md flex items-center gap-3 animate-scale-in">
-    <div className={`p-2 rounded bg-primary/10 ${color}`}>
-      <Icon className="h-5 w-5" />
-    </div>
-    <div>
-      <p className="text-xl font-bold">{value}</p>
-      <p className="text-sm text-muted-foreground">{label}</p>
+const SummaryCircle = ({ label, value, color, ringColor }: { label: string, value: string | number, color: string, ringColor: string }) => (
+  <div className="flex flex-col items-center gap-2 animate-scale-in">
+    <div className={`flex items-center justify-center w-24 h-24 rounded-full border-4 bg-card/50 ${ringColor}`}>
+      <div className="text-center">
+        <p className={`text-3xl font-bold ${color}`}>{value}</p>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      </div>
     </div>
   </div>
 );
