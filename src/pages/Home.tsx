@@ -59,33 +59,11 @@ const Home = () => {
         />
       </section>
 
-      {/* 3 & 4. Seção combinada de Aviso e Primeiros Passos */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Coluna da Esquerda: Aviso Importante */}
-        <div className="animate-scale-in">
-          <Card className="border-amber-500/50 bg-amber-500/10 h-full">
-            <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-              <AlertTriangle className="h-8 w-8 text-amber-600" />
-              <CardTitle className="text-amber-700 dark:text-amber-400 text-2xl">
-                AVISO IMPORTANTE
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-lg font-semibold text-amber-700 dark:text-amber-400">
-                NUNCA faça disparos em massa do seu número principal!
-              </p>
-              <p className="mt-2 text-amber-600/90 dark:text-amber-500/90">
-                Utilizar seu número pessoal ou principal para envios em massa
-                resultará em banimento pelo WhatsApp. É obrigatório o uso de
-                números de telefone dedicados exclusivamente para esta finalidade.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Coluna da Direita: Primeiros Passos */}
-        <div className="space-y-6">
-          <h2 className="text-3xl font-bold">Primeiros Passos</h2>
+      {/* 3 & 4. Seção combinada de Primeiros Passos e Boas Práticas */}
+      <section className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+        {/* Coluna da Esquerda: Primeiros Passos */}
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="text-3xl font-bold text-center lg:text-left">Primeiros Passos</h2>
           <div className="space-y-6">
             <StepCard
               icon={CheckCircle}
@@ -104,24 +82,38 @@ const Home = () => {
             />
           </div>
         </div>
+
+        {/* Coluna da Direita: Boas Práticas */}
+        <div className="lg:col-span-3 space-y-6">
+          <h2 className="text-3xl font-bold text-center lg:text-left">Boas Práticas</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {practiceItems.map((item, index) => (
+              <div key={index} className="flex items-center gap-3 rounded-lg bg-card p-4">
+                <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                <span className="text-card-foreground">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* 5. Seção "Boas Práticas" */}
-      <section className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold">Boas Práticas</h2>
-          <p className="text-muted-foreground">
-            Dicas para maximizar sua entrega e evitar problemas.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {practiceItems.map((item, index) => (
-            <div key={index} className="flex items-center gap-3 rounded-lg bg-card p-4">
-              <CheckCircle className="h-5 w-5 text-primary" />
-              <span className="text-card-foreground">{item}</span>
+      {/* 5. Bloco de Alerta Crítico no Final */}
+      <section className="animate-scale-in">
+        <Card className="border-primary/50 bg-primary/10">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="flex items-center gap-4">
+                <AlertTriangle className="h-8 w-8 text-primary flex-shrink-0" />
+                <h3 className="text-xl font-bold text-primary">
+                  AVISO IMPORTANTE
+                </h3>
+              </div>
+              <p className="text-primary/90 sm:border-l sm:pl-6 sm:border-primary/30 flex-1">
+                <span className="font-semibold">NUNCA faça disparos em massa do seu número principal!</span> Utilizar seu número pessoal para envios em massa resultará em banimento. Use sempre números dedicados para esta finalidade.
+              </p>
             </div>
-          ))}
-        </div>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );
@@ -150,12 +142,14 @@ const StepCard = ({ icon: Icon, title, description }: any) => (
   <Card className="glass-card">
     <CardContent className="p-6">
       <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
           <Icon className="h-6 w-6 text-primary" />
         </div>
-        <h3 className="text-lg font-bold">{title}</h3>
+        <div>
+          <h3 className="text-lg font-bold">{title}</h3>
+          <p className="mt-1 text-muted-foreground">{description}</p>
+        </div>
       </div>
-      <p className="mt-4 text-muted-foreground">{description}</p>
     </CardContent>
   </Card>
 );
