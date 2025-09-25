@@ -5,18 +5,23 @@ import { useTheme } from '@/context/ThemeContext';
 import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom'; // Importar useLocation para destacar o item ativo
-import { Home, LayoutDashboard, Server, Send, Settings, CalendarDays } from 'lucide-react';
+import {
+  Home, LayoutDashboard, Server, Send, Settings, CalendarDays, // Ícones para itens principais
+  MessageSquare, HardDrive, Link as LinkIcon, // Ícones para sub-menus
+  ChevronLeft, ChevronRight // Ícones para o botão de toggle da sidebar
+} from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"; // Importar componentes do Accordion
+} from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button"; // Importar Button para o toggle da sidebar
 
 export const AppSidebar = () => {
   const { theme } = useTheme();
-  const { isSidebarOpen } = useSidebar();
-  const location = useLocation(); // Hook para obter a rota atual
+  const { isSidebarOpen, toggleSidebar } = useSidebar(); // Obter toggleSidebar
+  const location = useLocation();
 
   const logoSrc = theme === 'dark' ? '/3.png' : '/2.png';
 
@@ -28,8 +33,8 @@ export const AppSidebar = () => {
       icon: Send,
       type: 'accordion',
       subItems: [
-        { name: 'Disparo Pontual', href: '/disparo' },
-        { name: 'Agendar Campanha', href: '/agendar-campanha' },
+        { name: 'Disparo Pontual', href: '/disparo', icon: MessageSquare }, // Ícone adicionado
+        { name: 'Agendar Campanha', href: '/agendar-campanha', icon: CalendarDays }, // Ícone adicionado
       ],
     },
     {
@@ -37,8 +42,8 @@ export const AppSidebar = () => {
       icon: Settings,
       type: 'accordion',
       subItems: [
-        { name: 'Instâncias', href: '/instancias' },
-        { name: 'API', href: '/api-settings' },
+        { name: 'Instâncias', href: '/instancias', icon: HardDrive }, // Ícone adicionado
+        { name: 'API', href: '/api-settings', icon: LinkIcon }, // Ícone adicionado
       ],
     },
   ];
@@ -53,12 +58,12 @@ export const AppSidebar = () => {
     >
       <div className="flex flex-col h-full">
         {/* Seção do Logo */}
-        <div className="p-4 border-b border-border flex items-center justify-center h-28"> {/* Aumentado para h-28 para acomodar a logo maior */}
+        <div className="p-4 border-b border-border flex items-center justify-center h-28">
           <Link to="/" className="flex items-center justify-center">
             <img
               src={logoSrc}
               alt="DisparaLead Logo"
-              className="h-24 w-auto transition-opacity duration-300" // Logo 3x maior (h-8 * 3 = h-24)
+              className="h-24 w-auto transition-opacity duration-300"
             />
           </Link>
         </div>
@@ -85,7 +90,6 @@ export const AppSidebar = () => {
                   </Link>
                 );
               } else if (item.type === 'accordion' && item.subItems) {
-                // Verifica se algum sub-item está ativo para manter o accordion aberto
                 const isAnySubItemActive = item.subItems.some(sub => location.pathname === sub.href);
                 return (
                   <AccordionItem key={item.name} value={item.name} className="border-none">
@@ -94,11 +98,14 @@ export const AppSidebar = () => {
                         "flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors hover:no-underline",
                         isAnySubItemActive
                           ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                        // Sobrescreve estilos padrão do shadcn/ui para alinhar à esquerda e fixar a seta
+                        "justify-start [&[data-state=open]>svg]:rotate-0"
                       )}
                     >
                       <item.icon className="h-5 w-5" />
                       <span>{item.name}</span>
+                      {/* A seta padrão do AccordionTrigger é renderizada, mas sua rotação é desativada acima */}
                     </AccordionTrigger>
                     <AccordionContent className="pb-0">
                       <div className="ml-8 space-y-1">
@@ -115,7 +122,7 @@ export const AppSidebar = () => {
                                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                               )}
                             >
-                              {/* Sem ícone para sub-itens, ou você pode adicionar um pequeno ponto/traço */}
+                              {subItem.icon && <subItem.icon className="h-4 w-4" />} {/* Renderiza o ícone do sub-item */}
                               <span>{subItem.name}</span>
                             </Link>
                           );
@@ -129,6 +136,22 @@ export const AppSidebar = () => {
             })}
           </Accordion>
         </nav>
+
+        {/* Botão para encolher/expandir a sidebar */}
+        <div className="p-4 border-t border-border">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            onClick={toggleSidebar}
+          >
+            {isSidebarOpen ? (
+              <ChevronLeft className="h-5 w-5 mr-3" />
+            ) : (
+              <ChevronRight className="h-5 w-5 mr-3" />
+            )}
+            <span>{isSidebarOpen ? 'Encolher Menu' : 'Expandir Menu'}</span>
+          </Button>
+        </div>
       </div>
     </aside>
   );
