@@ -1,213 +1,201 @@
 "use client";
 
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { createContext, useContext, useState, ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  LayoutDashboard,
-  Server,
-  Send,
-  Settings,
-  ChevronRight,
-  ChevronLeft,
-  Sun,
-  Moon,
-  Calendar as CalendarIcon,
-} from "lucide-react";
-import { useTheme } from "@/context/ThemeContext";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"; // Importar Collapsible
+import { Menu, X } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext"; // Importar useTheme
 
-// Contexto para controlar o estado da sidebar
 interface SidebarContextType {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
+  closeSidebar: () => void;
 }
 
-const SidebarContext = React.createContext<SidebarContextType | undefined>(undefined);
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
-export const SidebarProvider = ({ children }: { children: React.ReactNode }) => {
-  const isMobile = useIsMobile();
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(!isMobile); // Aberta por padrão no desktop, fechada no mobile
-
-  React.useEffect(() => {
-    setIsSidebarOpen(!isMobile); // Ajusta ao mudar de mobile para desktop
-  }, [isMobile]);
+export const SidebarProvider = ({ children }: { children: ReactNode }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(prev => !prev);
+    setIsSidebarOpen((prev) => !prev);
+  };
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
   };
 
   return (
-    <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
+    <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar, closeSidebar }}>
       {children}
     </SidebarContext.Provider>
   );
 };
 
 export const useSidebar = () => {
-  const context = React.useContext(SidebarContext);
+  const context = useContext(SidebarContext);
   if (context === undefined) {
-    throw new Error('useSidebar must be used within a SidebarProvider');
+    throw new Error("useSidebar must be used within a SidebarProvider");
   }
   return context;
 };
 
-
-const navItems = [
-  {
-    label: "Home",
-    href: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Campanhas",
-    icon: Send,
-    isCollapsible: true, // Marcar como colapsável
-    items: [
-      {
-        label: "Disparo Único",
-        href: "/disparo",
-        icon: Send,
-      },
-      {
-        label: "Agendar Campanha",
-        href: "/agendar-campanha",
-        icon: CalendarIcon,
-      },
-    ],
-  },
-  {
-    label: "Configurações",
-    icon: Settings,
-    isCollapsible: true, // Marcar como colapsável
-    items: [
-      {
-        label: "Instâncias",
-        href: "/instancias",
-        icon: Server,
-      },
-      {
-        label: "API",
-        href: "/api-settings",
-        icon: Settings,
-      },
-    ],
-  },
-];
-
 export function Sidebar() {
-  const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
   const { isSidebarOpen, toggleSidebar } = useSidebar();
-  const isMobile = useIsMobile();
+  const { theme } = useTheme(); // Obter o tema atual
 
   return (
-    <>
-      {/* Overlay para mobile quando sidebar está aberta */}
-      {isMobile && isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={toggleSidebar}
-        />
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r bg-background transition-transform duration-300 ease-in-out",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+        "lg:translate-x-0" // Always open on large screens
       )}
-
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r bg-sidebar transition-transform duration-300 ease-in-out",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
-          "lg:translate-x-0 lg:static lg:z-auto" // Sempre visível no desktop
-        )}
-      >
-        <div className="flex h-16 items-center justify-between border-b px-4 lg:px-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold min-w-0">
-            <img src="/placeholder.svg" alt="App Logo" className="h-8 w-auto flex-shrink-0" /> {/* Corrigido src e alt, ajustado h-8 */}
-            <span className="text-lg text-sidebar-foreground">DisparaLead</span> {/* Removido truncate */}
-          </Link>
-          {isMobile && (
-            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-              <ChevronLeft className="h-5 w-5 text-sidebar-foreground" />
-            </Button>
+    >
+      <div className="flex h-16 items-center justify-between border-b px-4">
+        <Link to="/" className="flex items-center gap-2 font-semibold">
+          {theme === 'dark' ? (
+            <img src="/logo-dark.png" alt="DisparaLead Logo Dark" className="h-8 w-auto" />
+          ) : (
+            <img src="/logo-light.png" alt="DisparaLead Logo Light" className="h-8 w-auto" />
           )}
-        </div>
-        <ScrollArea className="flex-1 py-4">
-          <nav className="grid items-start gap-2 px-4 text-sm font-medium lg:px-6">
-            {navItems.map((item, index) => (
-              item.isCollapsible ? ( // Renderiza como colapsável se isCollapsible for true
-                <Collapsible key={index} defaultOpen={item.items.some(subItem => location.pathname === subItem.href)}>
-                  <CollapsibleTrigger
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
-                      item.items.some(subItem => location.pathname === subItem.href) && "bg-sidebar-accent text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                    <ChevronRight className="ml-auto h-4 w-4 transition-transform data-[state=open]:rotate-90" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="ml-4 border-l border-sidebar-border pl-4 space-y-1">
-                    {item.items.map((subItem, subItemIndex) => (
-                      <Link
-                        key={subItemIndex}
-                        to={subItem.href}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
-                          location.pathname === subItem.href && "bg-sidebar-accent text-sidebar-accent-foreground"
-                        )}
-                        onClick={isMobile ? toggleSidebar : undefined}
-                      >
-                        <subItem.icon className="h-4 w-4" />
-                        {subItem.label}
-                      </Link>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              ) : ( // Renderiza como link normal
-                <Link
-                  key={index}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
-                    location.pathname === item.href && "bg-sidebar-accent text-sidebar-accent-foreground"
-                  )}
-                  onClick={isMobile ? toggleSidebar : undefined}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              )
-            ))}
-          </nav>
-        </ScrollArea>
-        <div className="mt-auto border-t p-4 lg:p-6 flex items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-sidebar-foreground hover:text-sidebar-primary">
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-          <span className="text-xs text-sidebar-foreground/60">v1.0.0</span>
-        </div>
-      </aside>
-
-      {/* Botão para abrir/fechar sidebar no mobile */}
-      {isMobile && (
+        </Link>
         <Button
           variant="ghost"
           size="icon"
-          className={cn(
-            "fixed top-4 left-4 z-50 bg-card shadow-md",
-            isSidebarOpen && "hidden"
-          )}
+          className="lg:hidden"
           onClick={toggleSidebar}
         >
-          <ChevronRight className="h-5 w-5" />
+          <X className="h-5 w-5" />
         </Button>
-      )}
-    </>
+      </div>
+      <ScrollArea className="flex-1 py-4">
+        <nav className="grid items-start gap-2 px-4 text-sm font-medium">
+          <Link
+            to="/"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+            onClick={() => isSidebarOpen && toggleSidebar()} // Fecha a sidebar em mobile ao clicar
+          >
+            <Menu className="h-4 w-4" />
+            Home
+          </Link>
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+            onClick={() => isSidebarOpen && toggleSidebar()}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M16 20V10" />
+              <path d="M12 20V4" />
+              <path d="M8 20v-8" />
+              <path d="M4 20V14" />
+              <path d="M2 20h20" />
+            </svg>
+            Dashboard
+          </Link>
+          <Link
+            to="/instancias"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+            onClick={() => isSidebarOpen && toggleSidebar()}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <rect width="7" height="9" x="3" y="3" rx="1" />
+              <rect width="7" height="5" x="14" y="3" rx="1" />
+              <rect width="7" height="9" x="14" y="12" rx="1" />
+              <rect width="7" height="5" x="3" y="16" rx="1" />
+            </svg>
+            Instâncias
+          </Link>
+          <Link
+            to="/disparo"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+            onClick={() => isSidebarOpen && toggleSidebar()}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="m22 2-7 20-4-9-9-4Z" />
+              <path d="M22 2 11 13" />
+            </svg>
+            Disparo
+          </Link>
+          <Link
+            to="/agendar-campanha"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+            onClick={() => isSidebarOpen && toggleSidebar()}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+              <line x1="16" x2="16" y1="2" y2="6" />
+              <line x1="8" x2="8" y1="2" y2="6" />
+              <line x1="3" x2="21" y1="10" y2="10" />
+              <path d="M12 16h.01" />
+              <path d="M16 16h.01" />
+              <path d="M8 16h.01" />
+              <path d="M8 12h.01" />
+              <path d="M12 12h.01" />
+              <path d="M16 12h.01" />
+            </svg>
+            Agendar Campanha
+          </Link>
+          <Link
+            to="/api-settings"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+            onClick={() => isSidebarOpen && toggleSidebar()}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.78 1.28a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.73v.44a2 2 0 0 1-1 1.73l-.15.08a2 2 0 0 0-.73 2.73l.78 1.28a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 1 1.73v.18a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.78-1.28a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.73v-.44a2 2 0 0 1 1-1.73l.15-.08a2 2 0 0 0 .73-2.73l-.78-1.28a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-1-1.73V2a2 2 0 0 0-2-2Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            API Settings
+          </Link>
+        </nav>
+      </ScrollArea>
+    </aside>
   );
 }
