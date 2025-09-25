@@ -16,11 +16,16 @@ export function DashboardLayout() {
       <main
         className={cn(
           "flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto transition-all duration-300 ease-in-out",
-          !isMobile && isSidebarOpen ? "ml-64" : "ml-0", // Ajustar margem para desktop
-          "max-w-7xl mx-auto" // Adicionado para limitar a largura e centralizar o conteúdo
+          // Em desktop, se a sidebar estiver aberta, empurra o conteúdo principal em 64 unidades (largura da sidebar)
+          !isMobile && isSidebarOpen ? "ml-64" : "ml-0",
+          // Em mobile, a sidebar se sobrepõe, então o conteúdo principal não precisa de margem.
+          // A própria sidebar lida com seu -translate-x-full quando fechada em mobile.
         )}
       >
-        <Outlet />
+        {/* Envolve o conteúdo do Outlet para aplicar max-width e auto-margins para centralização */}
+        <div className="max-w-7xl mx-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
