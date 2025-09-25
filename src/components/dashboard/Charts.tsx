@@ -2,7 +2,7 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, Area } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import { PieChart as PieIcon, Clock, Activity, BarChart3 } from "lucide-react";
+import { PieChart as PieIcon, Clock, Activity, BarChart3, Megaphone, Users, Palette } from "lucide-react"; // Adicionado Megaphone, Users, Palette
 import { useTheme } from "@/context/ThemeContext";
 
 interface ChartsProps {
@@ -91,18 +91,64 @@ export const Charts = ({ filteredData }: ChartsProps) => {
     percentage: totalInstancia > 0 ? Number(((Number(value) / totalInstancia) * 100).toFixed(1)).toString() : "0" 
   }));
 
+  // Novos dados para Envios por Campanha
+  const campaignData = filteredData.reduce((acc: Record<string, number>, item) => {
+    const key = item.nome_campanha || 'Desconhecida';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const campaignValues = Object.values(campaignData) as number[];
+  const totalCampaign: number = campaignValues.reduce((sum: number, v: number) => sum + v, 0);
+  const pieDataCampaign = Object.entries(campaignData).map(([name, value]) => ({ 
+    name, 
+    value: Number(value),
+    percentage: totalCampaign > 0 ? Number(((Number(value) / totalCampaign) * 100).toFixed(1)).toString() : "0" 
+  }));
+
+  // Novos dados para Envios por Público
+  const publicoData = filteredData.reduce((acc: Record<string, number>, item) => {
+    const key = item.publico || 'Desconhecido';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const publicoValues = Object.values(publicoData) as number[];
+  const totalPublico: number = publicoValues.reduce((sum: number, v: number) => sum + v, 0);
+  const pieDataPublico = Object.entries(publicoData).map(([name, value]) => ({ 
+    name, 
+    value: Number(value),
+    percentage: totalPublico > 0 ? Number(((Number(value) / totalPublico) * 100).toFixed(1)).toString() : "0" 
+  }));
+
+  // Novos dados para Envios por Criativo
+  const criativoData = filteredData.reduce((acc: Record<string, number>, item) => {
+    const key = item.criativo || 'Desconhecido';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const criativoValues = Object.values(criativoData) as number[];
+  const totalCriativo: number = criativoValues.reduce((sum: number, v: number) => sum + v, 0);
+  const pieDataCriativo = Object.entries(criativoData).map(([name, value]) => ({ 
+    name, 
+    value: Number(value),
+    percentage: totalCriativo > 0 ? Number(((Number(value) / totalCriativo) * 100).toFixed(1)).toString() : "0" 
+  }));
+
+
   const horaData = Array(24).fill(0);
-  filteredData.forEach((item) => horaData[item.date.hour()]++);
+  filteredData.forEach((item) => item.date && horaData[item.date.hour()]++); // Adicionado verificação item.date
 
   const timelineData = filteredData.reduce((acc: Record<string, number>, item) => {
-    const day = item.date.format("DD/MM");
-    acc[day] = (acc[day] || 0) + 1;
+    if (item.date) { // Adicionado verificação item.date
+      const day = item.date.format("DD/MM");
+      acc[day] = (acc[day] || 0) + 1;
+    }
     return acc;
   }, {} as Record<string, number>);
   const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+      {/* Gráfico de Envios por Tipo */}
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8">
         <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
@@ -127,7 +173,8 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.1s'}}>
+      {/* Gráfico de Envios por Instância */}
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.05s'}}>
         <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
@@ -151,7 +198,85 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
+      {/* NOVOS GRÁFICOS AQUI */}
+      {/* Gráfico de Envios por Campanha */}
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.1s'}}>
+        <CardContent className="p-0">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+              <Megaphone className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Campanha</h3>
+          </div>
+          {hasData ? (
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieDataCampaign} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />}>
+                    {pieDataCampaign.map((entry, index) => <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
+                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : <EmptyChartState title="Nenhum envio por campanha" icon={Megaphone} />}
+        </CardContent>
+      </Card>
+
+      {/* Gráfico de Envios por Público */}
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.15s'}}>
+        <CardContent className="p-0">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+              <Users className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Público</h3>
+          </div>
+          {hasData ? (
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieDataPublico} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />}>
+                    {pieDataPublico.map((entry, index) => <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
+                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : <EmptyChartState title="Nenhum envio por público" icon={Users} />}
+        </CardContent>
+      </Card>
+
+      {/* Gráfico de Envios por Criativo */}
       <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.2s'}}>
+        <CardContent className="p-0">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+              <Palette className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Criativo</h3>
+          </div>
+          {hasData ? (
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieDataCriativo} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />}>
+                    {pieDataCriativo.map((entry, index) => <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
+                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : <EmptyChartState title="Nenhum envio por criativo" icon={Palette} />}
+        </CardContent>
+      </Card>
+      {/* FIM DOS NOVOS GRÁFICOS */}
+
+      {/* Gráfico de Envios por Hora (mantido na posição original, mas com delay ajustado) */}
+      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.25s'}}>
         <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
@@ -175,6 +300,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
+      {/* Timeline de Envios (mantida na posição original, mas com delay ajustado) */}
       <Card className="lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
         <CardContent className="p-8">
           <div className="flex items-center gap-3 mb-6">

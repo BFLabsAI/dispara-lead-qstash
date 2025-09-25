@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,14 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState<any>({ instance: "all", tipo: "all", dateRange: null });
+  const [filters, setFilters] = useState<any>({ 
+    instance: "all", 
+    tipo: "all", 
+    campaign: "all", // Novo filtro
+    publico: "all", // Novo filtro
+    criativo: "all", // Novo filtro
+    dateRange: null 
+  });
 
   const loadData = async () => {
     setLoading(true);
@@ -46,6 +53,15 @@ export const Dashboard = () => {
     if (filters.tipo !== "all") {
       filtered = filtered.filter((item) => item.tipo_envio === filters.tipo);
     }
+    if (filters.campaign !== "all") { // Nova lógica de filtro
+      filtered = filtered.filter((item) => item.nome_campanha === filters.campaign);
+    }
+    if (filters.publico !== "all") { // Nova lógica de filtro
+      filtered = filtered.filter((item) => item.publico === filters.publico);
+    }
+    if (filters.criativo !== "all") { // Nova lógica de filtro
+      filtered = filtered.filter((item) => item.criativo === filters.criativo);
+    }
     if (filters.dateRange?.from && filters.dateRange?.to) {
       const start = dayjs(filters.dateRange.from).startOf("day");
       const end = dayjs(filters.dateRange.to).endOf("day");
@@ -58,6 +74,36 @@ export const Dashboard = () => {
   }, [allData, filters]);
 
   const totalPages = Math.ceil(filteredData.length / 5);
+
+  const instanceOptions = useMemo(() => {
+    const options = new Set<string>();
+    allData.forEach(item => item.instancia && options.add(item.instancia));
+    return ["all", ...Array.from(options)];
+  }, [allData]);
+
+  const tipoOptions = useMemo(() => {
+    const options = new Set<string>();
+    allData.forEach(item => item.tipo_envio && options.add(item.tipo_envio));
+    return ["all", ...Array.from(options)];
+  }, [allData]);
+
+  const campaignOptions = useMemo(() => { // Novas opções de filtro
+    const options = new Set<string>();
+    allData.forEach(item => item.nome_campanha && options.add(item.nome_campanha));
+    return ["all", ...Array.from(options)];
+  }, [allData]);
+
+  const publicoOptions = useMemo(() => { // Novas opções de filtro
+    const options = new Set<string>();
+    allData.forEach(item => item.publico && options.add(item.publico));
+    return ["all", ...Array.from(options)];
+  }, [allData]);
+
+  const criativoOptions = useMemo(() => { // Novas opções de filtro
+    const options = new Set<string>();
+    allData.forEach(item => item.criativo && options.add(item.criativo));
+    return ["all", ...Array.from(options)];
+  }, [allData]);
 
   if (loading) {
     return (
@@ -87,7 +133,14 @@ export const Dashboard = () => {
   return (
     <div>
       <PageHeader title="Dashboard" subtitle="Analytics e insights em tempo real" />
-      <Filters onFilterChange={setFilters} />
+      <Filters 
+        onFilterChange={setFilters} 
+        instanceOptions={instanceOptions}
+        tipoOptions={tipoOptions}
+        campaignOptions={campaignOptions} // Passando novas opções
+        publicoOptions={publicoOptions}   // Passando novas opções
+        criativoOptions={criativoOptions} // Passando novas opções
+      />
       <KPIs totalEnvios={totalEnvios} totalIA={totalIA} totalSemIA={totalSemIA} />
       <Charts filteredData={filteredData} />
       <DashboardTable
