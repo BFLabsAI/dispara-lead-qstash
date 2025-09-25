@@ -29,7 +29,13 @@ export const AppSidebar = () => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const location = useLocation();
 
-  const logoSrc = theme === 'dark' ? '/3.png' : '/2.png';
+  // Lógica para selecionar a logo com base no estado da sidebar e no tema
+  let logoSrc: string;
+  if (isSidebarOpen) {
+    logoSrc = theme === 'dark' ? '/3.png' : '/2.png'; // Logos completas
+  } else {
+    logoSrc = theme === 'dark' ? '/icon dark.png' : '/icon white.png'; // Logos de ícone
+  }
 
   const navItems = [
     { name: 'Home', href: '/', icon: Home, type: 'link' },
