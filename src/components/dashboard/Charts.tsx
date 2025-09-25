@@ -143,6 +143,19 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }, {} as Record<string, number>);
   const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
 
+  // Novo cálculo para Disparos por Modo
+  const disparosPorModoData = filteredData.reduce((acc: Record<string, number>, item) => {
+    // Assumindo que 'tipo_campanha' é o campo que diferencia 'pontual' de 'agendada'
+    const mode = item.tipo_campanha === 'agendada' ? 'Campanha Agendada' : 'Disparo Pontual'; 
+    acc[mode] = (acc[mode] || 0) + 1;
+    return acc;
+  }, {});
+
+  const barDataDisparosPorModo = [
+    { name: 'Disparo Pontual', envios: disparosPorModoData['Disparo Pontual'] || 0 },
+    { name: 'Campanha Agendada', envios: disparosPorModoData['Campanha Agendada'] || 0 },
+  ];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
       {/* Gráfico de Envios por Campanha */}
@@ -295,8 +308,8 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Timeline de Envios */}
-      <Card className="lg:col-span-3 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
+      {/* Timeline de Envios (agora ocupando 2/3) */}
+      <Card className="lg:col-span-2 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
         <CardContent className="p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
@@ -320,6 +333,31 @@ export const Charts = ({ filteredData }: ChartsProps) => {
               </ResponsiveContainer>
             </div>
           ) : <EmptyChartState title="Nenhum dado na timeline" icon={BarChart3} />}
+        </CardContent>
+      </Card>
+
+      {/* Novo Gráfico: Disparos por Modo (ocupando 1/3) */}
+      <Card className="lg:col-span-1 glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.35s'}}>
+        <CardContent className="p-0">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+              <BarChart3 className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Disparos por Modo</h3>
+          </div>
+          {hasData ? (
+            <div className="h-[400px]"> {/* Altura ajustada para alinhar com a Timeline */}
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barDataDisparosPorModo} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
+                  <XAxis dataKey="name" stroke="#10B981" tick={{ fill: "#10B981", fontSize: 12 }} />
+                  <YAxis stroke="#10B981" width={50} tick={{ fill: "#10B981" }} />
+                  <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
+                  <Bar dataKey="envios" fill="#10B981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : <EmptyChartState title="Nenhum disparo por modo" icon={BarChart3} />}
         </CardContent>
       </Card>
     </div>
