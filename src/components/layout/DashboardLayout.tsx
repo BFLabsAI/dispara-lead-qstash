@@ -11,7 +11,7 @@ export function DashboardLayout() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
-      <Sidebar /> {/* <--- O componente Sidebar é renderizado aqui */}
+      <Sidebar />
       <main
         className={cn(
           "flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto transition-all duration-300 ease-in-out",
