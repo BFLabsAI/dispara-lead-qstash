@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,7 @@ import { ContactUploader } from "@/components/disparador/ContactUploader";
 import { StepBanner } from "@/components/disparador/StepBanner";
 import { CampaignPreview } from "@/components/disparador/CampaignPreview";
 import { CampaignSummary } from "@/components/disparador/CampaignSummary";
-import { Server, Users, MessageSquare, Settings, Rocket } from "lucide-react";
+import { Server, Users, MessageSquare, Settings, Rocket, Info } from "lucide-react";
 
 const Disparo = () => {
   const [tempoMin, setTempoMin] = useState(2);
@@ -25,12 +26,21 @@ const Disparo = () => {
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [variables, setVariables] = useState<string[]>([]);
   const [templates, setTemplates] = useState<any[]>([{ type: 'texto', text: '', mediaUrl: '' }]);
+  const [manualContacts, setManualContacts] = useState("");
 
-  const { instances, contatos, sendMessages, stopSending, loadInstances } = useDisparadorStore();
+  const { instances, contatos, setContatos, sendMessages, stopSending, loadInstances } = useDisparadorStore();
 
   useEffect(() => {
     loadInstances();
   }, [loadInstances]);
+
+  useEffect(() => {
+    if (manualContacts) {
+      const numbers = manualContacts.split(/[\n,]/).map(n => n.trim()).filter(Boolean);
+      const contactObjects = numbers.map(n => ({ "telefone": n }));
+      setContatos(contactObjects);
+    }
+  }, [manualContacts, setContatos]);
 
   const handleSend = async () => {
     if (selectedInstances.length === 0) return showError("Nenhuma instância selecionada.");
@@ -57,6 +67,10 @@ const Disparo = () => {
     setTemplates([...templates, { type: 'texto', text: '', mediaUrl: '' }]);
   };
 
+  const deleteMessageBlock = (index: number) => {
+    setTemplates(templates.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold">Criar Nova Campanha de Disparo</h1>
@@ -69,12 +83,30 @@ const Disparo = () => {
       </Card>
 
       <Card>
-        <StepBanner step={2} icon={<Users />} title="Defina o Público da Campanha" description="Arraste ou selecione seu arquivo de contatos em formato XLSX." />
-        <CardContent className="p-6">
-          <ContactUploader onUpload={setVariables} />
+        <StepBanner step={2} icon={<Users />} title="Defina o Público da Campanha" description="Carregue um arquivo, ou digite os números manualmente." />
+        <CardContent className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input placeholder="Nome da Campanha (Ex: Promoção de Natal)" />
+            <Input placeholder="Público (Ex: Clientes VIP)" />
+          </div>
+          <Textarea placeholder="Conteúdo (Ex: Envio de cupom de desconto para clientes que compraram nos últimos 30 dias)" />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <ContactUploader onUpload={setVariables} />
+            <div className="space-y-2">
+              <Label>Ou digite os números (um por linha ou separados por vírgula)</Label>
+              <Textarea 
+                placeholder="5511999998888, 5521988887777" 
+                rows={6}
+                value={manualContacts}
+                onChange={(e) => setManualContacts(e.target.value)}
+              />
+            </div>
+          </div>
+
           {variables.length > 0 && (
-            <div className="mt-4">
-              <Label className="mb-2 block">Variáveis Encontradas:</Label>
+            <div>
+              <Label className="mb-2 block">Variáveis Encontradas no Arquivo:</Label>
               <div className="flex flex-wrap gap-2">
                 {variables.map((v) => <Badge key={v} variant="secondary">{`{${v}}`}</Badge>)}
               </div>
@@ -87,7 +119,7 @@ const Disparo = () => {
         <StepBanner step={3} icon={<MessageSquare />} title="Crie a Mensagem da Campanha" description="Construa a mensagem que seus contatos receberão. Use as variáveis para máxima personalização." />
         <CardContent className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
-            {templates.map((_, i) => <MessageBlock key={i} index={i} onUpdate={handleTemplateUpdate} />)}
+            {templates.map((_, i) => <MessageBlock key={i} index={i} onUpdate={handleTemplateUpdate} onDelete={deleteMessageBlock} />)}
             <Button variant="outline" onClick={addMessageBlock}>+ Adicionar Bloco de Mensagem</Button>
           </div>
           <div>
@@ -97,8 +129,8 @@ const Disparo = () => {
       </Card>
 
       <Card>
+        <StepBanner step={4} icon={<Settings />} title="Ajustes Finais e Envio" description="Configure os últimos detalhes e revise sua campanha antes de disparar." />
         <CardContent className="p-6 space-y-6">
-          <h3 className="text-lg font-semibold flex items-center gap-2"><Settings /> Ajustes Finais</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label>Tempo min (s)</Label>
@@ -110,7 +142,7 @@ const Disparo = () => {
             </div>
             <div className="flex items-center space-x-2 pt-6">
               <Switch id="usarIA" checked={usarIA} onCheckedChange={setUsarIA} />
-              <Label htmlFor="usarIA">Usar IA</Label>
+              <Label htmlFor="usarIA" className="flex items-center gap-1">Usar IA <Info className="h-4 w-4 text-muted-foreground" /></Label>
             </div>
           </div>
           <CampaignSummary
