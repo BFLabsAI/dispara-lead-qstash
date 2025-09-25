@@ -32,30 +32,32 @@ export const PremiumInstanceSelector = ({ instances, selectedInstances, onSelect
   const connectedInstances = instances.filter(i => i.connectionStatus === "open" || i.connectionStatus === "connected");
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {connectedInstances.map(instance => {
-        const isSelected = selectedInstances.includes(instance.name);
-        return (
-          <Card
-            key={instance.name}
-            onClick={() => handleSelect(instance.name)}
-            className={`p-4 cursor-pointer transition-all duration-200 border-2 ${
-              isSelected
-                ? 'border-primary bg-primary/5 shadow-lg'
-                : 'border-border hover:border-primary/50 hover:shadow-md'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Server className={`h-5 w-5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-              <h3 className="font-semibold truncate flex-1">{formatInstanceName(instance.name)}</h3>
+    <Card className="rounded-b-xl border-t-0">
+      <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {connectedInstances.map(instance => {
+          const isSelected = selectedInstances.includes(instance.name);
+          return (
+            <div
+              key={instance.name}
+              onClick={() => handleSelect(instance.name)}
+              className={`p-4 cursor-pointer transition-all duration-200 border-2 rounded-lg ${
+                isSelected
+                  ? 'bg-green-700 border-green-800 text-white shadow-lg'
+                  : 'bg-card border-border hover:border-primary/50 hover:shadow-md'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Server className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-muted-foreground'}`} />
+                <h3 className={`font-semibold truncate flex-1 ${isSelected ? 'text-white' : 'text-foreground'}`}>{formatInstanceName(instance.name)}</h3>
+              </div>
+              <div className={`flex items-center gap-1.5 text-sm mt-2 ${isSelected ? 'text-green-300' : 'text-green-600'}`}>
+                <CheckCircle className="h-4 w-4" />
+                <span>Conectado</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 text-sm text-green-600 mt-2">
-              <CheckCircle className="h-4 w-4" />
-              <span>Conectado</span>
-            </div>
-          </Card>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 };

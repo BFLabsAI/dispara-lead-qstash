@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { Users, Server, MessageSquare, Timer, BrainCircuit, Play } from "lucide-react";
+import { Users, Server, MessageSquare, Timer, BrainCircuit, Play, AlertTriangle } from "lucide-react";
 
 interface FinalReviewProps {
   tempoMin: number;
@@ -32,55 +31,59 @@ export const FinalReview = ({
   summary
 }: FinalReviewProps) => {
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="space-y-1">
-                <Label>Tempo min (s)</Label>
-                <Input type="number" value={tempoMin} onChange={e => setTempoMin(Number(e.target.value))} />
-              </div>
-              <div className="space-y-1">
-                <Label>Tempo max (s)</Label>
-                <Input type="number" value={tempoMax} onChange={e => setTempoMax(Number(e.target.value))} />
-              </div>
+    <Card className="rounded-b-xl border-t-0">
+      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Timer className="h-4 w-4" /> Tempo mínimo (s)</Label>
+              <Input type="number" value={tempoMin} onChange={e => setTempoMin(Number(e.target.value))} />
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch id="ai-switch" checked={usarIA} onCheckedChange={setUsarIA} />
-              <Label htmlFor="ai-switch">Usar IA</Label>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Timer className="h-4 w-4" /> Tempo máximo (s)</Label>
+              <Input type="number" value={tempoMax} onChange={e => setTempoMax(Number(e.target.value))} />
             </div>
           </div>
-          
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <h4 className="font-semibold mb-4">Resumo da Campanha</h4>
-            <div className="space-y-3">
-              <SummaryItem icon={Users} label="Público" value={`${summary.contacts} contatos`} />
-              <SummaryItem icon={Server} label="Instâncias" value={`${summary.instances} selecionadas`} />
-              <SummaryItem icon={MessageSquare} label="Mensagens" value={`${summary.messages} blocos`} />
-              <SummaryItem icon={Timer} label="Intervalo" value={`${tempoMin}s - ${tempoMax}s`} />
-              <SummaryItem icon={BrainCircuit} label="Inteligência Artificial" value={usarIA ? 'Ativada' : 'Desativada'} />
+          <div className="flex items-start gap-4">
+            <Switch id="ai-switch" checked={usarIA} onCheckedChange={setUsarIA} className="mt-1" />
+            <div className="flex-1">
+              <Label htmlFor="ai-switch" className="flex items-center gap-1.5 font-semibold"><BrainCircuit className="h-4 w-4" /> Usar IA</Label>
+              <div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-md border border-blue-200 text-sm">
+                <AlertTriangle className="h-4 w-4 inline-block mr-1" />
+                Ao ativar, nosso sistema criará leves variações da sua mensagem para melhorar a entrega.
+              </div>
             </div>
           </div>
         </div>
-        <Separator className="my-6" />
-        <div className="flex justify-end">
-          <Button size="lg" onClick={onSend} disabled={isSending}>
-            <Play className="mr-2 h-5 w-5" />
-            {isSending ? 'Disparando...' : 'Disparar Campanha'}
-          </Button>
+        
+        <div className="bg-muted/50 p-6 rounded-lg">
+          <h4 className="text-lg font-bold mb-4">Resumo da Campanha</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <SummaryItem icon={Users} label="Contatos" value={summary.contacts} color="text-blue-500" />
+            <SummaryItem icon={Server} label="Instâncias" value={summary.instances} color="text-purple-500" />
+            <SummaryItem icon={MessageSquare} label="Mensagens" value={summary.messages} color="text-green-500" />
+            <SummaryItem icon={Timer} label="Intervalo" value={`${tempoMin}s - ${tempoMax}s`} color="text-orange-500" />
+          </div>
+          <div className="mt-6">
+            <Button size="lg" onClick={onSend} disabled={isSending} className="w-full">
+              <Play className="mr-2 h-5 w-5" />
+              {isSending ? 'Disparando...' : 'Disparar Campanha'}
+            </Button>
+          </div>
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 };
 
-const SummaryItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string }) => (
-  <div className="flex justify-between items-center text-sm">
-    <div className="flex items-center gap-2 text-muted-foreground">
-      <Icon className="h-4 w-4" />
-      <span>{label}</span>
+const SummaryItem = ({ icon: Icon, label, value, color }: { icon: React.ElementType, label: string, value: string | number, color: string }) => (
+  <div className="bg-card p-3 rounded-md flex items-center gap-3">
+    <div className={`p-2 rounded bg-primary/10 ${color}`}>
+      <Icon className="h-5 w-5" />
     </div>
-    <span className="font-medium">{value}</span>
+    <div>
+      <p className="text-xl font-bold">{value}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
   </div>
 );

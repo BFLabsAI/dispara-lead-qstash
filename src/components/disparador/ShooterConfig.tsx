@@ -13,6 +13,7 @@ import { PremiumInstanceSelector } from "./PremiumInstanceSelector";
 import { AudienceDefinition } from "./AudienceDefinition";
 import { MessageCreator } from "./MessageCreator";
 import { FinalReview } from "./FinalReview";
+import { Server, Users, MessageSquare, Settings } from "lucide-react";
 
 export const ShooterConfig = () => {
   // State
@@ -51,14 +52,14 @@ export const ShooterConfig = () => {
   }), [contatos.length, selectedInstances.length, templates.length]);
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-8">
       <section>
-        <SectionHeader number={1} title="Selecione as Instâncias de Envio" subtitle="Escolha uma ou mais instâncias ativas que serão usadas para realizar os disparos." />
+        <SectionHeader icon={Server} number={1} title="Selecione as Instâncias de Envio" subtitle="Escolha uma ou mais instâncias ativas que serão usadas para realizar os disparos." />
         <PremiumInstanceSelector instances={instances} selectedInstances={selectedInstances} onSelectionChange={setSelectedInstances} />
       </section>
 
       <section>
-        <SectionHeader number={2} title="Defina o Público da Campanha" subtitle="Carregue um arquivo, ou digite os números manualmente." />
+        <SectionHeader icon={Users} number={2} title="Defina o Público da Campanha" subtitle="Carregue um arquivo, ou digite os números manualmente." />
         <AudienceDefinition
           campaignName={campaignName} setCampaignName={setCampaignName}
           publicTarget={publicTarget} setPublicTarget={setPublicTarget}
@@ -78,12 +79,12 @@ export const ShooterConfig = () => {
       </section>
 
       <section>
-        <SectionHeader number={3} title="Crie a Mensagem da Campanha" subtitle="Construa a sua mensagem e use as variáveis para máxima personalização." />
+        <SectionHeader icon={MessageSquare} number={3} title="Crie a Mensagem da Campanha" subtitle="Construa a sua mensagem e use as variáveis para máxima personalização." />
         <MessageCreator templates={templates} setTemplates={setTemplates} />
       </section>
 
       <section>
-        <SectionHeader number={4} title="Ajustes Finais e Envio" subtitle="Configure os últimos detalhes e revise sua campanha antes de disparar." />
+        <SectionHeader icon={Settings} number={4} title="Ajustes Finais e Envio" subtitle="Configure os últimos detalhes e revise sua campanha antes de disparar." />
         <FinalReview
           tempoMin={tempoMin} setTempoMin={setTempoMin}
           tempoMax={tempoMax} setTempoMax={setTempoMax}
