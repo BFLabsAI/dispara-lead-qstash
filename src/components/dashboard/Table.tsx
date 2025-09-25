@@ -53,7 +53,7 @@ export const DashboardTable = ({ data, currentPage, totalPages, onPageChange }: 
                   </TableCell>
                   <TableCell className="capitalize">{item.tipo_envio}</TableCell>
                   <TableCell className="capitalize">
-                    {item.tipo_campanha === 'agendada' ? (
+                    {(item.tipo_campanha || '').toLowerCase().includes('agendada') ? ( // Lógica corrigida
                       <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-300 border border-transparent hover:bg-blue-200">
                         Agendada
                       </Badge>

@@ -145,10 +145,13 @@ export const Charts = ({ filteredData }: ChartsProps) => {
 
   // Novo cálculo para Disparos por Modo
   const disparosPorModoData = filteredData.reduce((acc: Record<string, number>, item) => {
-    // Assumindo que 'tipo_campanha' é o campo que diferencia 'pontual' de 'agendada'
-    // Tornando a verificação mais robusta:
-    const modeValue = (item.tipo_campanha || '').toLowerCase(); // Garante que é string e minúscula
-    const mode = modeValue === 'agendada' ? 'Campanha Agendada' : 'Disparo Pontual';
+    const rawMode = (item.tipo_campanha || '').toLowerCase(); // Garante que é string e minúscula
+    let mode: string;
+    if (rawMode.includes('agendada')) { // Verifica se a string contém 'agendada'
+      mode = 'Campanha Agendada';
+    } else {
+      mode = 'Disparo Pontual';
+    }
     acc[mode] = (acc[mode] || 0) + 1;
     return acc;
   }, {});
