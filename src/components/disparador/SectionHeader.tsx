@@ -9,7 +9,7 @@ interface SectionHeaderProps {
 }
 
 export const SectionHeader = ({ icon: Icon, number, title, subtitle }: SectionHeaderProps) => (
-  <div className="flex items-center gap-4 p-4 bg-green-700 text-white rounded-t-lg">
+  <div className="flex items-center gap-4 p-4 bg-green-700 text-white rounded-t-lg rounded-b-none">
     <Icon className="h-6 w-6" />
     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-green-700 font-bold text-lg flex-shrink-0">
       {number}
