@@ -15,7 +15,8 @@ export function DashboardLayout() {
       <main
         className={cn(
           "flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto transition-all duration-300 ease-in-out",
-          !isMobile && isSidebarOpen ? "ml-64" : "ml-0" // Ajustar margem para desktop
+          !isMobile && isSidebarOpen ? "ml-64" : "ml-0", // Ajustar margem para desktop
+          "max-w-7xl mx-auto" // Adicionado para limitar a largura e centralizar o conteúdo
         )}
       >
         <Outlet />

@@ -14,10 +14,11 @@ import {
   ChevronLeft,
   Sun,
   Moon,
-  Calendar as CalendarIcon, // Importar CalendarIcon
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"; // Importar Collapsible
 
 // Contexto para controlar o estado da sidebar
 interface SidebarContextType {
@@ -57,22 +58,36 @@ export const useSidebar = () => {
 
 const navItems = [
   {
-    label: "Principal",
+    label: "Home",
+    href: "/",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Campanhas",
+    icon: Send,
+    isCollapsible: true, // Marcar como colapsável
     items: [
       {
-        label: "Home",
-        href: "/",
-        icon: LayoutDashboard,
+        label: "Disparo Único",
+        href: "/disparo",
+        icon: Send,
       },
       {
-        label: "Dashboard",
-        href: "/dashboard",
-        icon: LayoutDashboard,
+        label: "Agendar Campanha",
+        href: "/agendar-campanha",
+        icon: CalendarIcon,
       },
     ],
   },
   {
-    label: "Ferramentas",
+    label: "Configurações",
+    icon: Settings,
+    isCollapsible: true, // Marcar como colapsável
     items: [
       {
         label: "Instâncias",
@@ -80,23 +95,7 @@ const navItems = [
         icon: Server,
       },
       {
-        label: "Campanhas",
-        icon: Send,
-        items: [
-          {
-            label: "Disparo Único",
-            href: "/disparo",
-            icon: Send,
-          },
-          {
-            label: "Agendar Campanha", // Novo link
-            href: "/agendar-campanha",
-            icon: CalendarIcon, // Usar CalendarIcon para agendamento
-          },
-        ],
-      },
-      {
-        label: "Configurações",
+        label: "API",
         href: "/api-settings",
         icon: Settings,
       },
@@ -128,9 +127,9 @@ export function Sidebar() {
         )}
       >
         <div className="flex h-16 items-center justify-between border-b px-4 lg:px-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold">
-            <img src="/logo.svg" alt="DisparaLead Logo" className="h-8 w-auto" />
-            <span className="text-lg text-sidebar-foreground">DisparaLead</span>
+          <Link to="/" className="flex items-center gap-2 font-semibold min-w-0">
+            <img src="/logo.svg" alt="DisparaLead Logo" className="h-10 w-auto flex-shrink-0" /> {/* Ajustado h-10 e flex-shrink-0 */}
+            <span className="text-lg text-sidebar-foreground truncate">DisparaLead</span> {/* Adicionado truncate */}
           </Link>
           {isMobile && (
             <Button variant="ghost" size="icon" onClick={toggleSidebar}>
@@ -140,58 +139,50 @@ export function Sidebar() {
         </div>
         <ScrollArea className="flex-1 py-4">
           <nav className="grid items-start gap-2 px-4 text-sm font-medium lg:px-6">
-            {navItems.map((section, sectionIndex) => (
-              <div key={sectionIndex} className="mb-4">
-                <h3 className="mb-2 px-3 text-xs font-semibold uppercase text-sidebar-foreground/60">
-                  {section.label}
-                </h3>
-                {section.items.map((item, itemIndex) => (
-                  item.items ? ( // Se for um item com sub-itens (colapsável)
-                    <div key={itemIndex} className="space-y-1">
-                      <button
+            {navItems.map((item, index) => (
+              item.isCollapsible ? ( // Renderiza como colapsável se isCollapsible for true
+                <Collapsible key={index} defaultOpen={item.items.some(subItem => location.pathname === subItem.href)}>
+                  <CollapsibleTrigger
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
+                      item.items.some(subItem => location.pathname === subItem.href) && "bg-sidebar-accent text-sidebar-accent-foreground"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                    <ChevronRight className="ml-auto h-4 w-4 transition-transform data-[state=open]:rotate-90" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="ml-4 border-l border-sidebar-border pl-4 space-y-1">
+                    {item.items.map((subItem, subItemIndex) => (
+                      <Link
+                        key={subItemIndex}
+                        to={subItem.href}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
-                          location.pathname.startsWith(item.href || "") && "bg-sidebar-accent text-sidebar-accent-foreground"
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
+                          location.pathname === subItem.href && "bg-sidebar-accent text-sidebar-accent-foreground"
                         )}
-                        onClick={() => { /* Lógica para expandir/colapsar, se necessário */ }}
+                        onClick={isMobile ? toggleSidebar : undefined}
                       >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                        <ChevronRight className="ml-auto h-4 w-4 transition-transform" />
-                      </button>
-                      <div className="ml-4 border-l border-sidebar-border pl-4 space-y-1">
-                        {item.items.map((subItem, subItemIndex) => (
-                          <Link
-                            key={subItemIndex}
-                            to={subItem.href}
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
-                              location.pathname === subItem.href && "bg-sidebar-accent text-sidebar-accent-foreground"
-                            )}
-                            onClick={isMobile ? toggleSidebar : undefined}
-                          >
-                            <subItem.icon className="h-4 w-4" />
-                            {subItem.label}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  ) : ( // Item normal
-                    <Link
-                      key={itemIndex}
-                      to={item.href}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
-                        location.pathname === item.href && "bg-sidebar-accent text-sidebar-accent-foreground"
-                      )}
-                      onClick={isMobile ? toggleSidebar : undefined}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
-                    </Link>
-                  )
-                ))}
-              </div>
+                        <subItem.icon className="h-4 w-4" />
+                        {subItem.label}
+                      </Link>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : ( // Renderiza como link normal
+                <Link
+                  key={index}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary",
+                    location.pathname === item.href && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  )}
+                  onClick={isMobile ? toggleSidebar : undefined}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              )
             ))}
           </nav>
         </ScrollArea>
