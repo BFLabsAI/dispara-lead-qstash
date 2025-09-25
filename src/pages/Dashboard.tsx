@@ -10,6 +10,7 @@ import { Charts } from "@/components/dashboard/Charts";
 import { DashboardTable } from "@/components/dashboard/Table";
 import dayjs from "dayjs";
 import { getDashboardData } from "../services/dashboardService";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Dashboard = () => {
   const [allData, setAllData] = useState<any[]>([]);
@@ -85,6 +86,7 @@ export const Dashboard = () => {
 
   return (
     <div>
+      <PageHeader title="Dashboard" subtitle="Analytics e insights em tempo real" />
       <Filters onFilterChange={setFilters} />
       <KPIs totalEnvios={totalEnvios} totalIA={totalIA} totalSemIA={totalSemIA} />
       <Charts filteredData={filteredData} />

@@ -1,140 +1,81 @@
 "use client";
 
-import * as React from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { cva } from "class-variance-authority";
+import { NavLink } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/context/ThemeContext";
 import {
-  ChevronLeft,
   LayoutDashboard,
   Server,
-  Rocket,
-  Menu,
+  Send,
+  Bell,
+  User,
+  Sun,
+  Moon,
 } from "lucide-react";
+import * as React from "react";
 
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-
-// --- Contexto ---
-interface SidebarContextProps {
-  isCollapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;
-}
-
-const SidebarContext = React.createContext<SidebarContextProps | undefined>(
-  undefined
-);
-
-export function useSidebar() {
-  const context = React.useContext(SidebarContext);
-  if (!context) throw new Error("useSidebar must be used within a SidebarProvider");
-  return context;
-}
-
-export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  const [isCollapsed, setCollapsed] = React.useState(false);
-  return (
-    <SidebarContext.Provider value={{ isCollapsed, setCollapsed }}>
-      {children}
-    </SidebarContext.Provider>
-  );
-}
-
-// --- Componentes ---
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/instancias", icon: Server, label: "Instâncias" },
-  { href: "/disparo", icon: Rocket, label: "Disparo" },
+  { href: "/disparo", icon: Send, label: "Disparo" },
 ];
 
-export function Sidebar() {
-  const isMobile = useIsMobile();
-  const { isCollapsed } = useSidebar();
+const SidebarContext = React.createContext<{ isCollapsed: boolean }>({ isCollapsed: false });
 
-  if (isMobile) return <MobileSidebar />;
+export const SidebarProvider = ({ children }: { children: React.ReactNode }) => {
+  // For simplicity, we'll keep it expanded on desktop for now.
+  // This can be extended later with a toggle.
+  const [isCollapsed] = React.useState(false);
+  return (
+    <SidebarContext.Provider value={{ isCollapsed }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+};
+
+export const Sidebar = () => {
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <aside
-      className={cn(
-        "relative hidden h-screen flex-col bg-card transition-all duration-300 ease-in-out md:flex",
-        isCollapsed ? "w-24" : "w-72"
-      )}
-    >
-      <div className="flex h-16 items-center px-6">
-        <Rocket className="h-7 w-7 text-primary" />
-        <h1 className={cn("ml-3 text-xl font-bold overflow-hidden whitespace-nowrap transition-opacity", isCollapsed && "opacity-0 w-0")}>
-          DisparaLead
-        </h1>
+    <aside className="hidden sm:flex h-full w-64 flex-col border-r bg-card/80 p-4">
+      <div className="flex h-16 items-center shrink-0 px-2">
+        <NavLink to="/" className="flex items-center gap-2 font-semibold text-lg">
+          <Send className="h-6 w-6 text-primary" />
+          <span>DisparaLead</span>
+        </NavLink>
       </div>
-      <nav className="flex flex-1 flex-col gap-2 p-4">
+      <nav className="flex-1 space-y-2">
         {navItems.map((item) => (
-          <NavItem key={item.href} {...item} />
+          <NavLink
+            key={item.href}
+            to={item.href}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent hover:text-accent-foreground ${
+                isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+              }`
+            }
+          >
+            <item.icon className="h-5 w-5" />
+            <span>{item.label}</span>
+          </NavLink>
         ))}
       </nav>
-      <div className="mt-auto flex flex-col gap-2 p-4">
-        <CollapseButton />
+      <div className="mt-auto space-y-2">
+        <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground">
+          <Bell className="h-5 w-5" />
+          <span>Notificações</span>
+          <Badge className="ml-auto h-4 w-4 justify-center rounded-full p-0 text-xs">3</Badge>
+        </Button>
+        <Button variant="ghost" onClick={toggleTheme} className="w-full justify-start gap-3 text-muted-foreground">
+          {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+          <span>Alternar Tema</span>
+        </Button>
+        <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground">
+          <User className="h-5 w-5" />
+          <span>Perfil</span>
+        </Button>
       </div>
     </aside>
   );
-}
-
-function MobileSidebar() {
-  const [isOpen, setIsOpen] = React.useState(false);
-  return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="fixed left-4 top-4 z-50 md:hidden">
-          <Menu />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="flex w-72 flex-col bg-card p-0">
-        <div className="flex h-16 items-center px-6">
-          <Rocket className="h-7 w-7 text-primary" />
-          <h1 className="ml-3 text-xl font-bold">DisparaLead</h1>
-        </div>
-        <nav className="flex flex-1 flex-col gap-2 p-4">
-          {navItems.map((item) => (
-            <NavItem key={item.href} {...item} onClick={() => setIsOpen(false)} />
-          ))}
-        </nav>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-const navLinkVariants = cva(
-  "flex items-center gap-4 rounded-lg px-4 py-3 text-base font-semibold transition-colors",
-  {
-    variants: {
-      state: {
-        default: "text-muted-foreground hover:bg-primary/10 hover:text-primary",
-        active: "gradient-primary text-white shadow-lg btn-premium",
-      },
-    },
-    defaultVariants: { state: "default" },
-  }
-);
-
-function NavItem({ href, icon: Icon, label, onClick }: any) {
-  const { isCollapsed } = useSidebar();
-  const location = useLocation();
-  const isActive = location.pathname.startsWith(href);
-
-  return (
-    <NavLink to={href} onClick={onClick} className={navLinkVariants({ state: isActive ? "active" : "default" })}>
-      <Icon className="h-6 w-6" />
-      <span className={cn("overflow-hidden whitespace-nowrap", isCollapsed && "hidden")}>{label}</span>
-    </NavLink>
-  );
-}
-
-function CollapseButton() {
-  const { isCollapsed, setCollapsed } = useSidebar();
-  return (
-    <Button variant="ghost" onClick={() => setCollapsed(!isCollapsed)} className="w-full justify-start gap-4 rounded-lg px-4 py-3 text-base font-semibold text-muted-foreground">
-      <ChevronLeft className={cn("h-6 w-6 transition-transform", isCollapsed && "rotate-180")} />
-      <span className={cn(isCollapsed && "hidden")}>Esconder</span>
-    </Button>
-  );
-}
+};
