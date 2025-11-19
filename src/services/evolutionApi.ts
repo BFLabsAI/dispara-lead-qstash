@@ -1,5 +1,5 @@
 // Evolution API integration service
-// Replaces n8n workflows with direct API calls
+// Replaces legacy workflows with direct API calls
 
 const EVOLUTION_API_URL = 'https://api.bflabs.com.br';
 const EVOLUTION_API_KEY = '9a38befe6a9f6938cd70cb769c66357d';

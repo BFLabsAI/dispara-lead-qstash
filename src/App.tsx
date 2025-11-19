@@ -8,7 +8,6 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
-import ApiSettings from "./pages/ApiSettings";
 import CampaignSchedulerPage from "./pages/CampaignSchedulerPage";
 import CopyAgentPage from "./pages/CopyAgentPage"; // Importar a nova página
 import NotFound from "./pages/NotFound";
@@ -19,7 +18,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30000, // 30 segundos
-      cacheTime: 300000, // 5 minutos
+      gcTime: 300000, // 5 minutos
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnWindowFocus: false, // Não recarregar ao focar janela
@@ -48,9 +47,8 @@ const App = () => (
                 <Route path="/disparo" element={<Disparo />} />
                 <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} />
                 <Route path="/copy-agent" element={<CopyAgentPage />} /> {/* Nova rota para o Copy Agent */}
-                <Route path="/api-settings" element={<ApiSettings />} />
               </Route>
-              
+
               {/* Rotas que não usam o layout, como a página 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>

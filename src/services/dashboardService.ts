@@ -1,4 +1,3 @@
-import { getEndpoints } from "./api";
 import dayjs from "dayjs";
 import {
   fetchAllDisparadorData,
@@ -11,7 +10,7 @@ import {
 } from "./supabaseClient";
 import { supabase } from "./supabaseClient";
 
-// Legacy function - now uses Supabase instead of n8n
+// Legacy function - now uses Supabase directly
 export const getDashboardData = async () => {
   try {
     const data = await fetchAllDisparadorData();
@@ -23,20 +22,7 @@ export const getDashboardData = async () => {
       .sort((a: any, b: any) => b.date.diff(a.date));
   } catch (error) {
     console.error('Error loading dashboard data:', error);
-    // Fallback to n8n endpoint if Supabase fails
-    const endpoints = getEndpoints();
-    const response = await fetch(endpoints.DASHBOARD_DATA);
-    if (!response.ok) {
-      throw new Error("Erro ao carregar dados do dashboard.");
-    }
-    const result = await response.json();
-    const data = Array.isArray(result)
-      ? result.map((item: any) => ({
-          ...item,
-          date: dayjs(item.created_at),
-        }))
-      : [];
-    return data.sort((a: any, b: any) => b.date.diff(a.date));
+    throw error;
   }
 };
 

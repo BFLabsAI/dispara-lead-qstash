@@ -1,8 +1,6 @@
 import { create } from 'zustand';
-import { getEndpoints } from '../services/api';
 import { showSuccess, showError } from '../utils/toast';
 import * as XLSX from "xlsx";
-import { useApiSettingsStore } from './apiSettingsStore'; // Importar o store de configurações da API
 import {
   fetchAllInstances,
   generateQrCode,

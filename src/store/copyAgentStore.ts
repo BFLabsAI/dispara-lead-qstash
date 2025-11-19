@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { getEndpoints } from '@/services/api';
 import { showError, showSuccess } from '@/utils/toast';
-import { useApiSettingsStore } from './apiSettingsStore';
 import { supabase } from '@/services/supabaseClient';
 import { sendMessageToOpenRouter, OpenRouterMessage, AVAILABLE_MODELS } from '@/services/openRouterApi';
 

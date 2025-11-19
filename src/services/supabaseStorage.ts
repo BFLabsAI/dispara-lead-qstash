@@ -1,5 +1,5 @@
 // Supabase Storage service for file uploads
-// Replaces n8n file upload with direct Supabase integration
+// Replaces legacy file upload with direct Supabase integration
 
 const SUPABASE_URL = 'https://iixeygzkgfwetchjvpvo.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpeGV5Z3prZ2Z3ZXRjaGp2cHZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNzk2MywiZXhwIjoyMDcxMTgzOTYzfQ.bD-BNU1r3UYLHpRLvHQ4gn3jplRdYq8TZRHa54UCmbc';

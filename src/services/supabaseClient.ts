@@ -1,5 +1,5 @@
 // Enhanced Supabase client for database operations and real-time subscriptions
-// Replaces n8n data fetching with direct Supabase integration
+// Replaces legacy data fetching with direct Supabase integration
 // Includes retry logic, connection optimization, and better error handling
 
 import { createClient } from '@supabase/supabase-js';
