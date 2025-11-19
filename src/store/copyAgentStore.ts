@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { getEndpoints } from '@/services/api';
 import { showError, showSuccess } from '@/utils/toast';
 import { useApiSettingsStore } from './apiSettingsStore';
+import { supabase } from '@/services/supabaseClient';
+import { sendMessageToOpenRouter, OpenRouterMessage, AVAILABLE_MODELS } from '@/services/openRouterApi';
 
 // --- Interfaces de Dados ---
 export interface Message {
@@ -16,6 +18,7 @@ export interface Message {
     feedback?: 'useful' | 'not-useful';
     isExpanded?: boolean; // Para mensagens longas
     isError?: boolean; // Adicionado para mensagens de erro
+    model?: string; // Adicionado para rastrear o modelo usado
   };
 }
 
@@ -59,6 +62,7 @@ interface CopyAgentState {
   currentChatId: string | null;
   isChatLoading: boolean;
   isSendingMessage: boolean;
+  selectedModel: string; // New: Selected AI Model
 
   // Company Settings
   companySettings: CompanySettings | null;
@@ -73,7 +77,8 @@ interface CopyAgentState {
   renameChat: (chatId: string, newName: string) => Promise<void>;
   sendMessage: (messageContent: string, templateUsed?: string) => Promise<void>;
   updateMessageMetadata: (chatId: string, messageId: string, metadata: Partial<Message['metadata']>) => void;
-  
+  setSelectedModel: (modelId: string) => void; // New Action
+
   // Company Settings Actions
   loadCompanySettings: () => Promise<void>;
   saveCompanySettings: (settings: CompanySettings) => Promise<void>;
@@ -84,55 +89,42 @@ interface CopyAgentState {
 // --- Funções Auxiliares ---
 const USER_ID = 'default-user'; // Conforme o PRD
 
-const fetchFromSupabase = async (endpoint: string, method: string = 'GET', body?: any) => {
-  // Esta é uma simulação. Na realidade, você faria chamadas diretas ao Supabase
-  // ou a um backend que interage com o Supabase.
-  // Para o propósito deste exercício, vamos simular o armazenamento local.
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (endpoint.includes('copy_agent_disparador_r7_treinamentos')) {
-        let data = JSON.parse(localStorage.getItem('copy_agent_chats') || '[]');
-        if (method === 'POST') {
-          const newMessage = { ...body, id: uuidv4(), created_at: new Date().toISOString() };
-          data.push(newMessage);
-          localStorage.setItem('copy_agent_chats', JSON.stringify(data));
-          resolve(newMessage);
-        } else if (method === 'GET') {
-          if (endpoint.includes('DISTINCT chat_id')) {
-            const distinctChats = data.reduce((acc: any, msg: any) => {
-              if (!acc[msg.chat_id]) {
-                acc[msg.chat_id] = { chat_id: msg.chat_id, session_name: msg.session_name || `Chat ${msg.chat_id.substring(0, 4)}`, last_message: msg.created_at };
-              } else if (msg.created_at > acc[msg.chat_id].last_message) {
-                acc[msg.chat_id].last_message = msg.created_at;
-              }
-              return acc;
-            }, {});
-            resolve(Object.values(distinctChats).sort((a: any, b: any) => new Date(b.last_message).getTime() - new Date(a.last_message).getTime()));
-          } else if (endpoint.includes('WHERE chat_id =')) {
-            const chatId = endpoint.split('=').pop()?.trim().replace(/'/g, '');
-            resolve(data.filter((msg: any) => msg.chat_id === chatId).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
-          }
-        } else if (method === 'PUT') { // Simula update para rename
-          data = data.map((msg: any) => msg.chat_id === body.chat_id ? { ...msg, session_name: body.session_name, updated_at: new Date().toISOString() } : msg);
-          localStorage.setItem('copy_agent_chats', JSON.stringify(data));
-          resolve({ success: true });
-        } else if (method === 'DELETE') {
-          data = data.filter((msg: any) => msg.chat_id !== body.chat_id);
-          localStorage.setItem('copy_agent_chats', JSON.stringify(data));
-          resolve({ success: true });
-        }
-      } else if (endpoint.includes('custom_prompt_disparador_r7_treinamentos')) {
-        let settings = JSON.parse(localStorage.getItem('company_settings') || 'null');
-        if (method === 'POST') {
-          settings = { ...body, user_id: USER_ID, updated_at: new Date().toISOString() };
-          localStorage.setItem('company_settings', JSON.stringify(settings));
-          resolve(settings);
-        } else if (method === 'GET') {
-          resolve(settings);
-        }
-      }
-    }, 300);
-  });
+// Helper to construct system prompt
+const buildSystemPrompt = (settings: CompanySettings | null): string => {
+  if (!settings) {
+    return `Você é um especialista em Copywriting para WhatsApp Marketing.
+    
+    DIRETRIZES DE WHATSAPP:
+    - Use emojis moderadamente.
+    - Mantenha mensagens curtas e diretas (ideais para leitura rápida).
+    - Use quebras de linha para facilitar a leitura.
+    - Evite linguagem muito formal, prefira um tom conversacional e próximo.
+    - Foco em conversão e engajamento.
+    
+    Sua tarefa é ajudar o usuário a criar textos (copies) persuasivos para campanhas de WhatsApp, responder dúvidas sobre estratégia de marketing e sugerir melhorias.`;
+  }
+
+  return `Você é um especialista em Copywriting para WhatsApp Marketing, trabalhando para a empresa ${settings.companyName}.
+  
+  CONTEXTO DA EMPRESA:
+  - Segmento: ${settings.marketSegment}
+  - Tamanho: ${settings.companySize}
+  - Produtos Principais: ${settings.mainProducts}
+  - Ticket Médio: ${settings.averageTicket}
+  - Público Alvo: ${settings.mainPersona} (Idade: ${settings.ageRange}, Classe: ${settings.socialClass})
+  - Voz da Marca: ${settings.brandVoice}
+  - Personalidade: ${settings.brandPersonality}
+  - Objetivo Principal: ${settings.primaryGoal}
+  
+  DIRETRIZES DE WHATSAPP:
+  - Use emojis moderadamente.
+  - Mantenha mensagens curtas e diretas (ideais para leitura rápida).
+  - Use quebras de linha para facilitar a leitura.
+  - Evite linguagem muito formal, prefira um tom conversacional e próximo.
+  - Foco em conversão e engajamento.
+  
+  Sua tarefa é ajudar o usuário a criar textos (copies) persuasivos para campanhas de WhatsApp, responder dúvidas sobre estratégia de marketing e sugerir melhorias.
+  `;
 };
 
 export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
@@ -141,6 +133,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
   currentChatId: null,
   isChatLoading: false,
   isSendingMessage: false,
+  selectedModel: AVAILABLE_MODELS[0].id, // Default to first model
   companySettings: null,
   isCompanySettingsLoaded: false,
   isCompanySettingsModalOpen: false,
@@ -149,15 +142,32 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
   loadChats: async () => {
     set({ isChatLoading: true });
     try {
-      // Simula SELECT DISTINCT chat_id, session_name, MAX(created_at)
-      const rawChats: any = await fetchFromSupabase(`copy_agent_disparador_r7_treinamentos?user_id=${USER_ID}&distinct=true`);
-      const formattedChats: ChatSession[] = rawChats.map((chat: any) => ({
-        id: chat.chat_id,
-        name: chat.session_name || `Chat ${chat.chat_id.substring(0, 4)}`,
-        createdAt: chat.created_at,
-        updatedAt: chat.last_message,
-      }));
+      // Fetch unique chat sessions
+      const { data, error } = await supabase
+        .from('copy_agent_disparador_r7_treinamentos')
+        .select('chat_id, session_name, created_at')
+        .eq('user_id', USER_ID)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const chatMap = new Map<string, ChatSession>();
+
+      data?.forEach((msg: any) => {
+        if (!chatMap.has(msg.chat_id)) {
+          chatMap.set(msg.chat_id, {
+            id: msg.chat_id,
+            name: msg.session_name || `Chat ${msg.chat_id.substring(0, 4)}`,
+            messages: [], // We don't load messages here to save bandwidth
+            createdAt: msg.created_at,
+            updatedAt: msg.created_at, // This should ideally be the max created_at of messages
+          });
+        }
+      });
+
+      const formattedChats = Array.from(chatMap.values());
       set({ chats: formattedChats });
+
       if (formattedChats.length > 0 && !get().currentChatId) {
         get().selectChat(formattedChats[0].id);
       }
@@ -196,15 +206,22 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
   selectChat: async (chatId: string) => {
     set({ currentChatId: chatId, isChatLoading: true });
     try {
-      // Simula SELECT message_role, message_content, created_at
-      const rawMessages: any = await fetchFromSupabase(`copy_agent_disparador_r7_treinamentos?chat_id='${chatId}'`);
-      const formattedMessages: Message[] = rawMessages.map((msg: any) => ({
-        id: msg.id,
+      const { data, error } = await supabase
+        .from('copy_agent_disparador_r7_treinamentos')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const formattedMessages: Message[] = data.map((msg: any) => ({
+        id: msg.id || uuidv4(), // Fallback if ID is missing
         role: msg.message_role,
         content: msg.message_content,
         timestamp: msg.created_at,
         metadata: msg.metadata,
       }));
+
       set((state) => ({
         chats: state.chats.map(chat => chat.id === chatId ? { ...chat, messages: formattedMessages } : chat),
       }));
@@ -217,7 +234,13 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
 
   deleteChat: async (chatId: string) => {
     try {
-      await fetchFromSupabase('copy_agent_disparador_r7_treinamentos', 'DELETE', { chat_id: chatId });
+      const { error } = await supabase
+        .from('copy_agent_disparador_r7_treinamentos')
+        .delete()
+        .eq('chat_id', chatId);
+
+      if (error) throw error;
+
       set((state) => {
         const updatedChats = state.chats.filter(chat => chat.id !== chatId);
         let newCurrentChatId = state.currentChatId;
@@ -240,8 +263,14 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
 
   renameChat: async (chatId: string, newName: string) => {
     try {
-      // Simula UPDATE session_name
-      await fetchFromSupabase('copy_agent_disparador_r7_treinamentos', 'PUT', { chat_id: chatId, session_name: newName });
+      // Update all messages in the chat with the new session name
+      const { error } = await supabase
+        .from('copy_agent_disparador_r7_treinamentos')
+        .update({ session_name: newName })
+        .eq('chat_id', chatId);
+
+      if (error) throw error;
+
       set((state) => ({
         chats: state.chats.map(chat => chat.id === chatId ? { ...chat, name: newName, updatedAt: new Date().toISOString() } : chat),
       }));
@@ -251,17 +280,17 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     }
   },
 
+  setSelectedModel: (modelId: string) => {
+    set({ selectedModel: modelId });
+  },
+
   sendMessage: async (messageContent: string, templateUsed?: string) => {
-    const { currentChatId, companySettings } = get();
+    const { currentChatId, companySettings, selectedModel } = get();
     if (!currentChatId) {
       showError("Nenhum chat selecionado. Por favor, inicie um novo chat.");
       return;
     }
-    if (!companySettings) {
-      showError("Por favor, configure as informações da sua empresa antes de usar o Copy Agent.");
-      get().openCompanySettingsModal();
-      return;
-    }
+    // Removed blocking check for companySettings
 
     set({ isSendingMessage: true });
     const userMessage: Message = {
@@ -281,45 +310,36 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       ),
     }));
 
-    // Save user message to "Supabase" (simulated)
-    await fetchFromSupabase('copy_agent_disparador_r7_treinamentos', 'POST', {
-      user_id: USER_ID,
-      chat_id: currentChatId,
-      session_name: get().chats.find(c => c.id === currentChatId)?.name,
-      message_role: 'user',
-      message_content: messageContent,
-      template_used: templateUsed,
-      metadata: {},
-    });
-
     try {
-      const endpoints = useApiSettingsStore.getState().endpoints;
+      // 1. Save user message to Copy Agent table
+      await supabase.from('copy_agent_disparador_r7_treinamentos').insert({
+        user_id: USER_ID,
+        chat_id: currentChatId,
+        session_name: get().chats.find(c => c.id === currentChatId)?.name,
+        message_role: 'user',
+        message_content: messageContent,
+        template_used: templateUsed,
+        metadata: {},
+      });
+
+      // 2. Call OpenRouter API
       const currentChat = get().chats.find(chat => chat.id === currentChatId);
       const chatHistory = currentChat?.messages.map(msg => ({ role: msg.role, content: msg.content })) || [];
 
-      const payload = {
-        chat_id: currentChatId,
-        user_id: USER_ID,
-        current_message: messageContent,
-        template_used: templateUsed,
-        company_context: companySettings,
-        chat_history: chatHistory, // Envia o histórico completo
-      };
+      // Construct messages array for OpenRouter
+      const systemPrompt = buildSystemPrompt(companySettings);
+      const messages: OpenRouterMessage[] = [
+        { role: 'system', content: systemPrompt },
+        ...chatHistory.map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content })),
+        // The current message is already in chatHistory because we added it to state above? 
+        // Wait, we added it to state, but `currentChat` reference might be stale if we didn't get it fresh.
+        // `get().chats` gets the fresh state.
+        // However, let's be safe. `chatHistory` comes from `currentChat` which comes from `get().chats`.
+        // Since we did `set(...)` before, `get()` should return the updated state with the new message.
+      ];
 
-      const response = await fetch(endpoints.COPY_AGENT_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erro ao se comunicar com o Copy Agent.");
-      }
-
-      const result = await response.json();
-      const aiMessageContent = result.response || "Desculpe, não consegui gerar uma resposta.";
-      const aiMessageMetadata = result.metadata || {};
+      const aiMessageContent = await sendMessageToOpenRouter(messages, selectedModel);
+      const aiMessageMetadata = { model: selectedModel };
 
       const aiMessage: Message = {
         id: uuidv4(),
@@ -338,8 +358,8 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
         ),
       }));
 
-      // Save AI message to "Supabase" (simulated)
-      await fetchFromSupabase('copy_agent_disparador_r7_treinamentos', 'POST', {
+      // 3. Save AI message to Copy Agent table
+      await supabase.from('copy_agent_disparador_r7_treinamentos').insert({
         user_id: USER_ID,
         chat_id: currentChatId,
         session_name: get().chats.find(c => c.id === currentChatId)?.name,
@@ -348,9 +368,21 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
         metadata: aiMessageMetadata,
       });
 
+      // 4. Log to Main Dashboard Table
+      await supabase.from('disparador_r7_treinamentos').insert({
+        numero: 'CopyAgent',
+        tipo_envio: 'sucesso',
+        usaria: true,
+        instancia: 'CopyAgent',
+        texto: aiMessageContent,
+        nome_campanha: 'Copy Agent Chat',
+        publico: 'Individual',
+        criativo: 'AI Generated',
+        tipo_campanha: 'Copy Agent'
+      });
+
     } catch (error) {
       showError("Erro ao enviar mensagem: " + (error as Error).message);
-      // Optionally, add an error message bubble to the chat
       const errorMessage: Message = {
         id: uuidv4(),
         role: 'assistant',
@@ -375,34 +407,43 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       chats: state.chats.map(chat =>
         chat.id === chatId
           ? {
-              ...chat,
-              messages: chat.messages.map(msg =>
-                msg.id === messageId ? { ...msg, metadata: { ...msg.metadata, ...metadata } } : msg
-              ),
-            }
+            ...chat,
+            messages: chat.messages.map(msg =>
+              msg.id === messageId ? { ...msg, metadata: { ...msg.metadata, ...metadata } } : msg
+            ),
+          }
           : chat
       ),
     }));
-    // In a real app, you'd also persist this metadata update to Supabase
   },
 
   // --- Company Settings Actions ---
   loadCompanySettings: async () => {
     set({ isCompanySettingsLoaded: false });
     try {
-      // Simula SELECT * FROM custom_prompt_disparador_r7_treinamentos
-      const settings = await fetchFromSupabase(`custom_prompt_disparador_r7_treinamentos?user_id=${USER_ID}`) as CompanySettings | null;
-      set({ companySettings: settings, isCompanySettingsLoaded: true });
+      const { data, error } = await supabase
+        .from('custom_prompt_disparador_r7_treinamentos')
+        .select('*')
+        .eq('user_id', USER_ID)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // Ignore not found error
+
+      set({ companySettings: data as CompanySettings | null, isCompanySettingsLoaded: true });
     } catch (error) {
       showError("Erro ao carregar configurações da empresa: " + (error as Error).message);
-      set({ isCompanySettingsLoaded: true }); // Still set to true to avoid infinite loading
+      set({ isCompanySettingsLoaded: true });
     }
   },
 
   saveCompanySettings: async (settings: CompanySettings) => {
     try {
-      // Simula INSERT ... ON CONFLICT DO UPDATE
-      await fetchFromSupabase('custom_prompt_disparador_r7_treinamentos', 'POST', settings);
+      const { error } = await supabase
+        .from('custom_prompt_disparador_r7_treinamentos')
+        .upsert({ ...settings, user_id: USER_ID, updated_at: new Date().toISOString() });
+
+      if (error) throw error;
+
       set({ companySettings: settings, isCompanySettingsModalOpen: false });
       showSuccess("Configurações da empresa salvas com sucesso!");
     } catch (error) {

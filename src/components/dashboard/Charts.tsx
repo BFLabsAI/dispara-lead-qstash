@@ -12,6 +12,8 @@ interface ChartsProps {
 const GREEN_COLORS = ["#10B981", "#059669", "#34D399", "#6EE7B7", "#A7F3D0", "#D1FAE5"];
 
 const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, theme }: any) => {
+  if (percent < 0.10) return null; // Hide labels for slices smaller than 10%
+
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -72,10 +74,10 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }, {} as Record<string, number>);
   const tipoValues = Object.values(tipoData) as number[];
   const totalTipo: number = tipoValues.reduce((sum: number, v: number) => sum + v, 0);
-  const pieDataTipo = Object.entries(tipoData).map(([name, value]) => ({ 
-    name, 
+  const pieDataTipo = Object.entries(tipoData).map(([name, value]) => ({
+    name,
     value: Number(value),
-    percentage: totalTipo > 0 ? Number(((Number(value) / totalTipo) * 100).toFixed(1)).toString() : "0" 
+    percentage: totalTipo > 0 ? Number(((Number(value) / totalTipo) * 100).toFixed(1)).toString() : "0"
   }));
 
   const instanciaData = filteredData.reduce((acc: Record<string, number>, item) => {
@@ -85,10 +87,10 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }, {} as Record<string, number>);
   const instanciaValues = Object.values(instanciaData) as number[];
   const totalInstancia: number = instanciaValues.reduce((sum: number, v: number) => sum + v, 0);
-  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]) => ({ 
-    name, 
+  const pieDataInstancia = Object.entries(instanciaData).map(([name, value]) => ({
+    name,
     value: Number(value),
-    percentage: totalInstancia > 0 ? Number(((Number(value) / totalInstancia) * 100).toFixed(1)).toString() : "0" 
+    percentage: totalInstancia > 0 ? Number(((Number(value) / totalInstancia) * 100).toFixed(1)).toString() : "0"
   }));
 
   const campaignData = filteredData.reduce((acc: Record<string, number>, item) => {
@@ -98,10 +100,10 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }, {} as Record<string, number>);
   const campaignValues = Object.values(campaignData) as number[];
   const totalCampaign: number = campaignValues.reduce((sum: number, v: number) => sum + v, 0);
-  const pieDataCampaign = Object.entries(campaignData).map(([name, value]) => ({ 
-    name, 
+  const pieDataCampaign = Object.entries(campaignData).map(([name, value]) => ({
+    name,
     value: Number(value),
-    percentage: totalCampaign > 0 ? Number(((Number(value) / totalCampaign) * 100).toFixed(1)).toString() : "0" 
+    percentage: totalCampaign > 0 ? Number(((Number(value) / totalCampaign) * 100).toFixed(1)).toString() : "0"
   }));
 
   const publicoData = filteredData.reduce((acc: Record<string, number>, item) => {
@@ -111,10 +113,10 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }, {} as Record<string, number>);
   const publicoValues = Object.values(publicoData) as number[];
   const totalPublico: number = publicoValues.reduce((sum: number, v: number) => sum + v, 0);
-  const pieDataPublico = Object.entries(publicoData).map(([name, value]) => ({ 
-    name, 
+  const pieDataPublico = Object.entries(publicoData).map(([name, value]) => ({
+    name,
     value: Number(value),
-    percentage: totalPublico > 0 ? Number(((Number(value) / totalPublico) * 100).toFixed(1)).toString() : "0" 
+    percentage: totalPublico > 0 ? Number(((Number(value) / totalPublico) * 100).toFixed(1)).toString() : "0"
   }));
 
   const criativoData = filteredData.reduce((acc: Record<string, number>, item) => {
@@ -124,10 +126,10 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   }, {} as Record<string, number>);
   const criativoValues = Object.values(criativoData) as number[];
   const totalCriativo: number = criativoValues.reduce((sum: number, v: number) => sum + v, 0);
-  const pieDataCriativo = Object.entries(criativoData).map(([name, value]) => ({ 
-    name, 
+  const pieDataCriativo = Object.entries(criativoData).map(([name, value]) => ({
+    name,
     value: Number(value),
-    percentage: totalCriativo > 0 ? Number(((Number(value) / totalCriativo) * 100).toFixed(1)).toString() : "0" 
+    percentage: totalCriativo > 0 ? Number(((Number(value) / totalCriativo) * 100).toFixed(1)).toString() : "0"
   }));
 
 
@@ -136,12 +138,17 @@ export const Charts = ({ filteredData }: ChartsProps) => {
 
   const timelineData = filteredData.reduce((acc: Record<string, number>, item) => {
     if (item.date) {
-      const day = item.date.format("DD/MM");
+      const day = item.date.format('DD/MM');
       acc[day] = (acc[day] || 0) + 1;
     }
     return acc;
   }, {} as Record<string, number>);
-  const sortedTimeline = Object.keys(timelineData).sort().map((d) => ({ day: d, envios: timelineData[d] }));
+  const sortedTimeline = Object.keys(timelineData).sort((a, b) => {
+    // Custom sort for DD/MM format
+    const [dayA, monthA] = a.split('/').map(Number);
+    const [dayB, monthB] = b.split('/').map(Number);
+    return monthA - monthB || dayA - dayB;
+  }).map((d) => ({ day: d, envios: timelineData[d] }));
 
   // Novo cálculo para Disparos por Modo
   const disparosPorModoData = filteredData.reduce((acc: Record<string, number>, item) => {
@@ -162,25 +169,40 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
       {/* Gráfico de Envios por Campanha */}
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0s'}}>
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+      <Card className="glass-card rounded-2xl card-premium p-6 flex flex-col">
+        <CardContent className="p-0 flex-1 flex flex-col">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-green-500/30 rounded-xl border border-green-500/40">
               <Megaphone className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Campanha</h3>
           </div>
           {hasData ? (
-            <div className="h-[350px]">
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieDataCampaign} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />}>
+                <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
+                  <Pie
+                    data={pieDataCampaign}
+                    cx="50%"
+                    cy="40%"
+                    outerRadius={80}
+                    fill="#10B981"
+                    dataKey="value"
+                    nameKey="name"
+                    labelLine={false}
+                    label={(entry) => <CustomLabel {...entry} theme={theme} />}
+                  >
                     {pieDataCampaign.map((entry, index) => <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />)}
                   </Pie>
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
-                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="center"
+                    wrapperStyle={{ paddingTop: '10px', fontSize: '12px', width: '100%', maxHeight: '100px', overflowY: 'auto' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -189,23 +211,38 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       </Card>
 
       {/* Gráfico de Envios por Público */}
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.05s'}}>
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+      <Card className="glass-card rounded-2xl card-premium p-6 flex flex-col">
+        <CardContent className="p-0 flex-1 flex flex-col">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-green-500/30 rounded-xl border border-green-500/40">
               <Users className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Público</h3>
           </div>
           {hasData ? (
-            <div className="h-[350px]">
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieDataPublico} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />}>
+                <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
+                  <Pie
+                    data={pieDataPublico}
+                    cx="50%"
+                    cy="40%"
+                    outerRadius={80}
+                    fill="#10B981"
+                    dataKey="value"
+                    nameKey="name"
+                    labelLine={false}
+                    label={(entry) => <CustomLabel {...entry} theme={theme} />}
+                  >
                     {pieDataPublico.map((entry, index) => <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />)}
                   </Pie>
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
-                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="center"
+                    wrapperStyle={{ paddingTop: '10px', fontSize: '12px', width: '100%', maxHeight: '100px', overflowY: 'auto' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -214,23 +251,38 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       </Card>
 
       {/* Gráfico de Envios por Criativo */}
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.1s'}}>
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+      <Card className="glass-card rounded-2xl card-premium p-6 flex flex-col">
+        <CardContent className="p-0 flex-1 flex flex-col">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-green-500/30 rounded-xl border border-green-500/40">
               <Palette className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Criativo</h3>
           </div>
           {hasData ? (
-            <div className="h-[350px]">
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieDataCriativo} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />}>
+                <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
+                  <Pie
+                    data={pieDataCriativo}
+                    cx="50%"
+                    cy="40%"
+                    outerRadius={80}
+                    fill="#10B981"
+                    dataKey="value"
+                    nameKey="name"
+                    labelLine={false}
+                    label={(entry) => <CustomLabel {...entry} theme={theme} />}
+                  >
                     {pieDataCriativo.map((entry, index) => <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />)}
                   </Pie>
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
-                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="center"
+                    wrapperStyle={{ paddingTop: '10px', fontSize: '12px', width: '100%', maxHeight: '100px', overflowY: 'auto' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -239,71 +291,101 @@ export const Charts = ({ filteredData }: ChartsProps) => {
       </Card>
 
       {/* Gráfico de Envios por Tipo */}
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.15s'}}>
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
-              <LayoutGrid className="h-6 w-6 text-green-600" /> {/* Ícone alterado */}
+      <Card className="glass-card rounded-2xl card-premium p-6 flex flex-col">
+        <CardContent className="p-0 flex-1 flex flex-col">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-green-500/30 rounded-xl border border-green-500/40">
+              <LayoutGrid className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Tipo</h3>
           </div>
           {hasData ? (
-            <div className="h-[350px]">
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieDataTipo} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />}>
+                <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
+                  <Pie
+                    data={pieDataTipo}
+                    cx="50%"
+                    cy="40%"
+                    outerRadius={80}
+                    fill="#10B981"
+                    dataKey="value"
+                    nameKey="name"
+                    labelLine={false}
+                    label={(entry) => <CustomLabel {...entry} theme={theme} />}
+                  >
                     {pieDataTipo.map((entry, index) => <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />)}
                   </Pie>
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
-                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="center"
+                    wrapperStyle={{ paddingTop: '10px', fontSize: '12px', width: '100%', maxHeight: '100px', overflowY: 'auto' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          ) : <EmptyChartState title="Nenhum envio por tipo" icon={LayoutGrid} />} {/* Ícone alterado */}
+          ) : <EmptyChartState title="Nenhum envio por tipo" icon={LayoutGrid} />}
         </CardContent>
       </Card>
 
       {/* Gráfico de Envios por Instância */}
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.2s'}}>
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
-              <HardDrive className="h-6 w-6 text-green-600" /> {/* Ícone alterado */}
+      <Card className="glass-card rounded-2xl card-premium p-6 flex flex-col">
+        <CardContent className="p-0 flex-1 flex flex-col">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-green-500/30 rounded-xl border border-green-500/40">
+              <HardDrive className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Instância</h3>
           </div>
           {hasData ? (
-            <div className="h-[350px]">
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieDataInstancia} cx="50%" cy="50%" outerRadius={100} fill="#10B981" dataKey="value" nameKey="name" labelLine={false} label={(entry) => <CustomLabel {...entry} theme={theme} />} >
+                <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
+                  <Pie
+                    data={pieDataInstancia}
+                    cx="50%"
+                    cy="40%"
+                    outerRadius={80}
+                    fill="#10B981"
+                    dataKey="value"
+                    nameKey="name"
+                    labelLine={false}
+                    label={(entry) => <CustomLabel {...entry} theme={theme} />}
+                  >
                     {pieDataInstancia.map((entry, index) => <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />)}
                   </Pie>
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
-                  <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} verticalAlign="bottom" />
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="center"
+                    wrapperStyle={{ paddingTop: '10px', fontSize: '12px', width: '100%', maxHeight: '100px', overflowY: 'auto' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          ) : <EmptyChartState title="Nenhum envio por instância" icon={HardDrive} />} {/* Ícone alterado */}
+          ) : <EmptyChartState title="Nenhum envio por instância" icon={HardDrive} />}
         </CardContent>
       </Card>
 
       {/* Gráfico de Envios por Hora */}
-      <Card className="glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.25s'}}>
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+      <Card className="glass-card rounded-2xl card-premium p-6 flex flex-col">
+        <CardContent className="p-0 flex-1 flex flex-col">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-green-500/30 rounded-xl border border-green-500/40">
               <Clock className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Hora</h3>
           </div>
           {hasData ? (
-            <div className="h-[350px]">
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={horaData.map((v, i) => ({ hour: i, value: v, name: `${i}h` }))} margin={{ bottom: 20 }}>
+                <BarChart data={horaData.map((v, i) => ({ hour: i, value: v, name: `${i}h` }))} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
-                  <XAxis dataKey="hour" stroke="#10B981" interval={3} angle={-45} textAnchor="end" height={80} tick={{ fill: "#10B981", fontSize: 12 }} />
-                  <YAxis stroke="#10B981" width={50} tick={{ fill: "#10B981" }} />
+                  <XAxis dataKey="hour" stroke="#10B981" interval={3} angle={-45} textAnchor="end" height={60} tick={{ fill: "#10B981", fontSize: 12 }} />
+                  <YAxis stroke="#10B981" width={40} tick={{ fill: "#10B981" }} />
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
                   <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -313,11 +395,11 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Timeline de Envios (agora ocupando 2/3) */}
-      <Card className="lg:col-span-2 glass-card rounded-2xl card-premium animate-slide-in-up" style={{animationDelay: '0.3s'}}>
-        <CardContent className="p-8">
+      {/* Timeline de Envios (agora ocupando 2/3 em telas grandes) */}
+      <Card className="md:col-span-2 xl:col-span-2 glass-card rounded-2xl card-premium p-6">
+        <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+            <div className="p-3 bg-green-500/30 rounded-xl border border-green-500/40">
               <Activity className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="font-bold text-xl text-shadow text-gray-900 dark:text-white">
@@ -325,12 +407,12 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             </h3>
           </div>
           {hasData ? (
-            <div className="h-[400px]">
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ right: 30, bottom: 80 }}>
+                <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
-                  <XAxis dataKey="day" stroke="#10B981" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fill: "#10B981", fontSize: 12 }} />
-                  <YAxis stroke="#10B981" width={50} tick={{ fill: "#10B981" }} />
+                  <XAxis dataKey="day" stroke="#10B981" angle={-45} textAnchor="end" height={60} interval={0} tick={{ fill: "#10B981", fontSize: 12 }} />
+                  <YAxis stroke="#10B981" width={40} tick={{ fill: "#10B981" }} />
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
                   <Line type="monotone" dataKey="envios" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2 }} activeDot={{ r: 6 }} />
                   <Area type="monotone" dataKey="envios" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
@@ -341,22 +423,22 @@ export const Charts = ({ filteredData }: ChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Novo Gráfico: Disparos por Modo (ocupando 1/3) */}
-      <Card className="lg:col-span-1 glass-card rounded-2xl card-premium animate-slide-in-up p-8" style={{animationDelay: '0.35s'}}>
+      {/* Novo Gráfico: Disparos por Modo (ocupando 1/3 em telas grandes) */}
+      <Card className="md:col-span-2 xl:col-span-1 glass-card rounded-2xl card-premium p-6">
         <CardContent className="p-0">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-500/30 rounded-xl animate-pulse-glow border border-green-500/40">
+            <div className="p-3 bg-green-500/30 rounded-xl border border-green-500/40">
               <BarChart3 className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Disparos por Modo</h3>
           </div>
           {hasData ? (
-            <div className="h-[400px]"> {/* Altura ajustada para alinhar com a Timeline */}
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barDataDisparosPorModo} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <BarChart data={barDataDisparosPorModo} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
-                  <XAxis dataKey="name" stroke="#10B981" tick={{ fill: "#10B981", fontSize: 12 }} />
-                  <YAxis stroke="#10B981" width={50} tick={{ fill: "#10B981" }} />
+                  <XAxis dataKey="name" stroke="#10B981" tick={{ fill: "#10B981", fontSize: 12 }} interval={0} />
+                  <YAxis stroke="#10B981" width={40} tick={{ fill: "#10B981" }} />
                   <Tooltip content={(props) => <GenericTooltipContent {...props} theme={theme} />} />
                   <Bar dataKey="envios" fill="#10B981" radius={[4, 4, 0, 0]} />
                 </BarChart>

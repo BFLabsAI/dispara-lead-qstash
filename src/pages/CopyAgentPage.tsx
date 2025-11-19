@@ -14,11 +14,7 @@ const CopyAgentPage = () => {
     loadCompanySettings();
   }, [loadChats, loadCompanySettings]);
 
-  useEffect(() => {
-    if (isCompanySettingsLoaded && !companySettings) {
-      openCompanySettingsModal();
-    }
-  }, [isCompanySettingsLoaded, companySettings, openCompanySettingsModal]);
+  // Removed auto-open modal on missing settings - user will click to configure if needed
 
   return (
     <div className="h-full flex flex-col">

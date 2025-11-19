@@ -1,0 +1,1872 @@
+{
+  "name": "FLUXO PRINCIPAL - DISPARA LEAD | R7 Treinamentos v2",
+  "nodes": [
+    {
+      "parameters": {
+        "amount": "={{ $json.delay }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        720
+      ],
+      "id": "af22e60c-15fa-4615-b439-cdcab88bb95a",
+      "name": "Wait",
+      "webhookId": "32600e66-14f6-4f8d-b772-55f24080411f",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const tempoMin = parseInt($input.first().json.body.tempoMin);\nconst tempoMax = parseInt($input.first().json.body.tempoMax);\n\nif (isNaN(tempoMin) || isNaN(tempoMax) || tempoMin > tempoMax) {\n  throw new Error('Preencha os campos de tempo corretamente!');\n}\n\nconst delay = Math.floor(Math.random() * (tempoMax - tempoMin + 1)) + tempoMin;\n\n// Retorne o resultado como um array de objetos\nreturn [\n  {\n    json: {\n      delay\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        720
+      ],
+      "id": "f94686d8-270a-4782-bd09-23f601b2ce1f",
+      "name": "Code",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "texto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8f17d2f9-67c6-49d0-8e4f-986002e4edc4"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Texto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c4c1e5c2-8b6e-4147-909a-11fa64af68fa",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "imagem",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Imagem"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "77bb0cbe-071d-4003-8f23-a0da8712fd3c",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "video",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Vídeo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7d71361b-034e-4ea1-affd-ffecf7ce6117",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Áudio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1312,
+        1264
+      ],
+      "id": "4ade8725-fc01-4f91-933e-c36c373f50c8",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2c615c42-d14b-4d44-bb74-10207088f614",
+              "leftValue": "={{ $('Webhook do Disparo').item.json.body.usarIA }}",
+              "rightValue": "={{ $('Webhook do Disparo').item.json.body.usarIA }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "e3bd0105-dc98-45e6-8044-06f22f91940b",
+              "leftValue": "={{ $('Loop Over Items').item.json.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        768
+      ],
+      "id": "f7659b61-2207-4d82-a556-021ff191f92e",
+      "name": "Usar IA?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3066d936-35d6-4374-a734-46e79ba3495a",
+              "name": "output",
+              "value": "={{ $('Loop Over Items').item.json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1968,
+        848
+      ],
+      "id": "841c0bda-1831-4832-b3a2-3a35fea77481",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-5-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2592,
+        688
+      ],
+      "id": "5d785a8b-d9f0-42cd-becc-3063f05fedd0",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "EvQcQa2KOGodp9sT",
+          "name": "OpenAi - R7 Treinamentos"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        896,
+        800
+      ],
+      "id": "758ea6d1-4664-4831-9822-a35fc16744cb",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.mensagens",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        416,
+        1184
+      ],
+      "id": "86784cfc-c839-434a-8788-f82996be3d3e",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1088,
+        1280
+      ],
+      "id": "07bbda35-9a98-4941-8b7c-52baef00a483",
+      "name": "Wait1",
+      "webhookId": "2853784f-1961-4425-81a9-609f7b641e68"
+    },
+    {
+      "parameters": {
+        "content": "## DELAY DINÂMICO",
+        "height": 260,
+        "width": 460,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        32,
+        640
+      ],
+      "typeVersion": 1,
+      "id": "ad0560db-0305-42ee-829c-0c03ebe0850a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"mensagem\": \"Mensagem enviada com sucesso\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        560
+      ],
+      "id": "07f64cae-c835-4df9-a924-f20047f98127",
+      "name": "Finalizar",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "content": "## MODIFICAÇÃO DE TEXTO PURO COM IA",
+        "height": 440,
+        "width": 860,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1520,
+        592
+      ],
+      "typeVersion": 1,
+      "id": "9f8ab483-30a8-4a6e-a8bc-d240c619605d",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('Webhook do Disparo').item.json.body.instancia }}",
+        "remoteJid": "={{ $('Webhook do Disparo').item.json.body.numero }}",
+        "messageText": "={{ $json.output }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2432,
+        848
+      ],
+      "id": "c5be56b1-7d17-4fed-a4b5-336b2900655f",
+      "name": "Enviar Texto",
+      "alwaysOutputData": false,
+      "credentials": {
+        "evolutionApi": {
+          "id": "4tFPi5bN5sm5Ihc0",
+          "name": "01 - Evolution GLOBAL BF LABS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-audio",
+        "instanceName": "={{ $('Webhook do Disparo').item.json.body.instancia }}",
+        "remoteJid": "={{ $('Webhook do Disparo').item.json.body.numero }}",
+        "media": "={{ $json.mediaUrl }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1888,
+        2032
+      ],
+      "id": "d3f1c6ca-c860-4903-a1f6-114abbab0aba",
+      "name": "Enviar Audio",
+      "credentials": {
+        "evolutionApi": {
+          "id": "4tFPi5bN5sm5Ihc0",
+          "name": "01 - Evolution GLOBAL BF LABS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-image",
+        "instanceName": "={{ $('Webhook do Disparo').item.json.body.instancia }}",
+        "remoteJid": "={{ $('Webhook do Disparo').item.json.body.numero }}",
+        "media": "={{ $('Loop Over Items').item.json.mediaUrl }}",
+        "caption": "={{ $json.output }}",
+        "options_message": {
+          "delay": 2000
+        }
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2432,
+        1312
+      ],
+      "id": "c174c59a-afbe-428b-882c-24e92d68f4ef",
+      "name": "Enviar Imagem",
+      "credentials": {
+        "evolutionApi": {
+          "id": "4tFPi5bN5sm5Ihc0",
+          "name": "01 - Evolution GLOBAL BF LABS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-video",
+        "instanceName": "={{ $('Webhook do Disparo').item.json.body.instancia }}",
+        "remoteJid": "={{ $('Webhook do Disparo').item.json.body.numero }}",
+        "media": "={{ $('Loop Over Items').item.json.mediaUrl }}",
+        "caption": "={{ $json.output }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2432,
+        1760
+      ],
+      "id": "494deb61-0267-4ea4-997f-6a534af498fa",
+      "name": "Enviar Video",
+      "credentials": {
+        "evolutionApi": {
+          "id": "4tFPi5bN5sm5Ihc0",
+          "name": "01 - Evolution GLOBAL BF LABS"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "e698162f-1302-4cf2-bf34-6fc14ac8beda",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        1104
+      ],
+      "id": "9740ce27-2904-4f72-8be5-4ded63d829ba",
+      "name": "Webhook do Disparo",
+      "webhookId": "e698162f-1302-4cf2-bf34-6fc14ac8beda"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"code\": \"{{ $json.base64 }}\"\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1232,
+        832
+      ],
+      "id": "e8269593-319b-4ced-a4b2-2e49c04b9afd",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7997d699-2380-48aa-8dc3-b1eac974e16e",
+              "name": "base64",
+              "value": "={{ $json.base64.split(',').last() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1440,
+        832
+      ],
+      "id": "1b006cea-7154-4e15-bba8-c80008338d73",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "path": "187ec737-a26d-43b6-b80d-ed4868cf1c63",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1840,
+        832
+      ],
+      "id": "3f17737d-f784-4e6f-8ad4-ddb66f8e8dac",
+      "name": "Atualiza qr code",
+      "webhookId": "187ec737-a26d-43b6-b80d-ed4868cf1c63"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"instances\": $items().map(item => item.json) } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1232,
+        1152
+      ],
+      "id": "279c1fa7-c617-4d5b-93d3-2b7afd768667",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "path": "87f118b0-4be0-488d-a05f-0fde1ef7a60e",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1840,
+        1152
+      ],
+      "id": "1cd9134c-5815-418f-8be8-5e854762595e",
+      "name": "busca instancias",
+      "webhookId": "87f118b0-4be0-488d-a05f-0fde1ef7a60e"
+    },
+    {
+      "parameters": {
+        "url": "https://api.bflabs.com.br/instance/fetchInstances",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "9a38befe6a9f6938cd70cb769c66357d"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1648,
+        1152
+      ],
+      "id": "8cfb9b82-17f6-499d-b628-52934749f7e6",
+      "name": "busca instancias1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7a30d24b-394c-4a1d-a46e-503a6c206654",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "_r7",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "bca2c727-3b62-40d7-bbb4-30f67938f651",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "R7_",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "206c66c5-d32c-4509-a083-dad9b9ffa6b6",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "_R7",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "a5150b92-062d-4671-bc9d-266cf4fb8f3c",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "qr_code",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -1440,
+        1152
+      ],
+      "id": "705ea313-5f4c-4162-92c1-de053c842816",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.bflabs.com.br/instance/connect/{{ $json.query.instanceName }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "9a38befe6a9f6938cd70cb769c66357d"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1664,
+        832
+      ],
+      "id": "3661c733-a64c-4a55-8bef-1bebc21189de",
+      "name": "gerar qr code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://iixeygzkgfwetchjvpvo.supabase.co/storage/v1/object/disparador-r7/{{ $binary.data.fileName }}-{{ $now }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "upsert",
+              "value": "true"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpeGV5Z3prZ2Z3ZXRjaGp2cHZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNzk2MywiZXhwIjoyMDcxMTgzOTYzfQ.bD-BNU1r3UYLHpRLvHQ4gn3jplRdYq8TZRHa54UCmbc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "={{ $binary.data.mimeType }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1664,
+        544
+      ],
+      "id": "d0b05bbb-242e-4da2-bc9f-dac3015a5f1a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO disparador_r7_treinamentos (\n  numero,\n  tipo_envio,\n  usarIA,\n  instancia,\n  texto,\n  nome_campanha,\n  publico,\n  criativo,\n  tipo_campanha\n) VALUES (\n  '{{ $json.numero }}',\n  '{{ $json.tipo_envio }}',\n  {{ $json.usarIA }},\n  '{{ $json.instancia }}',\n  '{{ $json.texto }}',\n  '{{ $json.campaignName }}',\n  '{{ $json.publicTarget }}',\n  '{{ $json.content }}',\n  'Disparo Pontual'\n);\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        288,
+        992
+      ],
+      "id": "4510f6f5-1623-4f32-938d-6cf91fc982ec",
+      "name": "Postgres",
+      "credentials": {
+        "postgres": {
+          "id": "VgZRs5RJQl1Lw8LM",
+          "name": "Postgres - BF Labs Cliente Novo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"fileUrl\": \"https://iixeygzkgfwetchjvpvo.supabase.co/storage/v1/object/public/{{ $json.Key }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -1392,
+        544
+      ],
+      "id": "eae2d366-e066-4db0-96c1-ef117b596bf7",
+      "name": "Respond to Webhook4"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "0b4f970e-aa4c-4298-bcb3-aed60f61420d",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1840,
+        544
+      ],
+      "id": "67e01af1-3a28-4fe8-90f2-b5b8533b9764",
+      "name": "file-upload",
+      "webhookId": "0b4f970e-aa4c-4298-bcb3-aed60f61420d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2c615c42-d14b-4d44-bb74-10207088f614",
+              "leftValue": "={{ $('Webhook do Disparo').item.json.body.usarIA }}",
+              "rightValue": "={{ $('Webhook do Disparo').item.json.body.usarIA }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "829e8cdb-b4b1-4aa6-9966-3c1951bc102e",
+              "leftValue": "={{ $('Loop Over Items').item.json.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1856,
+        1232
+      ],
+      "id": "55177835-f98f-49d6-adc0-0b07da91c27d",
+      "name": "Usar IA?1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2c615c42-d14b-4d44-bb74-10207088f614",
+              "leftValue": "={{ $('Webhook do Disparo').item.json.body.usarIA }}",
+              "rightValue": "={{ $('Webhook do Disparo').item.json.body.usarIA }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "33c6b2a4-574b-485c-b617-f68f78c9c52c",
+              "leftValue": "={{ $('Loop Over Items').item.json.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1888,
+        1664
+      ],
+      "id": "cef15680-32c4-4073-a283-f9541d4945bc",
+      "name": "Usar IA?2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Loop Over Items').item.json.text }}",
+        "options": {
+          "systemMessage": "Você é responsável por criar uma variação sutil da mensagem recebida.\nVocê deve enviar no output apenas a mensagem modificada e nada mais."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        1968,
+        672
+      ],
+      "id": "5ecd4264-6cee-4200-857a-892e85a5512a",
+      "name": "AI Agent - Text"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Loop Over Items').item.json.text }}",
+        "options": {
+          "systemMessage": "Você é responsável por criar uma variação sutil da mensagem recebida.\nVocê deve enviar no output apenas a mensagem modificada e nada mais."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        2032,
+        1120
+      ],
+      "id": "53824357-1bf5-44fb-a6bc-1a6406165c30",
+      "name": "AI Agent - Image"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Loop Over Items').item.json.text }}",
+        "options": {
+          "systemMessage": "Você é responsável por criar uma variação sutil da mensagem recebida.\nVocê deve enviar no output apenas a mensagem modificada e nada mais."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        2096,
+        1584
+      ],
+      "id": "f4a9fbd5-ed34-4a59-98e7-d5ee2cca4335",
+      "name": "AI Agent - Video"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3066d936-35d6-4374-a734-46e79ba3495a",
+              "name": "output",
+              "value": "={{ $('Loop Over Items').item.json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2032,
+        1312
+      ],
+      "id": "03ffbf1f-6860-4a3a-a618-cea9dada069f",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3066d936-35d6-4374-a734-46e79ba3495a",
+              "name": "output",
+              "value": "={{ $('Loop Over Items').item.json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2112,
+        1760
+      ],
+      "id": "093e1f24-576d-468d-a533-8960d8683a57",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "content": "## MODIFICAÇÃO  DE TEXTO COM IMAGEM COM IA",
+        "height": 440,
+        "width": 860,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1520,
+        1040
+      ],
+      "typeVersion": 1,
+      "id": "3f9f1ed1-c153-4378-bec7-86f748ca9da1",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## MODIFICAÇÃO O DE TEXTO COM VÍDEO COM IA",
+        "height": 440,
+        "width": 860,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1520,
+        1504
+      ],
+      "typeVersion": 1,
+      "id": "e4a90a5a-d543-4dfa-8377-a72d7c1fae4a",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## ENVIO DE AUDIO",
+        "height": 280,
+        "width": 360,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1520,
+        1968
+      ],
+      "typeVersion": 1,
+      "id": "03ea3e48-c35f-4eda-9a3c-1a3ccb616537",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## CHATMODEL",
+        "height": 220,
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2432,
+        592
+      ],
+      "typeVersion": 1,
+      "id": "64d092a4-ccfb-4d6c-8724-f81d6298714b",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "## BUSCA INSTANCIAS",
+        "height": 280,
+        "width": 900
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1888,
+        1072
+      ],
+      "typeVersion": 1,
+      "id": "834c0546-11e7-415a-94c1-127a47d6b467",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "## GERA QR CODE",
+        "height": 280,
+        "width": 900
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1888,
+        752
+      ],
+      "typeVersion": 1,
+      "id": "59d821af-d316-43d7-85f2-94bbd18f5bec",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "content": "## FILE UPLOAD",
+        "height": 280,
+        "width": 900
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1888,
+        432
+      ],
+      "typeVersion": 1,
+      "id": "62fe31a1-4185-4617-ae0a-ea39525a36b1",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "content": "[![Captura-de-Tela-2025-07-18-a-s-12-33-43.png](https://i.postimg.cc/Zqp29rzM/Captura-de-Tela-2025-07-18-a-s-12-33-43.png)](https://postimg.cc/KKcJw3zP)\n\n# Gerador Planejamento de Marketing\n## Etapa 3 do Gerador de Plano de Mídia\n\n## Automatize a IA do Seu Negócio\n### Por BF Labs\n\n# Instruções\n\n## Como Funciona Este Fluxo?\n\nEste fluxo de trabalho foi projetado para transformar automaticamente uma conversa com um cliente em perfis de ICP (Ideal Customer Profile) detalhados e prontos para uso.\n\nO processo começa com o envio de um arquivo (como a transcrição de uma reunião de onboarding) através de um formulário. A partir daí, a IA:\n\n- Lê e interpreta o conteúdo.\n- Extrai as informações mais importantes sobre o negócio do seu cliente e seus alvos.\n- Gera 5 perfis de ICP completos, prontos para guiar suas estratégias de marketing.\n\n# ERROS COMUNS\n\n## 1. data.filter is not a function\n\n### Isso acontece quando você passou em DADOS a \"URL_EVOLUTION\" de maneira incorreta. Ela não pode ter o \"/manager\" e nem \"/\" no final.\n\n### Exemplo: https://evolution.seudominio.com\n\n## 2. Não está chegando o webhook no n8n\n\n### Isso pode acontecer por 2 motivos.\n\n### a) Colocou o webhook em 'DADOS' de maneira incorreta. Deve ser o webhook buscado no nó 'Webhook Do Disparo' e não pode ter o '-test' na url.\n\n### b) Workflow desligado. Seu workflow tem que está ligado.\n\n## 3. Só está enviando mensagem através de uma única instância.\n\n### Bom... isso é porque o token colocado no nó do Evolution foi da instancia que funcionou. Você deve colocar o token global. (É possível pegar no Portainer na Stack do evolution caso você tenha perdido)",
+        "height": 1580,
+        "width": 720,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2688,
+        448
+      ],
+      "typeVersion": 1,
+      "id": "c43552ce-d8ce-4636-86be-173875717858",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "481726d4-e4fe-483f-8ea1-8f257856aaa4",
+              "name": "numero",
+              "value": "={{ $json.body.numero }}",
+              "type": "string"
+            },
+            {
+              "id": "da51efe1-ce16-4897-88aa-d3d020af3888",
+              "name": "tipo_envio",
+              "value": "={{ $json.body.mensagens[0].type }}",
+              "type": "string"
+            },
+            {
+              "id": "c1ab44f9-ad01-4776-9bc1-41c4a5f544db",
+              "name": "usarIA",
+              "value": "={{ $json.body.usarIA }}",
+              "type": "boolean"
+            },
+            {
+              "id": "0485756f-74b2-451e-b221-6165db917036",
+              "name": "instancia",
+              "value": "={{ $json.body.instancia }}",
+              "type": "string"
+            },
+            {
+              "id": "4122b687-9e0c-4216-ab6d-e0cb5f2790e3",
+              "name": "texto",
+              "value": "={{ $json.body.mensagens[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "19234f62-a1e6-4558-8b84-5540c7a052a2",
+              "name": "campaignName",
+              "value": "={{ $json.body.campaignName }}",
+              "type": "string"
+            },
+            {
+              "id": "72c30cd1-aac2-4f79-8862-0b007b8b9d23",
+              "name": "publicTarget",
+              "value": "={{ $json.body.publicTarget }}",
+              "type": "string"
+            },
+            {
+              "id": "534508f9-dc60-423f-bd0d-c9aeabf2cf6e",
+              "name": "content",
+              "value": "={{ $json.body.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        1040
+      ],
+      "id": "199d9069-67eb-416e-89d8-b9e50fca4399",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.dados }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1408,
+        1472
+      ],
+      "id": "732d05b2-87d0-4562-a033-f6ac702ce15f",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "content": "## BUSCA DADOS DB\n",
+        "height": 280,
+        "width": 720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1872,
+        1392
+      ],
+      "typeVersion": 1,
+      "id": "b4ef538b-da82-443c-a006-a0f06715c806",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT json_agg(t) AS dados\nFROM disparador_r7_treinamentos t;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1600,
+        1472
+      ],
+      "id": "6ac4b2ff-9860-423a-b124-55b70219391b",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "VgZRs5RJQl1Lw8LM",
+          "name": "Postgres - BF Labs Cliente Novo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "981bf2ce-1e63-4671-aec7-7c771ed0d0b9",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        1472
+      ],
+      "id": "8a61f0df-6281-4acc-9732-7634e1fd68a2",
+      "name": "busca_dados",
+      "webhookId": "981bf2ce-1e63-4671-aec7-7c771ed0d0b9"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.success }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1408,
+        1824
+      ],
+      "id": "1e32f197-2e67-4fbc-9ff3-e6f790b6dd28",
+      "name": "Respond to Webhook5"
+    },
+    {
+      "parameters": {
+        "content": "## Agenda Campanha\n\n",
+        "height": 280,
+        "width": 720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1872,
+        1744
+      ],
+      "typeVersion": 1,
+      "id": "c32fa601-f92c-4529-aa7e-22f26b0ac34d",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO agendamentos_disparador_r7_treinamentos (\n    campaign_group_id,\n    dispatch_order,\n    campaign_name,\n    public_target,\n    content_description,\n    scheduled_at,\n    contacts_json,\n    selected_instances,\n    message_templates,\n    min_interval_seconds,\n    max_interval_seconds,\n    use_ai\n) VALUES (\n    '{{ $json.body.campaign_group_id }}',\n    {{ $json.body.dispatch_order }},\n    '{{ $json.body.nome_campanha }}',\n    '{{ $json.body.publico_alvo }}',\n    '{{ $json.body.criativo_campanha }}',\n    '{{ $json.body.hora_agendamento }}',\n    '{{ JSON.stringify($json.body.contatos_json) }}'::jsonb,\n    '{{ JSON.stringify($json.body.instancias_selecionadas) }}'::jsonb,\n    '{{ JSON.stringify($json.body.templates_mensagem) }}'::jsonb,\n    {{ $json.body.tempo_min_intervalo }},\n    {{ $json.body.tempo_max_intervalo }},\n    {{ $json.body.usar_ia }}\n);\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1600,
+        1824
+      ],
+      "id": "669be7cf-7b8f-472a-85c3-28230f5befad",
+      "name": "Execute a SQL query1",
+      "credentials": {
+        "postgres": {
+          "id": "VgZRs5RJQl1Lw8LM",
+          "name": "Postgres - BF Labs Cliente Novo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "3a41a296-19ea-4758-893a-40355a79711f",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        1824
+      ],
+      "id": "33467ee4-4ebf-4840-9e02-6f56eabb23b2",
+      "name": "busca_dados1",
+      "webhookId": "3a41a296-19ea-4758-893a-40355a79711f"
+    },
+    {
+      "parameters": {
+        "content": "# Individual",
+        "height": 1968,
+        "width": 3712,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -592,
+        384
+      ],
+      "typeVersion": 1,
+      "id": "2d8c88be-839d-483f-b6ba-296893a8429d",
+      "name": "Sticky Note19"
+    }
+  ],
+  "pinData": {
+    "busca_dados": [
+      {
+        "json": {
+          "headers": {
+            "host": "webhook.bflabs.com.br",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "pt,en-US;q=0.9,en;q=0.8",
+            "if-none-match": "W/\"833-y04PJVtmZO4N6kFN8NO0I0SIOhk\"",
+            "origin": "https://522bwnmyy4mlenfu1g0xqsn29lhghd2scy63v4nabvf97jud9m-h807678934.scf.usercontent.goog",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "177.130.206.102",
+            "x-forwarded-host": "webhook.bflabs.com.br",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "c499a0f4e3cb",
+            "x-real-ip": "177.130.206.102"
+          },
+          "params": {},
+          "query": {},
+          "body": {},
+          "webhookUrl": "https://webhook.bflabs.com.br/webhook/busca-dados-r7",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Webhook do Disparo": [
+      {
+        "json": {
+          "headers": {
+            "host": "webhook.bflabs.com.br",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+            "content-length": "230",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "pt,en-US;q=0.9,en;q=0.8",
+            "content-type": "application/json",
+            "origin": "http://localhost:32100",
+            "priority": "u=1, i",
+            "referer": "http://localhost:32100/",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "177.130.206.102",
+            "x-forwarded-host": "webhook.bflabs.com.br",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "c499a0f4e3cb",
+            "x-real-ip": "177.130.206.102"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "numero": "5585997481913",
+            "mensagens": [
+              {
+                "type": "texto",
+                "text": "opa bf",
+                "mediaUrl": ""
+              }
+            ],
+            "tempoMin": 2,
+            "tempoMax": 5,
+            "usarIA": false,
+            "instancia": "vinicius_R7",
+            "campaignName": "Teste UTM",
+            "publicTarget": "Teste UTM",
+            "content": "Teste UTM"
+          },
+          "webhookUrl": "https://webhook.bflabs.com.br/webhook/disparar",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "busca_dados1": [
+      {
+        "json": {
+          "headers": {
+            "host": "webhook.bflabs.com.br",
+            "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+            "content-length": "423",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "pt,en-US;q=0.9,en;q=0.8",
+            "content-type": "application/json",
+            "origin": "http://localhost:32100",
+            "priority": "u=1, i",
+            "referer": "http://localhost:32100/",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "191.247.28.254",
+            "x-forwarded-host": "webhook.bflabs.com.br",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "c499a0f4e3cb",
+            "x-real-ip": "191.247.28.254"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "campaign_group_id": "273bb7a0-44d8-4d4d-beab-c4923fc38386",
+            "nome_campanha": "teste",
+            "publico_alvo": "teste",
+            "criativo_campanha": "teste",
+            "hora_agendamento": "2025-09-25T12:06:00.000Z",
+            "dispatch_order": 2,
+            "instancias_selecionadas": [
+              "vinicius_R7"
+            ],
+            "templates_mensagem": [
+              {
+                "type": "texto",
+                "text": "teste2",
+                "mediaUrl": ""
+              }
+            ],
+            "usar_ia": false,
+            "tempo_min_intervalo": 2,
+            "tempo_max_intervalo": 5,
+            "contatos_json": [
+              {
+                "telefone": "5585997481913"
+              }
+            ]
+          },
+          "webhookUrl": "https://webhook.bflabs.com.br/webhook/agendamento-campanha",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Usar IA?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Usar IA?1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Usar IA?2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usar IA?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Enviar Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Text",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent - Video",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent - Image",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Finalizar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Texto": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Audio": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Imagem": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Video": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook do Disparo": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualiza qr code": {
+      "main": [
+        [
+          {
+            "node": "gerar qr code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "busca instancias": {
+      "main": [
+        [
+          {
+            "node": "busca instancias1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "busca instancias1": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gerar qr code": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres": {
+      "main": [
+        []
+      ]
+    },
+    "file-upload": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usar IA?1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usar IA?2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Text": {
+      "main": [
+        [
+          {
+            "node": "Enviar Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Image": {
+      "main": [
+        [
+          {
+            "node": "Enviar Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Video": {
+      "main": [
+        [
+          {
+            "node": "Enviar Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Enviar Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Enviar Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "busca_dados": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "busca_dados1": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "Kl36wKoNjiDY3KRx"
+  },
+  "versionId": "8bb91a51-e986-4364-a01f-cb904c92fe26",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "751566cc932306642686734fd2abbe1ef4f93d449a3aa9e767c8b34ff0142d00"
+  },
+  "id": "WWvv4wMejjN3hNSe",
+  "tags": [
+    {
+      "createdAt": "2025-07-22T10:10:43.715Z",
+      "updatedAt": "2025-07-22T10:10:43.715Z",
+      "id": "KMyclNwcpU0JGbci",
+      "name": "Anderson Adelino"
+    }
+  ]
+}

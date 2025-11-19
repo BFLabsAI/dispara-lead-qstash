@@ -15,7 +15,21 @@ import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SidebarProvider } from "./components/ui/sidebar";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000, // 30 segundos
+      cacheTime: 300000, // 5 minutos
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      refetchOnWindowFocus: false, // Não recarregar ao focar janela
+      refetchOnReconnect: true, // Recarregar ao reconectar
+    },
+    mutations: {
+      retry: 1,
+    }
+  }
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

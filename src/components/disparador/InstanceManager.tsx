@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle, XCircle, QrCode, Server, Zap, Link } from "lucide-react";
+import { CheckCircle, XCircle, QrCode, Server, Zap, Link, Search } from "lucide-react";
 import { useDisparadorStore } from "../../store/disparadorStore";
 import { QrDialog } from "./QrDialog";
 import { showError, showSuccess } from "@/utils/toast";
@@ -21,7 +21,7 @@ const WEBHOOK_EVENTS = [
 
 export const InstanceManager = () => {
   const location = useLocation();
-  const { instances, isLoading, loadInstances, resetQr } = useDisparadorStore();
+  const { instances, filteredInstances, instanceFilter, isLoading, loadInstances, resetQr, setInstanceFilter } = useDisparadorStore();
   const [stats, setStats] = useState({ total: 0, connected: 0, disconnected: 0 });
   const [webhookOpen, setWebhookOpen] = useState(false);
   const [webhookInstance, setWebhookInstance] = useState("");
@@ -37,11 +37,11 @@ export const InstanceManager = () => {
   }, [loadInstances]);
 
   useEffect(() => {
-    const total = instances.length;
-    const connected = instances.filter(i => i.connectionStatus === "open" || i.connectionStatus === "connected").length;
+    const total = filteredInstances.length;
+    const connected = filteredInstances.filter(i => i.connectionStatus === "open" || i.connectionStatus === "connected" || i.connectionStatus === "CONNECTED").length;
     const disconnected = total - connected;
     setStats({ total, connected, disconnected });
-  }, [instances]);
+  }, [filteredInstances]);
 
   const openWebhook = (instanceName: string) => {
     setWebhookInstance(instanceName);
@@ -79,6 +79,33 @@ export const InstanceManager = () => {
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4 sm:px-6">
+      {/* Filter UI */}
+      <Card className="glass-card rounded-2xl p-6 shadow-md">
+        <div className="flex items-center gap-3">
+          <Search className="h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder="Filtrar instâncias por nome, status ou dono..."
+            value={instanceFilter}
+            onChange={(e) => setInstanceFilter(e.target.value)}
+            className="flex-1 h-11"
+          />
+          {instanceFilter && (
+            <Button
+              variant="outline"
+              onClick={() => setInstanceFilter('')}
+              className="px-4"
+            >
+              Limpar
+            </Button>
+          )}
+        </div>
+        {instanceFilter && (
+          <div className="mt-3 text-sm text-muted-foreground">
+            Mostrando {filteredInstances.length} de {instances.length} instâncias
+          </div>
+        )}
+      </Card>
+
       {/* Stats - estilo semelhante aos KPIs do dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="glass-card animate-slide-in-up rounded-2xl shadow-md p-6 gradient-primary text-white">
@@ -120,17 +147,24 @@ export const InstanceManager = () => {
 
       {/* Lista de instâncias */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {instances.length === 0 ? (
+        {filteredInstances.length === 0 ? (
           <Card className="col-span-full glass-card rounded-2xl p-14 text-center shadow-md">
             <QrCode className="h-16 w-16 mx-auto mb-4 text-emerald-600 dark:text-emerald-400" />
-            <h3 className="text-2xl font-semibold mb-2">Nenhuma instância</h3>
-            <p className="text-muted-foreground mb-6">Crie suas primeiras conexões para começar a disparar.</p>
+            <h3 className="text-2xl font-semibold mb-2">
+              {instanceFilter ? "Nenhuma instância encontrada" : "Nenhuma instância"}
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              {instanceFilter
+                ? "Tente ajustar o filtro para encontrar suas conexões."
+                : "Crie suas primeiras conexões para começar a disparar."
+              }
+            </p>
             <Button onClick={loadInstances} className="btn-premium">
               <i className="fas fa-sync-alt mr-2" /> Atualizar
             </Button>
           </Card>
         ) : (
-          instances.map((instance, index) => (
+          filteredInstances.map((instance, index) => (
             <InstanceCard
               key={instance.name}
               instance={instance}

@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label";
 import { CalendarIcon, Filter, X, Server, Tag, Megaphone, Users, Palette } from "lucide-react";
 import { format } from "date-fns";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DateRange } from "react-day-picker";
 
 interface FiltersProps {
@@ -38,9 +38,13 @@ export const Filters = ({
     to: undefined,
   });
 
-  useEffect(() => {
+  const handleFilterChange = useCallback(() => {
     onFilterChange({ instance, tipo, campaign, publico, criativo, dateRange });
   }, [instance, tipo, campaign, publico, criativo, dateRange, onFilterChange]);
+
+  useEffect(() => {
+    handleFilterChange();
+  }, [handleFilterChange]);
 
   const handleReset = () => {
     setInstance("all");
