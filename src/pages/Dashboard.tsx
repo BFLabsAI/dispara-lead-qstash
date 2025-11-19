@@ -14,8 +14,11 @@ import { getDashboardDataAll, getDashboardDataPaginated } from "../services/dash
 import { PageHeader } from "@/components/layout/PageHeader";
 import { RefreshCw } from "lucide-react";
 
+import { useAdminStore } from "@/store/adminStore";
+
 export const Dashboard = () => {
   const queryClient = useQueryClient();
+  const impersonatedTenantId = useAdminStore((state) => state.impersonatedTenantId);
   const [filters, setFilters] = useState<any>({
     instance: "all",
     tipo: "all",
@@ -32,7 +35,7 @@ export const Dashboard = () => {
     error,
     refetch
   } = useQuery({
-    queryKey: ['dashboardData', 'all'],
+    queryKey: ['dashboardData', 'all', impersonatedTenantId],
     queryFn: () => getDashboardDataAll(),
     staleTime: 30000, // 30 segundos - considera dados frescos
     gcTime: 300000, // 5 minutos - mantém no cache (renamed from cacheTime in v5)

@@ -13,8 +13,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     schema: 'public',
   },
   auth: {
-    persistSession: false,
-    autoRefreshToken: false,
+    persistSession: true, // Changed to true to persist auth state
+    autoRefreshToken: true, // Changed to true for better UX
   },
   global: {
     headers: {
@@ -41,8 +41,26 @@ export interface DisparadorData {
   criativo: string;
   tipo_campanha: string;
   created_at?: string;
-  id?: number;
+  id?: number | string; // Changed to allow UUID
 }
+
+// Helper to map new SaaS schema to legacy interface
+const mapSaaSLogToDisparadorData = (log: any): DisparadorData => {
+  return {
+    id: log.id,
+    numero: log.phone_number,
+    tipo_envio: log.status === 'sent' ? 'sucesso' : 'falha',
+    usaria: log.metadata?.usaria || false,
+    usarIA: log.metadata?.usaria || false,
+    instancia: log.instance_name,
+    texto: log.message_content,
+    nome_campanha: log.campaign_name,
+    publico: log.metadata?.publico || '',
+    criativo: log.metadata?.criativo || '',
+    tipo_campanha: log.campaign_type,
+    created_at: log.created_at
+  };
+};
 
 // Retry utility for exponential backoff
 const retryWithBackoff = async <T>(
@@ -73,7 +91,11 @@ const retryWithBackoff = async <T>(
   throw new Error('Max retries exceeded');
 };
 
-// Fetch paginated data from disparador_r7_treinamentos table with retry logic
+import { useAdminStore } from '@/store/adminStore';
+
+// ... (existing imports)
+
+// Fetch paginated data from message_logs_dispara_lead_saas table with retry logic
 export async function fetchDisparadorDataPaginated(
   page: number = 1,
   pageSize: number = 50,
@@ -86,32 +108,29 @@ export async function fetchDisparadorDataPaginated(
   }
 ): Promise<{ data: DisparadorData[], count: number }> {
   const operation = async () => {
+    const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+
     // Build the query with optimized column selection
     let query = supabase
-      .from('disparador_r7_treinamentos')
-      .select(`
-        id,
-        numero,
-        tipo_envio,
-        usaria,
-        instancia,
-        texto,
-        nome_campanha,
-        publico,
-        criativo,
-        tipo_campanha,
-        created_at
-      `, { count: 'exact', head: false });
+      .from('message_logs_dispara_lead_saas')
+      .select('*', { count: 'exact', head: false });
+
+    // Apply impersonation filter if set
+    if (impersonatedTenantId) {
+      query = query.eq('tenant_id', impersonatedTenantId);
+    }
 
     // Apply filters efficiently
     if (filters?.instance) {
-      query = query.eq('instancia', filters.instance);
+      query = query.eq('instance_name', filters.instance);
     }
     if (filters?.tipo) {
-      query = query.eq('tipo_envio', filters.tipo);
+      // Map legacy filter 'sucesso'/'falha' to 'sent'/'failed'
+      const status = filters.tipo === 'sucesso' ? 'sent' : (filters.tipo === 'falha' ? 'failed' : filters.tipo);
+      query = query.eq('status', status);
     }
     if (filters?.campaign) {
-      query = query.eq('nome_campanha', filters.campaign);
+      query = query.eq('campaign_name', filters.campaign);
     }
     if (filters?.dateStart) {
       query = query.gte('created_at', filters.dateStart);
@@ -133,7 +152,9 @@ export async function fetchDisparadorDataPaginated(
       throw new Error(`Database query failed: ${error.message}`);
     }
 
-    return { data: data || [], count: count || 0 };
+    const mappedData = (data || []).map(mapSaaSLogToDisparadorData);
+
+    return { data: mappedData, count: count || 0 };
   };
 
   try {
@@ -149,7 +170,8 @@ const recentDataCache = new Map<string, { data: DisparadorData[], timestamp: num
 const CACHE_TTL = 30000; // 30 seconds
 
 export async function fetchRecentDisparadorData(limit: number = 100): Promise<DisparadorData[]> {
-  const cacheKey = `recent_${limit}`;
+  const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+  const cacheKey = `recent_${limit}_${impersonatedTenantId || 'all'}`;
   const cached = recentDataCache.get(cacheKey);
 
   // Return cached data if still valid
@@ -158,30 +180,24 @@ export async function fetchRecentDisparadorData(limit: number = 100): Promise<Di
   }
 
   const operation = async () => {
-    const { data, error } = await supabase
-      .from('disparador_r7_treinamentos')
-      .select(`
-        id,
-        numero,
-        tipo_envio,
-        usaria,
-        instancia,
-        texto,
-        nome_campanha,
-        publico,
-        criativo,
-        tipo_campanha,
-        created_at
-      `)
+    let query = supabase
+      .from('message_logs_dispara_lead_saas')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    if (impersonatedTenantId) {
+      query = query.eq('tenant_id', impersonatedTenantId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching recent disparador data:', error);
       throw new Error(`Failed to fetch recent data: ${error.message}`);
     }
 
-    return data || [];
+    return (data || []).map(mapSaaSLogToDisparadorData);
   };
 
   try {
@@ -206,6 +222,7 @@ export async function fetchRecentDisparadorData(limit: number = 100): Promise<Di
 // Legacy function - now optimized to fetch all data recursively
 export async function fetchAllDisparadorData(): Promise<DisparadorData[]> {
   const operation = async () => {
+    const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
     let allData: DisparadorData[] = [];
     let page = 0;
     const pageSize = 1000; // Supabase default limit
@@ -215,23 +232,17 @@ export async function fetchAllDisparadorData(): Promise<DisparadorData[]> {
       const from = page * pageSize;
       const to = from + pageSize - 1;
 
-      const { data, error } = await supabase
-        .from('disparador_r7_treinamentos')
-        .select(`
-          id,
-          numero,
-          tipo_envio,
-          usaria,
-          instancia,
-          texto,
-          nome_campanha,
-          publico,
-          criativo,
-          tipo_campanha,
-          created_at
-        `)
+      let query = supabase
+        .from('message_logs_dispara_lead_saas')
+        .select('*')
         .order('created_at', { ascending: false })
         .range(from, to);
+
+      if (impersonatedTenantId) {
+        query = query.eq('tenant_id', impersonatedTenantId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching disparador data chunk:', error);
@@ -240,7 +251,7 @@ export async function fetchAllDisparadorData(): Promise<DisparadorData[]> {
 
       if (data) {
         console.log(`Fetched page ${page}, items: ${data.length}`);
-        allData = [...allData, ...data];
+        allData = [...allData, ...data.map(mapSaaSLogToDisparadorData)];
         if (data.length < pageSize) {
           hasMore = false;
         } else {
@@ -273,8 +284,14 @@ export function subscribeToDisparadorUpdates(
   const maxRetries = 5;
 
   const createChannel = () => {
+    const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+    let filter = undefined;
+    if (impersonatedTenantId) {
+      filter = `tenant_id=eq.${impersonatedTenantId}`;
+    }
+
     const channel = supabase
-      .channel('disparador_r7_treinamentos_changes', {
+      .channel('message_logs_changes', {
         config: {
           broadcast: { self: false },
           presence: { key: 'dashboard' },
@@ -285,12 +302,14 @@ export function subscribeToDisparadorUpdates(
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'disparador_r7_treinamentos'
+          table: 'message_logs_dispara_lead_saas',
+          filter: filter
         },
         async (payload) => {
           try {
             // Invalidate cache on new data
             recentDataCache.clear();
+            statsCache.clear(); // Also clear stats cache
 
             const recentData = await fetchRecentDisparadorData(initialLimit);
             callback(recentData);
@@ -347,7 +366,8 @@ const statsCache = new Map<string, { data: any, timestamp: number }>();
 const STATS_CACHE_TTL = 60000; // 1 minute
 
 export async function getDashboardStatsOptimized() {
-  const cacheKey = 'dashboard_stats';
+  const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+  const cacheKey = `dashboard_stats_${impersonatedTenantId || 'all'}`;
   const cached = statsCache.get(cacheKey);
 
   if (cached && Date.now() - cached.timestamp < STATS_CACHE_TTL) {
@@ -355,17 +375,22 @@ export async function getDashboardStatsOptimized() {
   }
 
   const operation = async () => {
-    // Use a more efficient query with specific columns - remove artificial limit
-    const { data, error } = await supabase
-      .from('disparador_r7_treinamentos')
-      .select('tipo_envio, usaria, instancia, nome_campanha')
+    let query = supabase
+      .from('message_logs_dispara_lead_saas')
+      .select('*')
       .order('created_at', { ascending: false });
+
+    if (impersonatedTenantId) {
+      query = query.eq('tenant_id', impersonatedTenantId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new Error(`Failed to fetch dashboard stats: ${error.message}`);
     }
 
-    return getDisparadorStats(data as any[]);
+    return getDisparadorStats(data?.map(mapSaaSLogToDisparadorData) as any[]);
   };
 
   try {
@@ -440,7 +465,7 @@ export function getDisparadorStats(data: DisparadorData[]) {
 export async function checkSupabaseConnection(): Promise<boolean> {
   try {
     const { data, error } = await supabase
-      .from('disparador_r7_treinamentos')
+      .from('message_logs_dispara_lead_saas')
       .select('id')
       .limit(1);
 

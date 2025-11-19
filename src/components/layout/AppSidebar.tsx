@@ -1,14 +1,14 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, LayoutDashboard, Server, Send, Settings, CalendarDays,
-  MessageSquare, HardDrive, Link as LinkIcon, Bot, // Importar o ícone Bot
-  ChevronLeft, ChevronRight, Sun, Moon
+  MessageSquare, HardDrive, Link as LinkIcon, Bot,
+  ChevronLeft, ChevronRight, Sun, Moon, Building
 } from 'lucide-react';
 import {
   Accordion,
@@ -23,18 +23,91 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAdminStore } from "@/store/adminStore";
+import { supabase } from "@/services/supabaseClient";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const AppSidebar = () => {
   const { theme, toggleTheme } = useTheme();
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const location = useLocation();
+  const impersonatedTenantId = useAdminStore((state) => state.impersonatedTenantId);
+  const setImpersonatedTenantId = useAdminStore((state) => state.setImpersonatedTenantId);
+  const setAdminTenantId = useAdminStore((state) => state.setAdminTenantId);
+  const adminTenantId = useAdminStore((state) => state.adminTenantId);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  // Lógica para selecionar a logo com base no estado da sidebar e no tema
+  const [adminTenant, setAdminTenant] = useState<any>(null);
+
+  useEffect(() => {
+    checkSuperAdmin();
+  }, []);
+
+  // Initialize impersonatedTenantId to adminTenantId if null (to prevent showing ALL data)
+  useEffect(() => {
+    if (isSuperAdmin && adminTenantId && !impersonatedTenantId) {
+      setImpersonatedTenantId(adminTenantId);
+    }
+  }, [isSuperAdmin, adminTenantId, impersonatedTenantId]);
+
+  const checkSuperAdmin = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase.rpc('is_super_admin');
+    if (data) {
+      setIsSuperAdmin(true);
+      fetchTenants();
+      fetchAdminTenant(user.id);
+    }
+  };
+
+  const fetchAdminTenant = async (userId: string) => {
+    const { data } = await supabase
+      .from('users_dispara_lead_saas')
+      .select('tenant_id, tenants_dispara_lead_saas(name)')
+      .eq('id', userId)
+      .single();
+
+    if (data && data.tenants_dispara_lead_saas) {
+      const tenantId = data.tenant_id;
+      setAdminTenant({
+        id: tenantId,
+        name: (data.tenants_dispara_lead_saas as any).name
+      });
+      setAdminTenantId(tenantId);
+
+      // If no impersonation is set, default to own tenant
+      if (!impersonatedTenantId) {
+        setImpersonatedTenantId(tenantId);
+      }
+    }
+  };
+
+  const fetchTenants = async () => {
+    const { data } = await supabase.from('tenants_dispara_lead_saas').select('id, name, slug');
+    setTenants(data || []);
+  };
+
+  const handleTenantChange = (value: string) => {
+    if (value === 'all') {
+      // When selecting "Minha Conta", set to adminTenantId instead of null
+      // This ensures we filter by the admin's tenant ID and don't show ALL data
+      if (adminTenantId) {
+        setImpersonatedTenantId(adminTenantId);
+      }
+    } else {
+      setImpersonatedTenantId(value);
+    }
+  };
+
+  // ... (logo logic)
   let logoSrc: string;
   if (isSidebarOpen) {
-    logoSrc = theme === 'dark' ? '/3.png' : '/2.png'; // Logos completas
+    logoSrc = theme === 'dark' ? '/3.png' : '/2.png';
   } else {
-    logoSrc = theme === 'dark' ? '/icon dark.png' : '/icon white.png'; // Logos de ícone
+    logoSrc = theme === 'dark' ? '/icon dark.png' : '/icon white.png';
   }
 
   const navItems = [
@@ -49,7 +122,7 @@ export const AppSidebar = () => {
         { name: 'Agendar Campanha', href: '/agendar-campanha', icon: CalendarDays },
       ],
     },
-    { name: 'Copy Agent', href: '/copy-agent', icon: Bot, type: 'link' }, // Novo item de navegação
+    { name: 'Copy Agent', href: '/copy-agent', icon: Bot, type: 'link' },
     {
       name: 'Configurações',
       icon: Settings,
@@ -65,7 +138,7 @@ export const AppSidebar = () => {
     <aside
       className={cn(
         "fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out",
-        isSidebarOpen ? "w-64" : "w-[72px]", // Largura dinâmica
+        isSidebarOpen ? "w-64" : "w-[72px]",
         "bg-sidebar dark:bg-gray-900 dark:border-r dark:border-gray-800"
       )}
     >
@@ -76,14 +149,47 @@ export const AppSidebar = () => {
             <img
               src={logoSrc}
               alt="DisparaLead Logo"
-              className={cn("w-auto transition-all duration-300", isSidebarOpen ? "h-24" : "h-10")} // Altura dinâmica do logo
+              className={cn("w-auto transition-all duration-300", isSidebarOpen ? "h-24" : "h-10")}
             />
           </Link>
         </div>
 
+        {/* Tenant Switcher for Super Admin */}
+        {isSuperAdmin && isSidebarOpen && (
+          <div className="p-4 border-b border-border">
+            <div className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Navegar como:
+            </div>
+            <Select
+              value={impersonatedTenantId || 'all'}
+              onValueChange={handleTenantChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione uma conta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <span className="font-medium">{adminTenant ? adminTenant.name : 'Minha Conta'}</span>
+                </SelectItem>
+                {tenants.filter(t => t.id !== adminTenant?.id).map((tenant) => (
+                  <SelectItem key={tenant.id} value={tenant.id}>
+                    {tenant.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {isSuperAdmin && !isSidebarOpen && (
+          <div className="p-4 border-b border-border flex justify-center">
+            <Building className="h-5 w-5 text-muted-foreground" />
+          </div>
+        )}
+
         {/* Links de Navegação */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           {navItems.map((item) => {
+            // ... (rest of the component remains same)
             const isActive = item.type === 'link' ? location.pathname === item.href : item.subItems?.some(sub => location.pathname === sub.href);
 
             if (item.type === 'link') {
@@ -105,7 +211,6 @@ export const AppSidebar = () => {
               );
             } else if (item.type === 'accordion' && item.subItems) {
               if (isSidebarOpen) {
-                // Renderiza como Accordion quando a sidebar está aberta
                 return (
                   <Accordion type="single" collapsible key={item.name} className="w-full">
                     <AccordionItem value={item.name} className="border-none">
@@ -116,12 +221,11 @@ export const AppSidebar = () => {
                           isActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground"
                             : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                          "group [&[data-state=open]>svg]:rotate-0" // Seta fixa (não gira)
+                          "group [&[data-state=open]>svg]:rotate-0"
                         )}
                       >
                         <item.icon className="h-5 w-5" />
                         <span>{item.name}</span>
-                        {/* A seta padrão do AccordionTrigger é renderizada automaticamente pelo componente */}
                       </AccordionTrigger>
                       <AccordionContent className="pb-0">
                         <div className="ml-8 space-y-1">
@@ -149,7 +253,6 @@ export const AppSidebar = () => {
                   </Accordion>
                 );
               } else {
-                // Renderiza como DropdownMenu quando a sidebar está recolhida
                 return (
                   <DropdownMenu key={item.name}>
                     <DropdownMenuTrigger asChild>
@@ -164,7 +267,7 @@ export const AppSidebar = () => {
                         )}
                       >
                         <item.icon className="h-5 w-5" />
-                        <span className="sr-only">{item.name}</span> {/* Rótulo acessível para leitores de tela */}
+                        <span className="sr-only">{item.name}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="right" align="start" className="w-48">
@@ -196,20 +299,20 @@ export const AppSidebar = () => {
           })}
         </nav>
 
-        {/* Alternador de Tema (apenas ícone clicável) */}
+        {/* Alternador de Tema */}
         <div className={cn("p-4 border-t border-border flex items-center", isSidebarOpen ? "justify-between" : "justify-center")}>
           {isSidebarOpen && <span className="text-sm text-sidebar-foreground">Modo Escuro</span>}
           <Button
             variant="ghost"
-            size="icon" // Botão pequeno, apenas com ícone
+            size="icon"
             onClick={toggleTheme}
             className={cn(
               "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              !isSidebarOpen && "w-full" // Ocupa a largura total quando recolhido para facilitar o clique
+              !isSidebarOpen && "w-full"
             )}
           >
             {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-            <span className="sr-only">Alternar tema</span> {/* Rótulo acessível */}
+            <span className="sr-only">Alternar tema</span>
           </Button>
         </div>
 

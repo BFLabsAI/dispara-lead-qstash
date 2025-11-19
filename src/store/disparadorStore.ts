@@ -283,26 +283,28 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
 
   scheduleCampaign: async (params) => {
     try {
+      // Get current user to get tenant_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado.");
+
+      const { data: profile } = await supabase.from('users_dispara_lead_saas').select('tenant_id').eq('id', user.id).single();
+      if (!profile) throw new Error("Perfil de usuário não encontrado.");
+
       // Map params to the existing table structure
       const campaignData = {
-        campaign_group_id: params.campaignGroupId,
-        dispatch_order: params.dispatchOrder,
+        tenant_id: profile.tenant_id,
         campaign_name: params.campaignName,
-        public_target: params.publicTarget,
-        content_description: params.content, // Mapped from content
         scheduled_at: params.horaAgendamento,
-        contacts_json: params.contatos,
-        selected_instances: params.instances,
-        message_templates: params.templates,
-        min_interval_seconds: params.tempoMin,
-        max_interval_seconds: params.tempoMax,
-        use_ai: params.usarIA,
         status: 'pending',
+        contacts_json: params.contatos,
+        message_template: params.templates,
+        instance_names: params.instances,
+        created_by: user.id,
         created_at: new Date().toISOString()
       };
 
       const { error } = await supabase
-        .from('agendamentos_disparador_r7_treinamentos')
+        .from('schedules_dispara_lead_saas')
         .insert(campaignData);
 
       if (error) {
@@ -351,12 +353,31 @@ async function saveMessageLog(logData: {
   tipo_campanha: string;
 }) {
   try {
-    const { error } = await supabase
-      .from('disparador_r7_treinamentos')
-      .insert(logData);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase.from('users_dispara_lead_saas').select('tenant_id').eq('id', user.id).single();
+      if (profile) {
+        const { error } = await supabase
+          .from('message_logs_dispara_lead_saas')
+          .insert({
+            tenant_id: profile.tenant_id,
+            instance_name: logData.instancia,
+            phone_number: logData.numero,
+            message_content: logData.texto,
+            status: logData.tipo_envio === 'sucesso' ? 'sent' : 'failed',
+            campaign_name: logData.nome_campanha,
+            campaign_type: logData.tipo_campanha,
+            metadata: {
+              publico: logData.publico,
+              criativo: logData.criativo,
+              usaria: logData.usarIA
+            }
+          });
 
-    if (error) {
-      console.error('Error saving message log:', error);
+        if (error) {
+          console.error('Error saving message log:', error);
+        }
+      }
     }
   } catch (error) {
     console.error('Error saving message log:', error);

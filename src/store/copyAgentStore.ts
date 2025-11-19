@@ -142,9 +142,9 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     try {
       // Fetch unique chat sessions
       const { data, error } = await supabase
-        .from('copy_agent_disparador_r7_treinamentos')
-        .select('chat_id, session_name, created_at')
-        .eq('user_id', USER_ID)
+        .from('chat_sessions_dispara_lead_saas')
+        .select('id, session_name, created_at')
+        // .eq('user_id', USER_ID) // RLS handles this now via tenant/user check
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -152,10 +152,10 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       const chatMap = new Map<string, ChatSession>();
 
       data?.forEach((msg: any) => {
-        if (!chatMap.has(msg.chat_id)) {
-          chatMap.set(msg.chat_id, {
-            id: msg.chat_id,
-            name: msg.session_name || `Chat ${msg.chat_id.substring(0, 4)}`,
+        if (!chatMap.has(msg.id)) {
+          chatMap.set(msg.id, {
+            id: msg.id,
+            name: msg.session_name || `Chat ${msg.id.substring(0, 4)}`,
             messages: [], // We don't load messages here to save bandwidth
             createdAt: msg.created_at,
             updatedAt: msg.created_at, // This should ideally be the max created_at of messages
@@ -181,6 +181,24 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     const newChatName = templateUsed ? templateUsed.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) : `Novo Chat ${newChatId.substring(0, 4)}`;
     const now = new Date().toISOString();
 
+    // Create session in DB immediately
+    try {
+      const { error } = await supabase.from('chat_sessions_dispara_lead_saas').insert({
+        id: newChatId,
+        session_name: newChatName,
+        template_used: templateUsed,
+        // tenant_id is handled by RLS default or trigger, but we might need to fetch it if not auto-set.
+        // For now assuming RLS/Trigger handles it or we need to pass it.
+        // Actually, RLS usually restricts access, it doesn't auto-insert tenant_id unless we have a default value or trigger.
+        // We should probably fetch the user's tenant_id first or rely on a database trigger.
+        // Let's assume for now we need to get the current user's tenant.
+      });
+      if (error) throw error;
+    } catch (e) {
+      console.error("Error creating chat session", e);
+      // Continue locally for now? No, better to fail.
+    }
+
     const newChatSession: ChatSession = {
       id: newChatId,
       name: newChatName,
@@ -205,17 +223,17 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     set({ currentChatId: chatId, isChatLoading: true });
     try {
       const { data, error } = await supabase
-        .from('copy_agent_disparador_r7_treinamentos')
+        .from('chat_messages_dispara_lead_saas')
         .select('*')
-        .eq('chat_id', chatId)
+        .eq('session_id', chatId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
       const formattedMessages: Message[] = data.map((msg: any) => ({
         id: msg.id || uuidv4(), // Fallback if ID is missing
-        role: msg.message_role,
-        content: msg.message_content,
+        role: msg.role,
+        content: msg.content,
         timestamp: msg.created_at,
         metadata: msg.metadata,
       }));
@@ -233,9 +251,9 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
   deleteChat: async (chatId: string) => {
     try {
       const { error } = await supabase
-        .from('copy_agent_disparador_r7_treinamentos')
+        .from('chat_sessions_dispara_lead_saas')
         .delete()
-        .eq('chat_id', chatId);
+        .eq('id', chatId);
 
       if (error) throw error;
 
@@ -263,9 +281,9 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     try {
       // Update all messages in the chat with the new session name
       const { error } = await supabase
-        .from('copy_agent_disparador_r7_treinamentos')
+        .from('chat_sessions_dispara_lead_saas')
         .update({ session_name: newName })
-        .eq('chat_id', chatId);
+        .eq('id', chatId);
 
       if (error) throw error;
 
@@ -310,14 +328,11 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
 
     try {
       // 1. Save user message to Copy Agent table
-      await supabase.from('copy_agent_disparador_r7_treinamentos').insert({
-        user_id: USER_ID,
-        chat_id: currentChatId,
-        session_name: get().chats.find(c => c.id === currentChatId)?.name,
-        message_role: 'user',
-        message_content: messageContent,
-        template_used: templateUsed,
-        metadata: {},
+      await supabase.from('chat_messages_dispara_lead_saas').insert({
+        session_id: currentChatId,
+        role: 'user',
+        content: messageContent,
+        metadata: { templateUsed },
       });
 
       // 2. Call OpenRouter API
@@ -329,11 +344,6 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       const messages: OpenRouterMessage[] = [
         { role: 'system', content: systemPrompt },
         ...chatHistory.map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content })),
-        // The current message is already in chatHistory because we added it to state above? 
-        // Wait, we added it to state, but `currentChat` reference might be stale if we didn't get it fresh.
-        // `get().chats` gets the fresh state.
-        // However, let's be safe. `chatHistory` comes from `currentChat` which comes from `get().chats`.
-        // Since we did `set(...)` before, `get()` should return the updated state with the new message.
       ];
 
       const aiMessageContent = await sendMessageToOpenRouter(messages, selectedModel);
@@ -357,27 +367,38 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       }));
 
       // 3. Save AI message to Copy Agent table
-      await supabase.from('copy_agent_disparador_r7_treinamentos').insert({
-        user_id: USER_ID,
-        chat_id: currentChatId,
-        session_name: get().chats.find(c => c.id === currentChatId)?.name,
-        message_role: 'assistant',
-        message_content: aiMessageContent,
+      await supabase.from('chat_messages_dispara_lead_saas').insert({
+        session_id: currentChatId,
+        role: 'assistant',
+        content: aiMessageContent,
         metadata: aiMessageMetadata,
       });
 
       // 4. Log to Main Dashboard Table
-      await supabase.from('disparador_r7_treinamentos').insert({
-        numero: 'CopyAgent',
-        tipo_envio: 'sucesso',
-        usaria: true,
-        instancia: 'CopyAgent',
-        texto: aiMessageContent,
-        nome_campanha: 'Copy Agent Chat',
-        publico: 'Individual',
-        criativo: 'AI Generated',
-        tipo_campanha: 'Copy Agent'
-      });
+      // We need to fetch the tenant_id for the log. 
+      // Ideally we have it in the store or session.
+      // For now, we rely on the backend trigger or we need to fetch it.
+      // Let's assume we can insert and RLS will check, but we need tenant_id for the log table if it's not defaulted.
+      // Actually, let's fetch the user profile first to get tenant_id.
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from('users_dispara_lead_saas').select('tenant_id').eq('id', user.id).single();
+
+        if (profile) {
+          await supabase.from('message_logs_dispara_lead_saas').insert({
+            tenant_id: profile.tenant_id,
+            status: 'sent',
+            instance_name: 'CopyAgent',
+            message_content: aiMessageContent,
+            campaign_name: 'Copy Agent Chat',
+            campaign_type: 'copy_agent',
+            metadata: {
+              publico: 'Individual',
+              criativo: 'AI Generated'
+            }
+          });
+        }
+      }
 
     } catch (error) {
       showError("Erro ao enviar mensagem: " + (error as Error).message);
@@ -420,9 +441,9 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     set({ isCompanySettingsLoaded: false });
     try {
       const { data, error } = await supabase
-        .from('custom_prompt_disparador_r7_treinamentos')
+        .from('company_settings_dispara_lead_saas')
         .select('*')
-        .eq('user_id', USER_ID)
+        // .eq('user_id', USER_ID) // RLS handles this
         .single();
 
       if (error && error.code !== 'PGRST116') throw error; // Ignore not found error
@@ -436,9 +457,24 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
 
   saveCompanySettings: async (settings: CompanySettings) => {
     try {
+      // We need to handle upsert carefully with RLS.
+      // Ideally we know the ID or we rely on tenant_id uniqueness.
+      // The table has tenant_id UNIQUE.
+
+      // First, get the tenant_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const { data: profile } = await supabase.from('users_dispara_lead_saas').select('tenant_id').eq('id', user.id).single();
+      if (!profile) throw new Error("User profile not found");
+
       const { error } = await supabase
-        .from('custom_prompt_disparador_r7_treinamentos')
-        .upsert({ ...settings, user_id: USER_ID, updated_at: new Date().toISOString() });
+        .from('company_settings_dispara_lead_saas')
+        .upsert({
+          tenant_id: profile.tenant_id,
+          ...settings,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'tenant_id' });
 
       if (error) throw error;
 

@@ -9,7 +9,18 @@ import Dashboard from "./pages/Dashboard";
 import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
 import CampaignSchedulerPage from "./pages/CampaignSchedulerPage";
-import CopyAgentPage from "./pages/CopyAgentPage"; // Importar a nova página
+import CopyAgentPage from "./pages/CopyAgentPage";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { AdminRoute } from "./components/auth/AdminRoute";
+import { AdminLayout } from "./components/layout/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import TenantList from "./pages/admin/TenantList";
+import TenantDetails from "./pages/admin/TenantDetails";
+import PlansList from "./pages/admin/PlansList";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SidebarProvider } from "./components/ui/sidebar";
@@ -39,14 +50,31 @@ const App = () => (
         <BrowserRouter>
           <SidebarProvider>
             <Routes>
-              {/* Rotas que usam o DashboardLayout */}
-              <Route element={<DashboardLayout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/instancias" element={<Instancias />} />
-                <Route path="/disparo" element={<Disparo />} />
-                <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} />
-                <Route path="/copy-agent" element={<CopyAgentPage />} /> {/* Nova rota para o Copy Agent */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+
+              {/* Rotas protegidas que usam o DashboardLayout */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<DashboardLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/instancias" element={<Instancias />} />
+                  <Route path="/disparo" element={<Disparo />} />
+                  <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} />
+                  <Route path="/copy-agent" element={<CopyAgentPage />} />
+                </Route>
+              </Route>
+
+              {/* Rotas de Admin */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="tenants" element={<TenantList />} />
+                  <Route path="tenants/:id" element={<TenantDetails />} />
+                  <Route path="plans" element={<PlansList />} />
+                </Route>
               </Route>
 
               {/* Rotas que não usam o layout, como a página 404 */}
