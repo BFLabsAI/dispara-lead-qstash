@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Filters } from "@/components/dashboard/Filters";
 import { KPIs } from "@/components/dashboard/KPIs";
 import { Charts } from "@/components/dashboard/Charts";
-import { DashboardTable } from "@/components/dashboard/Table";
 import { supabase } from "../services/supabaseClient";
 import { getDashboardDataAll, getDashboardDataPaginated } from "../services/dashboardService";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -165,7 +164,7 @@ export const Dashboard = () => {
       />
       <KPIs totalEnvios={totalEnvios} totalIA={totalIA} totalSemIA={totalSemIA} />
       <Charts filteredData={filteredData} />
-      <DashboardTable data={filteredData} />
+      <Charts filteredData={filteredData} />
     </div>
   );
 };

@@ -4,7 +4,7 @@
 const EVOLUTION_API_URL = 'https://api.bflabs.com.br';
 const EVOLUTION_API_KEY = '9a38befe6a9f6938cd70cb769c66357d';
 
-interface EvolutionInstance {
+export interface EvolutionInstance {
   name: string;
   status: 'CONNECTED' | 'DISCONNECTED' | 'CONNECTING' | 'QRCODE';
   owner?: string;
@@ -57,6 +57,7 @@ export async function fetchAllInstances(): Promise<EvolutionInstance[]> {
       status: instance.connectionStatus || 'DISCONNECTED',
       owner: instance.owner,
       profilePicUrl: instance.profilePicUrl,
+      apiKey: instance.token || instance.apiKey, // Capture token/apiKey
     }));
   } catch (error) {
     console.error('Error fetching instances:', error);

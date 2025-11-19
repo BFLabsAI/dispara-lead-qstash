@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/services/supabaseClient";
 import { Button } from "@/components/ui/button";
@@ -12,16 +12,44 @@ import { Trash2, Plus, RefreshCw, LayoutDashboard, Pencil } from "lucide-react";
 import { useAdminStore } from "@/store/adminStore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fetchAllInstances, type EvolutionInstance } from "@/services/evolutionApi";
+
+interface Tenant {
+    id: string;
+    name: string;
+    slug: string;
+    status: 'active' | 'inactive' | 'suspended';
+    plan_id: string | null;
+}
+
+interface User {
+    id: string;
+    email: string;
+    full_name: string;
+    role: string;
+}
+
+interface Instance {
+    id: string;
+    instance_name: string;
+    status: string;
+    connection_status: string;
+}
+
+interface Plan {
+    id: string;
+    name: string;
+}
 
 export default function TenantDetails() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { toast } = useToast();
     const setImpersonatedTenantId = useAdminStore((state) => state.setImpersonatedTenantId);
-    const [tenant, setTenant] = useState<any>(null);
-    const [users, setUsers] = useState<any[]>([]);
-    const [instances, setInstances] = useState<any[]>([]);
-    const [plans, setPlans] = useState<any[]>([]);
+    const [tenant, setTenant] = useState<Tenant | null>(null);
+    const [users, setUsers] = useState<User[]>([]);
+    const [instances, setInstances] = useState<Instance[]>([]);
+    const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(true);
     const [newInstanceName, setNewInstanceName] = useState("");
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -38,11 +66,7 @@ export default function TenantDetails() {
         plan_id: ""
     });
 
-    useEffect(() => {
-        if (id) loadData();
-    }, [id]);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         setLoading(true);
         try {
             // Load Tenant
@@ -73,7 +97,25 @@ export default function TenantDetails() {
                 .from('instances_dispara_lead_saas')
                 .select('*')
                 .eq('tenant_id', id);
-            setInstances(instancesData || []);
+
+            // Fetch real-time status from Evolution API
+            let evoInstances: EvolutionInstance[] = [];
+            try {
+                evoInstances = await fetchAllInstances();
+            } catch (error) {
+                console.error("Failed to fetch from Evolution API:", error);
+            }
+
+            // Merge DB data with real-time status
+            const mergedInstances = (instancesData || []).map((dbInst: any) => {
+                const evoInst = evoInstances.find(i => i.name === dbInst.instance_name);
+                return {
+                    ...dbInst,
+                    connection_status: evoInst ? evoInst.status : (dbInst.connection_status || 'DISCONNECTED')
+                };
+            });
+
+            setInstances(mergedInstances);
 
             // Load Plans
             const { data: plansData } = await supabase
@@ -91,7 +133,11 @@ export default function TenantDetails() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, navigate, toast]);
+
+    useEffect(() => {
+        if (id) loadData();
+    }, [id, loadData]);
 
     const handleUpdateTenant = async () => {
         try {
@@ -332,6 +378,47 @@ export default function TenantDetails() {
                                         <Badge>{user.role}</Badge>
                                     </div>
                                 ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="settings">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Configurações da Empresa</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-1">
+                                    <Label className="text-muted-foreground">Nome da Empresa</Label>
+                                    <p className="font-medium text-lg">{tenant.name}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-muted-foreground">Slug (Identificador)</Label>
+                                    <p className="font-medium text-lg">{tenant.slug}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-muted-foreground">Status</Label>
+                                    <div>
+                                        <Badge variant={tenant.status === 'active' ? 'default' : 'destructive'}>
+                                            {tenant.status === 'active' ? 'Ativo' : tenant.status === 'inactive' ? 'Inativo' : 'Suspenso'}
+                                        </Badge>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-muted-foreground">Plano Atual</Label>
+                                    <p className="font-medium text-lg">
+                                        {plans.find(p => p.id === tenant.plan_id)?.name || 'Sem plano'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t">
+                                <Button onClick={() => setIsEditModalOpen(true)} variant="outline">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar Informações
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>

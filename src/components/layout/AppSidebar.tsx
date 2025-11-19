@@ -113,6 +113,7 @@ export const AppSidebar = () => {
   const navItems = [
     { name: 'Home', href: '/', icon: Home, type: 'link' },
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, type: 'link' },
+    { name: 'Logs', href: '/logs', icon: HardDrive, type: 'link' },
     {
       name: 'Disparo',
       icon: Send,
@@ -128,18 +129,20 @@ export const AppSidebar = () => {
       icon: Settings,
       type: 'accordion',
       subItems: [
-        { name: 'Instâncias', href: '/instancias', icon: HardDrive },
-        { name: 'API', href: '/api-settings', icon: LinkIcon },
+        { name: 'Instâncias', href: '/instancias', icon: Server },
       ],
     },
   ];
 
+  const isImpersonating = impersonatedTenantId && adminTenantId && impersonatedTenantId !== adminTenantId;
+
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out",
+        "fixed inset-y-0 left-0 z-40 transition-all duration-300 ease-in-out",
         isSidebarOpen ? "w-64" : "w-[72px]",
-        "bg-sidebar dark:bg-gray-900 dark:border-r dark:border-gray-800"
+        "bg-sidebar dark:bg-gray-900 dark:border-r dark:border-gray-800",
+        isImpersonating ? "top-[52px]" : "top-0" // Adjust top position if banner is visible
       )}
     >
       <div className="flex flex-col h-full">

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
+import Logs from "./pages/Logs";
 import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
 import CampaignSchedulerPage from "./pages/CampaignSchedulerPage";
@@ -60,6 +61,7 @@ const App = () => (
                 <Route element={<DashboardLayout />}>
                   <Route path="/" element={<Home />} />
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/logs" element={<Logs />} />
                   <Route path="/instancias" element={<Instancias />} />
                   <Route path="/disparo" element={<Disparo />} />
                   <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} />

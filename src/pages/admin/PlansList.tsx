@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/services/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,12 +10,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+interface Plan {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    features: string[] | Record<string, string | number | boolean> | null;
+    limits: {
+        agent_messages_limit?: number;
+        messages_limit?: number;
+        instances_limit?: number;
+        instances?: number;
+    };
+}
+
 export default function PlansList() {
     const { toast } = useToast();
-    const [plans, setPlans] = useState<any[]>([]);
+    const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingPlan, setEditingPlan] = useState<any>(null);
+    const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
     const [formData, setFormData] = useState({
         name: "",
         description: "",
@@ -24,11 +38,7 @@ export default function PlansList() {
         limits: ""
     });
 
-    useEffect(() => {
-        loadPlans();
-    }, []);
-
-    const loadPlans = async () => {
+    const loadPlans = useCallback(async () => {
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -47,7 +57,11 @@ export default function PlansList() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        loadPlans();
+    }, [loadPlans]);
 
     const handleSave = async () => {
         try {
@@ -93,7 +107,7 @@ export default function PlansList() {
         }
     };
 
-    const handleEdit = (plan: any) => {
+    const handleEdit = (plan: Plan) => {
         setEditingPlan(plan);
         setFormData({
             name: plan.name,
@@ -244,48 +258,38 @@ export default function PlansList() {
                             <Label htmlFor="description" className="text-right">Descrição</Label>
                             <Input id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="col-span-3" />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="features" className="text-right">Features (JSON Array)</Label>
-                            <Input
-                                id="features"
-                                value={formData.features}
-                                onChange={(e) => setFormData({ ...formData, features: e.target.value })}
-                                className="col-span-3"
-                                placeholder='["Feature 1", "Feature 2"]'
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right font-bold">Limites</Label>
-                            <div className="col-span-3 space-y-2">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="agent_limit" className="text-xs text-muted-foreground">Msgs Agente</Label>
-                                        <Input
-                                            id="agent_limit"
-                                            type="number"
-                                            value={JSON.parse(formData.limits || '{}').agent_messages_limit || ''}
-                                            onChange={(e) => {
-                                                const currentLimits = JSON.parse(formData.limits || '{}');
-                                                const newLimits = { ...currentLimits, agent_messages_limit: parseInt(e.target.value) };
-                                                setFormData({ ...formData, limits: JSON.stringify(newLimits) });
-                                            }}
-                                            placeholder="Ex: 1000"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label htmlFor="instances_limit" className="text-xs text-muted-foreground">Instâncias</Label>
-                                        <Input
-                                            id="instances_limit"
-                                            type="number"
-                                            value={JSON.parse(formData.limits || '{}').instances_limit || ''}
-                                            onChange={(e) => {
-                                                const currentLimits = JSON.parse(formData.limits || '{}');
-                                                const newLimits = { ...currentLimits, instances_limit: parseInt(e.target.value) };
-                                                setFormData({ ...formData, limits: JSON.stringify(newLimits) });
-                                            }}
-                                            placeholder="Ex: 1"
-                                        />
-                                    </div>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right font-bold">Limites</Label>
+                        <div className="col-span-3 space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                    <Label htmlFor="agent_limit" className="text-xs text-muted-foreground">Msgs Agente</Label>
+                                    <Input
+                                        id="agent_limit"
+                                        type="number"
+                                        value={JSON.parse(formData.limits || '{}').agent_messages_limit || ''}
+                                        onChange={(e) => {
+                                            const currentLimits = JSON.parse(formData.limits || '{}');
+                                            const newLimits = { ...currentLimits, agent_messages_limit: parseInt(e.target.value) };
+                                            setFormData({ ...formData, limits: JSON.stringify(newLimits) });
+                                        }}
+                                        placeholder="Ex: 1000"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="instances_limit" className="text-xs text-muted-foreground">Instâncias</Label>
+                                    <Input
+                                        id="instances_limit"
+                                        type="number"
+                                        value={JSON.parse(formData.limits || '{}').instances_limit || ''}
+                                        onChange={(e) => {
+                                            const currentLimits = JSON.parse(formData.limits || '{}');
+                                            const newLimits = { ...currentLimits, instances_limit: parseInt(e.target.value) };
+                                            setFormData({ ...formData, limits: JSON.stringify(newLimits) });
+                                        }}
+                                        placeholder="Ex: 1"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -295,6 +299,6 @@ export default function PlansList() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }

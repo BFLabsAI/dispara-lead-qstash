@@ -7,7 +7,8 @@ import {
   getConnectionState,
   sendTextMessage,
   sendMediaMessage,
-  filterInstances
+  filterInstances,
+  type EvolutionInstance
 } from '../services/evolutionApi';
 import { uploadFileToSupabase } from '../services/supabaseStorage';
 import { supabase } from '../services/supabaseClient';
@@ -17,30 +18,39 @@ interface Instance {
   connectionStatus: string;
 }
 
+type Contact = Record<string, any>;
+
+interface MessageTemplate {
+  type: 'texto' | 'imagem' | 'video' | 'audio';
+  text: string;
+  mediaUrl?: string;
+}
+
 interface DisparadorState {
   instances: Instance[];
   filteredInstances: Instance[];
   isLoading: boolean;
   qrCode: string | null;
   qrInstance: string | null;
-  contatos: any[];
+  contatos: Contact[];
   interromper: boolean;
   instanceFilter: string;
 
   loadInstances: () => Promise<void>;
+  syncInstances: () => Promise<void>; // Added syncInstances
   fetchQrCode: (instanceName: string) => Promise<void>;
   resetQr: () => void;
-  setContatos: (contatos: any[]) => void;
+  setContatos: (contatos: Contact[]) => void;
   setInstanceFilter: (filter: string) => void;
-  uploadFile: (file: File) => Promise<{ contatos: any[]; variables: string[] }>;
+  uploadFile: (file: File) => Promise<{ contatos: Contact[]; variables: string[] }>;
   mediaUpload: (file: File) => Promise<string | null>;
   sendMessages: (params: {
-    contatos: any[];
+    contatos: Contact[];
     instances: string[];
     tempoMin: number;
     tempoMax: number;
     usarIA: boolean;
-    templates: any[];
+    templates: MessageTemplate[];
     campaignName: string;
     publicTarget: string;
     content: string;
@@ -52,9 +62,9 @@ interface DisparadorState {
     campaignName: string;
     publicTarget: string;
     content: string;
-    contatos: any[];
+    contatos: Contact[];
     instances: string[];
-    templates: any[];
+    templates: MessageTemplate[];
     tempoMin: number;
     tempoMax: number;
     usarIA: boolean;
@@ -79,11 +89,65 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   loadInstances: async () => {
     set({ isLoading: true });
     try {
-      const instances = await fetchAllInstances();
-      const formattedInstances = instances.map(instance => ({
-        name: instance.name,
-        connectionStatus: instance.status
-      }));
+      // Get current user and tenant
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data: userData } = await supabase
+        .from('users_dispara_lead_saas')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!userData?.tenant_id) {
+        console.error("Tenant ID not found for user:", user.id);
+        throw new Error("Tenant não encontrado");
+      }
+
+      console.log("Loading instances for Tenant ID:", userData.tenant_id);
+
+      // Fetch tenant's instances from our DB (Source of Truth)
+      const { data: dbInstances, error: dbError } = await supabase
+        .from('instances_dispara_lead_saas')
+        .select('instance_name, connection_status')
+        .eq('tenant_id', userData.tenant_id);
+
+      if (dbError) {
+        console.error("Error fetching instances from DB:", dbError);
+      }
+
+      console.log("DB Instances found:", dbInstances);
+
+      if (!dbInstances || dbInstances.length === 0) {
+        console.warn("No instances found in DB for this tenant.");
+        set({ instances: [], filteredInstances: [] });
+        return;
+      }
+
+      // Map DB instances directly to UI format
+      // The DB is now the source of truth for both existence and status
+      // BUT we need to sync with Evolution API for real-time status
+      let allInstances: EvolutionInstance[] = [];
+      try {
+        allInstances = await fetchAllInstances();
+      } catch (apiError) {
+        console.error("Failed to fetch from Evolution API:", apiError);
+        // If API fails, we fall back to DB status
+      }
+
+      const formattedInstances = dbInstances.map(dbInst => {
+        // Find the corresponding instance in Evolution API to get real-time status
+        const apiInst = allInstances.find(i => i.name === dbInst.instance_name);
+
+        // Use API status if available, otherwise fallback to DB status, then 'DISCONNECTED'
+        const realTimeStatus = apiInst ? apiInst.status : (dbInst.connection_status || "DISCONNECTED");
+
+        return {
+          name: dbInst.instance_name,
+          connectionStatus: realTimeStatus
+        };
+      });
+
       set({
         instances: formattedInstances,
         filteredInstances: formattedInstances
@@ -91,6 +155,45 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
     } catch (error) {
       showError("Erro ao carregar instâncias: " + (error as Error).message);
       set({ instances: [], filteredInstances: [] });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  syncInstances: async () => {
+    set({ isLoading: true });
+    try {
+      const evoInstances = await fetchAllInstances();
+
+      const { data: dbInstances, error: dbError } = await supabase
+        .from('instances_dispara_lead_saas')
+        .select('*');
+
+      if (dbError) throw dbError;
+
+      for (const evoInst of evoInstances) {
+        // Find matching DB instance
+        const match = dbInstances?.find(dbInst => dbInst.instance_name === evoInst.name);
+
+        if (match) {
+          // Update DB with Evo data (status, apiKey)
+          await supabase
+            .from('instances_dispara_lead_saas')
+            .update({
+              connection_status: evoInst.status,
+              api_key: (evoInst as any).apiKey, // Update API Key
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', match.id);
+        }
+      }
+
+      // Reload instances to reflect changes
+      await get().loadInstances();
+      showSuccess("Sincronização concluída com sucesso!");
+    } catch (error) {
+      console.error("Sync error:", error);
+      showError("Erro ao sincronizar instâncias: " + (error as Error).message);
     } finally {
       set({ isLoading: false });
     }
@@ -121,9 +224,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       const ws = wb.Sheets[wb.SheetNames[0]];
       const arr = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
       const header = (arr.shift() as string[]).map((h: string) => String(h).trim());
-      const rows = arr as any[][];
+      const rows = arr as Contact[][];
       const phoneField = header.find((h: string) => h.toLowerCase().includes("telefone")) || header[0];
-      const contatos: any[] = [];
+      const contatos: Contact[] = [];
       const extractPhones = (raw: string) =>
         String(raw || "")
           .split(",")
@@ -131,7 +234,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
           .filter((n) => n.length >= 10)
           .map((n) => (n.length <= 11 ? "55" + n : n.length === 12 && !n.startsWith("55") ? "55" + n : n));
       rows.forEach((r) => {
-        const obj: any = {};
+        const obj: Contact = {};
         header.forEach((h, i) => (obj[h] = r[i] || ""));
         extractPhones(obj[phoneField]).forEach((num) => contatos.push({ ...obj, telefone: num }));
       });
@@ -183,7 +286,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
           let personalizedText = template.text;
 
           // Replace variables in the message
-          personalizedText = personalizedText.replace(/\{(\w+)\}/g, (_: any, key: string) => {
+          personalizedText = personalizedText.replace(/\{(\w+)\}/g, (_: string, key: string) => {
             const fullValue = item[key] || "";
             // If the template uses just the first word, return that
             if (template.text.includes(`{${key.split(" ")[0]}}`)) {
@@ -328,7 +431,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
     // Convert instances to EvolutionInstance format for filtering
     const evolutionInstances = instances.map(instance => ({
       name: instance.name,
-      status: instance.connectionStatus as any
+      status: instance.connectionStatus as EvolutionInstance['status']
     }));
     const filteredEvolution = filterInstances(evolutionInstances, filter);
     // Convert back to Instance format

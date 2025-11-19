@@ -44,8 +44,24 @@ export interface DisparadorData {
   id?: number | string; // Changed to allow UUID
 }
 
+interface SaaSLog {
+  id: number | string;
+  phone_number: string;
+  status: string;
+  instance_name: string;
+  message_content: string;
+  campaign_name: string;
+  campaign_type: string;
+  created_at: string;
+  metadata?: {
+    usaria?: boolean;
+    publico?: string;
+    criativo?: string;
+  };
+}
+
 // Helper to map new SaaS schema to legacy interface
-const mapSaaSLogToDisparadorData = (log: any): DisparadorData => {
+const mapSaaSLogToDisparadorData = (log: SaaSLog): DisparadorData => {
   return {
     id: log.id,
     numero: log.phone_number,
@@ -71,9 +87,10 @@ const retryWithBackoff = async <T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { status?: number };
       // Don't retry on client errors (4xx)
-      if (error.status >= 400 && error.status < 500) {
+      if (err.status && err.status >= 400 && err.status < 500) {
         throw error;
       }
 
@@ -279,7 +296,7 @@ export function subscribeToDisparadorUpdates(
   callback: (data: DisparadorData[]) => void,
   initialLimit: number = 1000
 ) {
-  let isFirstLoad = true;
+  const isFirstLoad = true;
   let retryCount = 0;
   const maxRetries = 5;
 
@@ -390,7 +407,7 @@ export async function getDashboardStatsOptimized() {
       throw new Error(`Failed to fetch dashboard stats: ${error.message}`);
     }
 
-    return getDisparadorStats(data?.map(mapSaaSLogToDisparadorData) as any[]);
+    return getDisparadorStats((data || []).map(item => mapSaaSLogToDisparadorData(item as unknown as SaaSLog)));
   };
 
   try {

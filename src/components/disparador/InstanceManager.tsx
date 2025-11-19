@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle, XCircle, QrCode, Server, Zap, Link, Search } from "lucide-react";
+import { CheckCircle, XCircle, QrCode, Server, Zap, Link, Search, Plus, Trash2, Power, RefreshCw, Loader2 } from "lucide-react";
 import { useDisparadorStore } from "../../store/disparadorStore";
+import { supabase } from "@/services/supabaseClient";
 import { QrDialog } from "./QrDialog";
 import { showError, showSuccess } from "@/utils/toast";
 import { InstanceCard } from "./InstanceCard";
@@ -21,7 +22,7 @@ const WEBHOOK_EVENTS = [
 
 export const InstanceManager = () => {
   const location = useLocation();
-  const { instances, filteredInstances, instanceFilter, isLoading, loadInstances, resetQr, setInstanceFilter } = useDisparadorStore();
+  const { instances, filteredInstances, instanceFilter, isLoading, loadInstances, resetQr, setInstanceFilter, syncInstances } = useDisparadorStore();
   const [stats, setStats] = useState({ total: 0, connected: 0, disconnected: 0 });
   const [webhookOpen, setWebhookOpen] = useState(false);
   const [webhookInstance, setWebhookInstance] = useState("");
@@ -65,6 +66,10 @@ export const InstanceManager = () => {
     );
   };
 
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newInstanceName, setNewInstanceName] = useState("");
+  const [creating, setCreating] = useState(false);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] rounded-2xl border bg-card p-12 shadow-sm">
@@ -76,6 +81,72 @@ export const InstanceManager = () => {
       </div>
     );
   }
+
+  const handleCreateInstance = async () => {
+    if (!newInstanceName.trim()) {
+      showError("Nome da instância é obrigatório");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      // Get current user and tenant
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data: userData } = await supabase
+        .from('users_dispara_lead_saas')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!userData?.tenant_id) throw new Error("Tenant não encontrado");
+
+      // Check plan limits
+      const { data: tenant } = await supabase
+        .from('tenants_dispara_lead_saas')
+        .select('*, plans_dispara_lead_saas(*)')
+        .eq('id', userData.tenant_id)
+        .single();
+
+      const plan = tenant?.plans_dispara_lead_saas;
+      const limits = plan?.limits ? (typeof plan.limits === 'string' ? JSON.parse(plan.limits) : plan.limits) : {};
+      const maxInstances = limits.instances_limit || limits.instances || 1;
+
+      // Check current instance count
+      const { count } = await supabase
+        .from('instances_dispara_lead_saas')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', userData.tenant_id);
+
+      if ((count || 0) >= maxInstances) {
+        showError(`Limite de instâncias atingido (${maxInstances}). Faça upgrade do plano.`);
+        return;
+      }
+
+      // Create instance
+      const { data, error } = await supabase.functions.invoke('manage-instances', {
+        body: {
+          action: 'create',
+          tenant_id: userData.tenant_id,
+          instance_name: newInstanceName
+        }
+      });
+
+      if (error) throw new Error(error.message || 'Erro ao chamar função');
+      if (data.error) throw new Error(data.error);
+
+      showSuccess("Instância criada com sucesso!");
+      setNewInstanceName("");
+      setIsCreateModalOpen(false);
+      loadInstances();
+
+    } catch (error: any) {
+      showError(error.message || "Erro ao criar instância");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4 sm:px-6">
@@ -98,6 +169,18 @@ export const InstanceManager = () => {
               Limpar
             </Button>
           )}
+          <Button
+            variant="outline"
+            onClick={() => syncInstances()}
+            disabled={isLoading}
+            className="ml-2"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Sincronizar
+          </Button>
+          <Button onClick={() => setIsCreateModalOpen(true)} className="ml-2">
+            <Plus className="mr-2 h-4 w-4" /> Nova Instância
+          </Button>
         </div>
         {instanceFilter && (
           <div className="mt-3 text-sm text-muted-foreground">
@@ -159,9 +242,14 @@ export const InstanceManager = () => {
                 : "Crie suas primeiras conexões para começar a disparar."
               }
             </p>
-            <Button onClick={loadInstances} className="btn-premium">
-              <i className="fas fa-sync-alt mr-2" /> Atualizar
-            </Button>
+            <div className="flex gap-4 justify-center">
+              <Button onClick={loadInstances} variant="outline">
+                <i className="fas fa-sync-alt mr-2" /> Atualizar
+              </Button>
+              <Button onClick={() => setIsCreateModalOpen(true)} className="btn-premium">
+                <Plus className="mr-2 h-4 w-4" /> Criar Instância
+              </Button>
+            </div>
           </Card>
         ) : (
           filteredInstances.map((instance, index) => (
@@ -178,7 +266,35 @@ export const InstanceManager = () => {
 
       <QrDialog />
 
-      {/* Webhook Modal com acento azul */}
+      {/* Create Instance Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Instância</DialogTitle>
+            <DialogDescription>
+              Crie uma nova conexão com o WhatsApp. Verifique seu plano para limites.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome da Instância</Label>
+              <Input
+                placeholder="Ex: whatsapp-vendas"
+                value={newInstanceName}
+                onChange={(e) => setNewInstanceName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateInstance} disabled={creating}>
+              {creating ? "Criando..." : "Criar Instância"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Webhook Modal */}
       <Dialog open={webhookOpen} onOpenChange={setWebhookOpen}>
         <DialogContent className="max-w-4xl rounded-xl glass-card border-blue-200/40 dark:border-blue-800/40 shadow-lg">
           <DialogHeader>

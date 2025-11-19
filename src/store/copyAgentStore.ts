@@ -440,15 +440,46 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
   loadCompanySettings: async () => {
     set({ isCompanySettingsLoaded: false });
     try {
-      const { data, error } = await supabase
+      const { data: resultData, error } = await supabase
         .from('company_settings_dispara_lead_saas')
         .select('*')
-        // .eq('user_id', USER_ID) // RLS handles this
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') throw error; // Ignore not found error
+      if (error) throw error;
 
-      set({ companySettings: data as CompanySettings | null, isCompanySettingsLoaded: true });
+      const data = resultData?.[0];
+
+      if (!data) {
+        set({ companySettings: null, isCompanySettingsLoaded: true });
+        return;
+      }
+
+      // Map DB (snake_case) to App (camelCase)
+      const settings: CompanySettings = {
+        companyName: data.company_name || "",
+        marketSegment: data.market_segment || "",
+        companySize: data.company_size || "",
+        brandVoice: data.brand_voice || "",
+        brandPersonality: data.brand_personality || "",
+        preferredLanguage: data.preferred_language || "",
+        mainProducts: data.main_products || "",
+        averageTicket: data.average_ticket || "",
+        salesCycle: data.sales_cycle || "",
+        seasonality: data.seasonality || "",
+        mainPersona: data.main_persona || "",
+        ageRange: data.age_range || "",
+        socialClass: data.social_class || "",
+        primaryGoal: data.primary_goal || "",
+        secondaryGoals: data.secondary_goals || [],
+        mainCompetitors: data.main_competitors || "",
+        whatsappPreferences: data.whatsapp_guidelines || {
+          preferredSendTimes: "",
+          maxContactFrequency: "",
+          mediaTypes: []
+        }
+      };
+
+      set({ companySettings: settings, isCompanySettingsLoaded: true });
     } catch (error) {
       showError("Erro ao carregar configurações da empresa: " + (error as Error).message);
       set({ isCompanySettingsLoaded: true });
@@ -457,10 +488,6 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
 
   saveCompanySettings: async (settings: CompanySettings) => {
     try {
-      // We need to handle upsert carefully with RLS.
-      // Ideally we know the ID or we rely on tenant_id uniqueness.
-      // The table has tenant_id UNIQUE.
-
       // First, get the tenant_id
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
@@ -468,13 +495,32 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       const { data: profile } = await supabase.from('users_dispara_lead_saas').select('tenant_id').eq('id', user.id).single();
       if (!profile) throw new Error("User profile not found");
 
+      // Map App (camelCase) to DB (snake_case)
+      const dbData = {
+        tenant_id: profile.tenant_id,
+        company_name: settings.companyName,
+        market_segment: settings.marketSegment,
+        company_size: settings.companySize,
+        brand_voice: settings.brandVoice,
+        brand_personality: settings.brandPersonality,
+        preferred_language: settings.preferredLanguage,
+        main_products: settings.mainProducts,
+        average_ticket: settings.averageTicket,
+        sales_cycle: settings.salesCycle,
+        seasonality: settings.seasonality,
+        main_persona: settings.mainPersona,
+        age_range: settings.ageRange,
+        social_class: settings.socialClass,
+        primary_goal: settings.primaryGoal,
+        secondary_goals: settings.secondaryGoals,
+        main_competitors: settings.mainCompetitors,
+        whatsapp_guidelines: settings.whatsappPreferences,
+        updated_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('company_settings_dispara_lead_saas')
-        .upsert({
-          tenant_id: profile.tenant_id,
-          ...settings,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'tenant_id' });
+        .upsert(dbData, { onConflict: 'tenant_id' });
 
       if (error) throw error;
 
