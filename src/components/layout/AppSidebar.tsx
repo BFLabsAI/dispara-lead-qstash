@@ -65,16 +65,16 @@ export const AppSidebar = () => {
 
   const fetchAdminTenant = async (userId: string) => {
     const { data } = await supabase
-      .from('users_dispara_lead_saas')
-      .select('tenant_id, tenants_dispara_lead_saas(name)')
+      .from('users_dispara_lead_saas_02')
+      .select('tenant_id, tenants_dispara_lead_saas_02(name)')
       .eq('id', userId)
       .single();
 
-    if (data && data.tenants_dispara_lead_saas) {
+    if (data && data.tenants_dispara_lead_saas_02) {
       const tenantId = data.tenant_id;
       setAdminTenant({
         id: tenantId,
-        name: (data.tenants_dispara_lead_saas as any).name
+        name: (data.tenants_dispara_lead_saas_02 as any).name
       });
       setAdminTenantId(tenantId);
 
@@ -86,7 +86,7 @@ export const AppSidebar = () => {
   };
 
   const fetchTenants = async () => {
-    const { data } = await supabase.from('tenants_dispara_lead_saas').select('id, name, slug');
+    const { data } = await supabase.from('tenants_dispara_lead_saas_02').select('id, name, slug');
     setTenants(data || []);
   };
 
@@ -111,7 +111,7 @@ export const AppSidebar = () => {
   }
 
   const navItems = [
-    { name: 'Home', href: '/', icon: Home, type: 'link' },
+    { name: 'Home', href: '/welcome', icon: Home, type: 'link' },
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, type: 'link' },
     { name: 'Logs', href: '/logs', icon: HardDrive, type: 'link' },
     {
@@ -148,7 +148,7 @@ export const AppSidebar = () => {
       <div className="flex flex-col h-full">
         {/* Seção do Logo */}
         <div className={cn("p-4 border-b border-border flex items-center", isSidebarOpen ? "justify-center h-28" : "justify-center h-16")}>
-          <Link to="/" className="flex items-center justify-center">
+          <Link to="/dashboard" className="flex items-center justify-center">
             <img
               src={logoSrc}
               alt="DisparaLead Logo"

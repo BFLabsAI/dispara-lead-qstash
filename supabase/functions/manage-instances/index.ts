@@ -36,7 +36,7 @@ serve(async (req) => {
 
         // Verify permissions
         const { data: userProfile } = await supabaseClient
-            .from('users_dispara_lead_saas')
+            .from('users_dispara_lead_saas_02')
             .select('role, is_super_admin, tenant_id')
             .eq('id', user.id)
             .single()
@@ -78,7 +78,7 @@ serve(async (req) => {
 
             // 2. Save to Database
             const { data: instance, error: dbError } = await supabaseClient
-                .from('instances_dispara_lead_saas')
+                .from('instances_dispara_lead_saas_02')
                 .insert({
                     tenant_id: tenant_id,
                     instance_name: instance_name,
@@ -116,7 +116,7 @@ serve(async (req) => {
 
             // 2. Delete from Database
             const { error: dbError } = await supabaseClient
-                .from('instances_dispara_lead_saas')
+                .from('instances_dispara_lead_saas_02')
                 .delete()
                 .eq('instance_name', instance_name)
                 .eq('tenant_id', tenant_id)

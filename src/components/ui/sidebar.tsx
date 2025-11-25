@@ -59,7 +59,7 @@ export const useSidebar = () => {
 const navItems = [
   {
     label: "Home",
-    href: "/",
+    href: "/welcome",
     icon: LayoutDashboard,
   },
   {
@@ -127,7 +127,7 @@ export function Sidebar() {
         )}
       >
         <div className="flex h-16 items-center justify-between border-b px-4 lg:px-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold min-w-0">
+          <Link to="/dashboard" className="flex items-center gap-2 font-semibold min-w-0">
             <img src="/placeholder.svg" alt="App Logo" className="h-8 w-auto flex-shrink-0" /> {/* Corrigido src e alt, ajustado h-8 */}
             <span className="text-lg text-sidebar-foreground">DisparaLead</span> {/* Removido truncate */}
           </Link>

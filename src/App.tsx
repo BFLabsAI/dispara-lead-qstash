@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
+import LandingPage from "./pages/LandingPage";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Logs from "./pages/Logs";
@@ -22,6 +23,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import TenantList from "./pages/admin/TenantList";
 import TenantDetails from "./pages/admin/TenantDetails";
 import PlansList from "./pages/admin/PlansList";
+import Obrigado from "./pages/Obrigado";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SidebarProvider } from "./components/ui/sidebar";
@@ -51,15 +53,17 @@ const App = () => (
         <BrowserRouter>
           <SidebarProvider>
             <Routes>
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/obrigado" element={<Obrigado />} />
 
               {/* Rotas protegidas que usam o DashboardLayout */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<DashboardLayout />}>
-                  <Route path="/" element={<Home />} />
+                  <Route path="/welcome" element={<Home />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/logs" element={<Logs />} />
                   <Route path="/instancias" element={<Instancias />} />

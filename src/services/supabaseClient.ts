@@ -112,7 +112,7 @@ import { useAdminStore } from '@/store/adminStore';
 
 // ... (existing imports)
 
-// Fetch paginated data from message_logs_dispara_lead_saas table with retry logic
+// Fetch paginated data from message_logs_dispara_lead_saas_02 table with retry logic
 export async function fetchDisparadorDataPaginated(
   page: number = 1,
   pageSize: number = 50,
@@ -129,7 +129,7 @@ export async function fetchDisparadorDataPaginated(
 
     // Build the query with optimized column selection
     let query = supabase
-      .from('message_logs_dispara_lead_saas')
+      .from('message_logs_dispara_lead_saas_02')
       .select('*', { count: 'exact', head: false });
 
     // Apply impersonation filter if set
@@ -198,7 +198,7 @@ export async function fetchRecentDisparadorData(limit: number = 100): Promise<Di
 
   const operation = async () => {
     let query = supabase
-      .from('message_logs_dispara_lead_saas')
+      .from('message_logs_dispara_lead_saas_02')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -250,7 +250,7 @@ export async function fetchAllDisparadorData(): Promise<DisparadorData[]> {
       const to = from + pageSize - 1;
 
       let query = supabase
-        .from('message_logs_dispara_lead_saas')
+        .from('message_logs_dispara_lead_saas_02')
         .select('*')
         .order('created_at', { ascending: false })
         .range(from, to);
@@ -319,7 +319,7 @@ export function subscribeToDisparadorUpdates(
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'message_logs_dispara_lead_saas',
+          table: 'message_logs_dispara_lead_saas_02',
           filter: filter
         },
         async (payload) => {
@@ -393,7 +393,7 @@ export async function getDashboardStatsOptimized() {
 
   const operation = async () => {
     let query = supabase
-      .from('message_logs_dispara_lead_saas')
+      .from('message_logs_dispara_lead_saas_02')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -482,7 +482,7 @@ export function getDisparadorStats(data: DisparadorData[]) {
 export async function checkSupabaseConnection(): Promise<boolean> {
   try {
     const { data, error } = await supabase
-      .from('message_logs_dispara_lead_saas')
+      .from('message_logs_dispara_lead_saas_02')
       .select('id')
       .limit(1);
 

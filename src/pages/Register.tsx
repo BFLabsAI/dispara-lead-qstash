@@ -33,8 +33,8 @@ export default function Register() {
             // Note: Ideally this should be done via a Postgres Trigger on auth.users insert
             // or an Edge Function to ensure atomicity.
             // For now, we'll do it client-side but RLS might block us if we don't have a policy allowing new users to create tenants.
-            // We need a policy on 'tenants_dispara_lead_saas' allowing INSERT for authenticated users.
-            // And a policy on 'users_dispara_lead_saas' allowing INSERT.
+            // We need a policy on 'tenants_dispara_lead_saas_02' allowing INSERT for authenticated users.
+            // And a policy on 'users_dispara_lead_saas_02' allowing INSERT.
 
             // Let's assume we have a trigger or we call an RPC.
             // If not, we might fail here if RLS is strict.
@@ -44,12 +44,12 @@ export default function Register() {
             const slug = companyName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(Math.random() * 1000);
 
             // We need to fetch a default plan first
-            const { data: plan } = await supabase.from('plans_dispara_lead_saas').select('id').eq('slug', 'basic').single();
+            const { data: plan } = await supabase.from('plans_dispara_lead_saas_02').select('id').eq('slug', 'basic').single();
 
             if (!plan) throw new Error("Plano padrão não encontrado.");
 
             const { data: tenant, error: tenantError } = await supabase
-                .from('tenants_dispara_lead_saas')
+                .from('tenants_dispara_lead_saas_02')
                 .insert({
                     name: companyName,
                     slug: slug,
@@ -64,7 +64,7 @@ export default function Register() {
 
             // 3. Create User Profile linked to Tenant
             const { error: profileError } = await supabase
-                .from('users_dispara_lead_saas')
+                .from('users_dispara_lead_saas_02')
                 .insert({
                     id: authData.user.id,
                     tenant_id: tenant.id,

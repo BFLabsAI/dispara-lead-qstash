@@ -16,7 +16,7 @@ export const AdminRoute = () => {
             }
 
             const { data: profile } = await supabase
-                .from('users_dispara_lead_saas')
+                .from('users_dispara_lead_saas_02')
                 .select('is_super_admin')
                 .eq('id', user.id)
                 .single();

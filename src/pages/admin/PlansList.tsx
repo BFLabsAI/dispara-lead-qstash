@@ -42,7 +42,7 @@ export default function PlansList() {
         setLoading(true);
         try {
             const { data, error } = await supabase
-                .from('plans_dispara_lead_saas')
+                .from('plans_dispara_lead_saas_02')
                 .select('*')
                 .order('price', { ascending: true });
 
@@ -76,13 +76,13 @@ export default function PlansList() {
             let error;
             if (editingPlan) {
                 const { error: updateError } = await supabase
-                    .from('plans_dispara_lead_saas')
+                    .from('plans_dispara_lead_saas_02')
                     .update(payload)
                     .eq('id', editingPlan.id);
                 error = updateError;
             } else {
                 const { error: insertError } = await supabase
-                    .from('plans_dispara_lead_saas')
+                    .from('plans_dispara_lead_saas_02')
                     .insert([payload]);
                 error = insertError;
             }
@@ -124,7 +124,7 @@ export default function PlansList() {
 
         try {
             const { error } = await supabase
-                .from('plans_dispara_lead_saas')
+                .from('plans_dispara_lead_saas_02')
                 .delete()
                 .eq('id', id);
 

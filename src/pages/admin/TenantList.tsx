@@ -35,7 +35,7 @@ export default function TenantList() {
     const loadTenants = async () => {
         setLoading(true);
         const { data, error } = await supabase
-            .from('tenants_dispara_lead_saas')
+            .from('tenants_dispara_lead_saas_02')
             .select('*')
             .order('created_at', { ascending: false });
 

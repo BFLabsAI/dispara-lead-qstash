@@ -142,7 +142,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     try {
       // Fetch unique chat sessions
       const { data, error } = await supabase
-        .from('chat_sessions_dispara_lead_saas')
+        .from('chat_sessions_dispara_lead_saas_02')
         .select('id, session_name, created_at')
         // .eq('user_id', USER_ID) // RLS handles this now via tenant/user check
         .order('created_at', { ascending: false });
@@ -183,7 +183,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
 
     // Create session in DB immediately
     try {
-      const { error } = await supabase.from('chat_sessions_dispara_lead_saas').insert({
+      const { error } = await supabase.from('chat_sessions_dispara_lead_saas_02').insert({
         id: newChatId,
         session_name: newChatName,
         template_used: templateUsed,
@@ -223,7 +223,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     set({ currentChatId: chatId, isChatLoading: true });
     try {
       const { data, error } = await supabase
-        .from('chat_messages_dispara_lead_saas')
+        .from('chat_messages_dispara_lead_saas_02')
         .select('*')
         .eq('session_id', chatId)
         .order('created_at', { ascending: true });
@@ -251,7 +251,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
   deleteChat: async (chatId: string) => {
     try {
       const { error } = await supabase
-        .from('chat_sessions_dispara_lead_saas')
+        .from('chat_sessions_dispara_lead_saas_02')
         .delete()
         .eq('id', chatId);
 
@@ -281,7 +281,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     try {
       // Update all messages in the chat with the new session name
       const { error } = await supabase
-        .from('chat_sessions_dispara_lead_saas')
+        .from('chat_sessions_dispara_lead_saas_02')
         .update({ session_name: newName })
         .eq('id', chatId);
 
@@ -328,7 +328,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
 
     try {
       // 1. Save user message to Copy Agent table
-      await supabase.from('chat_messages_dispara_lead_saas').insert({
+      await supabase.from('chat_messages_dispara_lead_saas_02').insert({
         session_id: currentChatId,
         role: 'user',
         content: messageContent,
@@ -367,7 +367,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       }));
 
       // 3. Save AI message to Copy Agent table
-      await supabase.from('chat_messages_dispara_lead_saas').insert({
+      await supabase.from('chat_messages_dispara_lead_saas_02').insert({
         session_id: currentChatId,
         role: 'assistant',
         content: aiMessageContent,
@@ -382,10 +382,10 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       // Actually, let's fetch the user profile first to get tenant_id.
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase.from('users_dispara_lead_saas').select('tenant_id').eq('id', user.id).single();
+        const { data: profile } = await supabase.from('users_dispara_lead_saas_02').select('tenant_id').eq('id', user.id).single();
 
         if (profile) {
-          await supabase.from('message_logs_dispara_lead_saas').insert({
+          await supabase.from('message_logs_dispara_lead_saas_02').insert({
             tenant_id: profile.tenant_id,
             status: 'sent',
             instance_name: 'CopyAgent',
@@ -441,7 +441,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     set({ isCompanySettingsLoaded: false });
     try {
       const { data: resultData, error } = await supabase
-        .from('company_settings_dispara_lead_saas')
+        .from('company_settings_dispara_lead_saas_02')
         .select('*')
         .limit(1);
 
@@ -492,7 +492,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const { data: profile } = await supabase.from('users_dispara_lead_saas').select('tenant_id').eq('id', user.id).single();
+      const { data: profile } = await supabase.from('users_dispara_lead_saas_02').select('tenant_id').eq('id', user.id).single();
       if (!profile) throw new Error("User profile not found");
 
       // Map App (camelCase) to DB (snake_case)
@@ -519,7 +519,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       };
 
       const { error } = await supabase
-        .from('company_settings_dispara_lead_saas')
+        .from('company_settings_dispara_lead_saas_02')
         .upsert(dbData, { onConflict: 'tenant_id' });
 
       if (error) throw error;

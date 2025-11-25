@@ -13,15 +13,15 @@ export default function AdminDashboard() {
     useEffect(() => {
         const loadStats = async () => {
             const { count: tenantsCount } = await supabase
-                .from('tenants_dispara_lead_saas')
+                .from('tenants_dispara_lead_saas_02')
                 .select('*', { count: 'exact', head: true });
 
             const { count: instancesCount } = await supabase
-                .from('instances_dispara_lead_saas')
+                .from('instances_dispara_lead_saas_02')
                 .select('*', { count: 'exact', head: true });
 
             const { count: usersCount } = await supabase
-                .from('users_dispara_lead_saas')
+                .from('users_dispara_lead_saas_02')
                 .select('*', { count: 'exact', head: true });
 
             setStats({

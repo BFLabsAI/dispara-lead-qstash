@@ -54,7 +54,7 @@ serve(async (req) => {
 
             // 2. Create user record in public table
             const { error: dbError } = await supabaseAdmin
-                .from('users_dispara_lead_saas')
+                .from('users_dispara_lead_saas_02')
                 .insert({
                     id: newUserId,
                     tenant_id: tenant_id,

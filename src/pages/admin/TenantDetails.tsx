@@ -71,7 +71,7 @@ export default function TenantDetails() {
         try {
             // Load Tenant
             const { data: tenantData, error: tenantError } = await supabase
-                .from('tenants_dispara_lead_saas')
+                .from('tenants_dispara_lead_saas_02')
                 .select('*')
                 .eq('id', id)
                 .single();
@@ -87,14 +87,14 @@ export default function TenantDetails() {
 
             // Load Users
             const { data: usersData } = await supabase
-                .from('users_dispara_lead_saas')
+                .from('users_dispara_lead_saas_02')
                 .select('*')
                 .eq('tenant_id', id);
             setUsers(usersData || []);
 
             // Load Instances
             const { data: instancesData } = await supabase
-                .from('instances_dispara_lead_saas')
+                .from('instances_dispara_lead_saas_02')
                 .select('*')
                 .eq('tenant_id', id);
 
@@ -119,7 +119,7 @@ export default function TenantDetails() {
 
             // Load Plans
             const { data: plansData } = await supabase
-                .from('plans_dispara_lead_saas')
+                .from('plans_dispara_lead_saas_02')
                 .select('*');
             setPlans(plansData || []);
 
@@ -142,12 +142,12 @@ export default function TenantDetails() {
     const handleUpdateTenant = async () => {
         try {
             const { error } = await supabase
-                .from('tenants_dispara_lead_saas')
+                .from('tenants_dispara_lead_saas_02')
                 .update({
                     name: editFormData.name,
                     slug: editFormData.slug,
                     status: editFormData.status,
-                    plan_id: editFormData.plan_id || null
+                    plan_id: editFormData.plan_id === "" ? null : editFormData.plan_id
                 })
                 .eq('id', id);
 

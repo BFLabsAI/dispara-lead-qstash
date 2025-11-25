@@ -94,7 +94,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       if (!user) throw new Error("Usuário não autenticado");
 
       const { data: userData } = await supabase
-        .from('users_dispara_lead_saas')
+        .from('users_dispara_lead_saas_02')
         .select('tenant_id')
         .eq('id', user.id)
         .single();
@@ -108,7 +108,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
 
       // Fetch tenant's instances from our DB (Source of Truth)
       const { data: dbInstances, error: dbError } = await supabase
-        .from('instances_dispara_lead_saas')
+        .from('instances_dispara_lead_saas_02')
         .select('instance_name, connection_status')
         .eq('tenant_id', userData.tenant_id);
 
@@ -166,7 +166,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       const evoInstances = await fetchAllInstances();
 
       const { data: dbInstances, error: dbError } = await supabase
-        .from('instances_dispara_lead_saas')
+        .from('instances_dispara_lead_saas_02')
         .select('*');
 
       if (dbError) throw dbError;
@@ -178,7 +178,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
         if (match) {
           // Update DB with Evo data (status, apiKey)
           await supabase
-            .from('instances_dispara_lead_saas')
+            .from('instances_dispara_lead_saas_02')
             .update({
               connection_status: evoInst.status,
               api_key: (evoInst as any).apiKey, // Update API Key
@@ -390,7 +390,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado.");
 
-      const { data: profile } = await supabase.from('users_dispara_lead_saas').select('tenant_id').eq('id', user.id).single();
+      const { data: profile } = await supabase.from('users_dispara_lead_saas_02').select('tenant_id').eq('id', user.id).single();
       if (!profile) throw new Error("Perfil de usuário não encontrado.");
 
       // Map params to the existing table structure
@@ -407,7 +407,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       };
 
       const { error } = await supabase
-        .from('schedules_dispara_lead_saas')
+        .from('schedules_dispara_lead_saas_02')
         .insert(campaignData);
 
       if (error) {
@@ -458,10 +458,10 @@ async function saveMessageLog(logData: {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: profile } = await supabase.from('users_dispara_lead_saas').select('tenant_id').eq('id', user.id).single();
+      const { data: profile } = await supabase.from('users_dispara_lead_saas_02').select('tenant_id').eq('id', user.id).single();
       if (profile) {
         const { error } = await supabase
-          .from('message_logs_dispara_lead_saas')
+          .from('message_logs_dispara_lead_saas_02')
           .insert({
             tenant_id: profile.tenant_id,
             instance_name: logData.instancia,

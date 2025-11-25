@@ -12,8 +12,8 @@ Deno.serve(async (req) => {
     try {
         // 1. Fetch pending schedules that are due
         const { data: schedules, error: fetchError } = await supabase
-            .from('schedules_dispara_lead_saas')
-            .select('*, tenants_dispara_lead_saas(slug)')
+            .from('schedules_dispara_lead_saas_02')
+            .select('*, tenants_dispara_lead_saas_02(slug)')
             .eq('status', 'pending')
             .lte('scheduled_at', new Date().toISOString());
 
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
         for (const campaign of schedules) {
             // Mark as processing
             await supabase
-                .from('schedules_dispara_lead_saas')
+                .from('schedules_dispara_lead_saas_02')
                 .update({ status: 'processing' })
                 .eq('id', campaign.id);
 
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
                         }
 
                         // Log success
-                        await supabase.from('message_logs_dispara_lead_saas').insert({
+                        await supabase.from('message_logs_dispara_lead_saas_02').insert({
                             tenant_id: campaign.tenant_id,
                             instance_name: instanceName,
                             phone_number: contact.telefone,
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
                     console.error(`Failed to send to ${contact.telefone}:`, error);
                     failCount++;
                     // Log failure
-                    await supabase.from('message_logs_dispara_lead_saas').insert({
+                    await supabase.from('message_logs_dispara_lead_saas_02').insert({
                         tenant_id: campaign.tenant_id,
                         instance_name: instanceName,
                         phone_number: contact.telefone,
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
 
             // 4. Update schedule status
             await supabase
-                .from('schedules_dispara_lead_saas')
+                .from('schedules_dispara_lead_saas_02')
                 .update({
                     status: 'completed',
                     execution_log: `Processed ${contacts.length} contacts. Success: ${successCount}, Failed: ${failCount}`

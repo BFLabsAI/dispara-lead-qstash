@@ -28,7 +28,7 @@ export default function Login() {
 
             // Check if user is super admin
             const { data: profile } = await supabase
-                .from('users_dispara_lead_saas')
+                .from('users_dispara_lead_saas_02')
                 .select('is_super_admin')
                 .eq('id', (await supabase.auth.getUser()).data.user?.id)
                 .single();

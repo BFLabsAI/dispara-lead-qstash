@@ -95,7 +95,7 @@ export const InstanceManager = () => {
       if (!user) throw new Error("Usuário não autenticado");
 
       const { data: userData } = await supabase
-        .from('users_dispara_lead_saas')
+        .from('users_dispara_lead_saas_02')
         .select('tenant_id')
         .eq('id', user.id)
         .single();
@@ -104,18 +104,18 @@ export const InstanceManager = () => {
 
       // Check plan limits
       const { data: tenant } = await supabase
-        .from('tenants_dispara_lead_saas')
-        .select('*, plans_dispara_lead_saas(*)')
+        .from('tenants_dispara_lead_saas_02')
+        .select('*, plans_dispara_lead_saas_02(*)')
         .eq('id', userData.tenant_id)
         .single();
 
-      const plan = tenant?.plans_dispara_lead_saas;
+      const plan = tenant?.plans_dispara_lead_saas_02;
       const limits = plan?.limits ? (typeof plan.limits === 'string' ? JSON.parse(plan.limits) : plan.limits) : {};
       const maxInstances = limits.instances_limit || limits.instances || 1;
 
       // Check current instance count
       const { count } = await supabase
-        .from('instances_dispara_lead_saas')
+        .from('instances_dispara_lead_saas_02')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', userData.tenant_id);
 
