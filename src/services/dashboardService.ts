@@ -145,3 +145,13 @@ export const getDashboardStats = async () => {
     };
   }
 };
+
+export const getCampaignStats = async () => {
+  try {
+    const { fetchCampaignStats } = await import("./supabaseClient");
+    return await fetchCampaignStats();
+  } catch (error) {
+    console.error('Error getting campaign stats:', error);
+    return [];
+  }
+};

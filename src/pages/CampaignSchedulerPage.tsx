@@ -39,7 +39,7 @@ const CampaignSchedulerPage = () => {
   ]);
 
   // Store
-  const { instances, contatos, loadInstances, scheduleCampaign } = useDisparadorStore();
+  const { instances, contatos, loadInstances, scheduleCampaign, sendAdvancedCampaign } = useDisparadorStore();
 
   useEffect(() => {
     loadInstances();
@@ -101,6 +101,63 @@ const CampaignSchedulerPage = () => {
     }
   };
 
+  const handleAdvancedScheduleCampaign = async () => {
+    // Validações globais
+    if (selectedInstances.length === 0) return showError("Nenhuma instância selecionada.");
+    if (contatos.length === 0) return showError("Nenhum contato fornecido.");
+    if (tempoMin < 1 || tempoMax < 1 || tempoMax < tempoMin) return showError("Tempos de intervalo inválidos.");
+    if (!campaignName.trim()) return showError("O nome da campanha é obrigatório.");
+    if (!publicTarget.trim()) return showError("O público-alvo é obrigatório.");
+    if (!content.trim()) return showError("O conteúdo da campanha é obrigatório.");
+
+    // Validações por bloco de disparo
+    if (dispatchBlocks.length === 0) return showError("Configure pelo menos um disparo.");
+    for (const block of dispatchBlocks) {
+      if (!block.datetime) return showError("Todos os disparos devem ter uma data e hora definidas.");
+      if (block.templates.some(t => !t.text && !t.mediaUrl)) return showError("Mensagens não podem estar vazias em nenhum disparo.");
+    }
+
+    setIsScheduling(true);
+    try {
+      // Enviar um request para cada bloco de disparo usando a fila QStash
+      for (let i = 0; i < dispatchBlocks.length; i++) {
+        const block = dispatchBlocks[i];
+
+        // Nome da campanha com sufixo para identificar o bloco
+        const blockCampaignName = dispatchBlocks.length > 1
+          ? `${campaignName} (Disparo ${i + 1})`
+          : campaignName;
+
+        await sendAdvancedCampaign({
+          contatos,
+          instances: selectedInstances,
+          tempoMin,
+          tempoMax,
+          templates: block.templates,
+          campaignName: blockCampaignName,
+          publicTarget,
+          content,
+          scheduledFor: block.datetime!.toISOString()
+        });
+      }
+      showSuccess("Campanha avançada agendada com sucesso!");
+      // Resetar formulário após agendamento
+      setCampaignName("");
+      setPublicTarget("");
+      setContent("");
+      setSelectedInstances([]);
+      setVariables([]);
+      setTempoMin(2);
+      setTempoMax(5);
+      setUsarIA(false);
+      setDispatchBlocks([{ id: uuidv4(), datetime: undefined, templates: [{ type: 'texto', text: '', mediaUrl: '' }] }]);
+    } catch (error) {
+      showError("Erro ao agendar campanha avançada: " + (error as Error).message);
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
   const summary = useMemo(() => ({
     contacts: contatos.length,
     instances: selectedInstances.length,
@@ -152,6 +209,7 @@ const CampaignSchedulerPage = () => {
           tempoMax={tempoMax} setTempoMax={setTempoMax}
           usarIA={usarIA} setUsarIA={setUsarIA}
           onSchedule={handleScheduleCampaign} isScheduling={isScheduling}
+          onAdvancedSchedule={handleAdvancedScheduleCampaign}
           summary={summary}
           campaignName={campaignName}
           publicTarget={publicTarget}

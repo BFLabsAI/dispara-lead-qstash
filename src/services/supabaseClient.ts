@@ -498,3 +498,25 @@ export function clearAllCaches() {
   recentDataCache.clear();
   statsCache.clear();
 }
+
+// Fetch campaign statistics
+export async function fetchCampaignStats() {
+  const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+
+  let query = supabase
+    .from('campaigns_dispara_lead_saas_02')
+    .select('*');
+
+  if (impersonatedTenantId) {
+    query = query.eq('tenant_id', impersonatedTenantId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching campaign stats:', error);
+    throw new Error(`Failed to fetch campaign stats: ${error.message}`);
+  }
+
+  return data || [];
+}

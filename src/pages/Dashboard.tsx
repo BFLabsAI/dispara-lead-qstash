@@ -9,7 +9,7 @@ import { Filters } from "@/components/dashboard/Filters";
 import { KPIs } from "@/components/dashboard/KPIs";
 import { Charts } from "@/components/dashboard/Charts";
 import { supabase } from "../services/supabaseClient";
-import { getDashboardDataAll, getDashboardDataPaginated } from "../services/dashboardService";
+import { getDashboardDataAll, getDashboardDataPaginated, getCampaignStats } from "../services/dashboardService";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { RefreshCw } from "lucide-react";
 
@@ -41,7 +41,25 @@ export const Dashboard = () => {
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  // Fetch Campaign Stats
+  const { data: campaignStats } = useQuery({
+    queryKey: ['campaignStats', impersonatedTenantId],
+    queryFn: () => getCampaignStats(),
+    staleTime: 30000,
+  });
+
   const allData = dashboardData?.data || [];
+
+  // Calculate Scheduled Metrics
+  const scheduledCampaignsList = useMemo(() => {
+    if (!campaignStats) return [];
+    const now = new Date().toISOString();
+    return campaignStats.filter((c: any) => c.status === 'pending' && c.scheduled_for && c.scheduled_for > now);
+  }, [campaignStats]);
+
+  const scheduledCampaignsCount = scheduledCampaignsList.length;
+  const scheduledMessagesCount = scheduledCampaignsList.reduce((acc: number, curr: any) => acc + (curr.total_messages || 0), 0);
 
   // Apply filters to all data
   const filteredData = useMemo(() => {
@@ -144,7 +162,7 @@ export const Dashboard = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
+              onClick={() => { refetch(); queryClient.invalidateQueries({ queryKey: ['campaignStats'] }); }}
               disabled={loading}
               className="flex items-center gap-2"
             >
@@ -162,7 +180,13 @@ export const Dashboard = () => {
         publicoOptions={publicoOptions}
         criativoOptions={criativoOptions}
       />
-      <KPIs totalEnvios={totalEnvios} totalIA={totalIA} totalSemIA={totalSemIA} />
+      <KPIs
+        totalEnvios={totalEnvios}
+        totalIA={totalIA}
+        totalSemIA={totalSemIA}
+        scheduledCampaigns={scheduledCampaignsCount}
+        scheduledMessages={scheduledMessagesCount}
+      />
       <Charts filteredData={filteredData} />
       <Charts filteredData={filteredData} />
     </div>

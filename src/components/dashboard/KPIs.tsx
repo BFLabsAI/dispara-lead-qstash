@@ -1,17 +1,19 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { BarChart3, Brain, MessageCircle } from "lucide-react";
+import { BarChart3, Brain, MessageCircle, Calendar, Clock } from "lucide-react";
 
 interface KPIsProps {
   totalEnvios: number;
   totalIA: number;
   totalSemIA: number;
+  scheduledCampaigns?: number;
+  scheduledMessages?: number;
 }
 
-export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
+export const KPIs = ({ totalEnvios, totalIA, totalSemIA, scheduledCampaigns = 0, scheduledMessages = 0 }: KPIsProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-6">
       <Card className="glass-card animate-slide-in-up">
         <CardContent className="p-6">
           <div className="flex items-center gap-4 mb-4">
@@ -21,11 +23,11 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
             <h3 className="font-semibold text-lg">Total de Envios</h3>
           </div>
           <p className="text-4xl font-bold gradient-text">{totalEnvios.toLocaleString()}</p>
-          <p className="text-sm font-medium text-primary/80">+12% este mês</p>
+          <p className="text-sm font-medium text-primary/80">Histórico completo</p>
         </CardContent>
       </Card>
-      
-      <Card className="glass-card animate-slide-in-up" style={{animationDelay: '0.1s'}}>
+
+      <Card className="glass-card animate-slide-in-up" style={{ animationDelay: '0.1s' }}>
         <CardContent className="p-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-primary/20 rounded-lg border border-primary/30">
@@ -37,8 +39,8 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
           <p className="text-sm font-medium text-primary/80">Automação inteligente</p>
         </CardContent>
       </Card>
-      
-      <Card className="glass-card animate-slide-in-up" style={{animationDelay: '0.2s'}}>
+
+      <Card className="glass-card animate-slide-in-up" style={{ animationDelay: '0.2s' }}>
         <CardContent className="p-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-primary/20 rounded-lg border border-primary/30">
@@ -48,6 +50,32 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA }: KPIsProps) => {
           </div>
           <p className="text-4xl font-bold gradient-text">{totalSemIA.toLocaleString()}</p>
           <p className="text-sm font-medium text-primary/80">Envios manuais</p>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-card animate-slide-in-up" style={{ animationDelay: '0.3s' }}>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-blue-500/20 rounded-lg border border-blue-500/30">
+              <Calendar className="h-6 w-6 text-blue-500" />
+            </div>
+            <h3 className="font-semibold text-lg">Agendadas</h3>
+          </div>
+          <p className="text-4xl font-bold text-blue-500">{scheduledCampaigns.toLocaleString()}</p>
+          <p className="text-sm font-medium text-blue-500/80">Campanhas futuras</p>
+        </CardContent>
+      </Card>
+
+      <Card className="glass-card animate-slide-in-up" style={{ animationDelay: '0.4s' }}>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-orange-500/20 rounded-lg border border-orange-500/30">
+              <Clock className="h-6 w-6 text-orange-500" />
+            </div>
+            <h3 className="font-semibold text-lg">Msg. na Fila</h3>
+          </div>
+          <p className="text-4xl font-bold text-orange-500">{scheduledMessages.toLocaleString()}</p>
+          <p className="text-sm font-medium text-orange-500/80">Aguardando envio</p>
         </CardContent>
       </Card>
     </div>

@@ -16,6 +16,7 @@ interface CampaignFinalReviewAndScheduleProps {
   usarIA: boolean;
   setUsarIA: (u: boolean) => void;
   onSchedule: () => void;
+  onAdvancedSchedule: () => void;
   isScheduling: boolean;
   summary: {
     contacts: number;
@@ -32,6 +33,7 @@ export const CampaignFinalReviewAndSchedule = ({
   tempoMax, setTempoMax,
   usarIA, setUsarIA,
   onSchedule, isScheduling,
+  onAdvancedSchedule,
   summary,
   campaignName,
   publicTarget,
@@ -65,13 +67,39 @@ export const CampaignFinalReviewAndSchedule = ({
   // Validação básica para habilitar o botão de agendamento
   const isFormValid = summary.contacts > 0 && summary.instances > 0 && summary.totalDispatches > 0 && campaignName.trim() !== "" && publicTarget.trim() !== "" && content.trim() !== "";
 
+  // Helper to determine minimum safe delay based on contact count
+  const getMinSafeDelay = (count: number) => {
+    if (count > 250) return { min: 30, max: 50 };
+    if (count > 100) return { min: 25, max: 40 };
+    return { min: 15, max: 30 };
+  };
+
+  const safeLimits = getMinSafeDelay(summary.contacts);
+
+  // Auto-adjust delays when contact count changes
+  React.useEffect(() => {
+    if (tempoMin < safeLimits.min) setTempoMin(safeLimits.min);
+    if (tempoMax < safeLimits.max) setTempoMax(safeLimits.max);
+  }, [summary.contacts, safeLimits.min, safeLimits.max, setTempoMin, setTempoMax]);
+
+  // Handler to enforce min limit on change
+  const handleMinChange = (val: number) => {
+    if (val < safeLimits.min) return; // Prevent going below limit
+    setTempoMin(val);
+  };
+
+  const handleMaxChange = (val: number) => {
+    if (val < safeLimits.max) return; // Prevent going below limit
+    setTempoMax(val);
+  };
+
   return (
     <Card className="rounded-b-lg rounded-t-none glass-card">
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Coluna da Esquerda: Resumo */}
         <div className="space-y-6">
           <h4 className="text-lg font-bold">Resumo da Campanha</h4>
-          
+
           {/* Big Numbers - Estilo Progress Circle */}
           <div className="flex justify-around items-center pt-4">
             <SummaryCircle icon={Users} label="Contatos" value={summary.contacts} color="text-green-500" ringColor="border-green-500/30" />
@@ -90,7 +118,7 @@ export const CampaignFinalReviewAndSchedule = ({
             </ul>
           </div>
         </div>
-        
+
         {/* Coluna da Direita: Ajustes e Agendamento */}
         <div className="space-y-6 flex flex-col justify-between">
           <div>
@@ -98,11 +126,13 @@ export const CampaignFinalReviewAndSchedule = ({
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5"><ChevronsDown className="h-4 w-4" /> Tempo mínimo (s)</Label>
-                <Input type="number" value={tempoMin} onChange={e => setTempoMin(Number(e.target.value))} />
+                <Input type="number" min={safeLimits.min} value={tempoMin} onChange={e => handleMinChange(Number(e.target.value))} />
+                <p className="text-xs text-muted-foreground">Mínimo seguro: {safeLimits.min}s</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5"><ChevronsUp className="h-4 w-4" /> Tempo máximo (s)</Label>
-                <Input type="number" value={tempoMax} onChange={e => setTempoMax(Number(e.target.value))} />
+                <Input type="number" min={safeLimits.max} value={tempoMax} onChange={e => handleMaxChange(Number(e.target.value))} />
+                <p className="text-xs text-muted-foreground">Mínimo seguro: {safeLimits.max}s</p>
               </div>
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-4">
@@ -119,6 +149,11 @@ export const CampaignFinalReviewAndSchedule = ({
           <Button size="lg" onClick={onSchedule} disabled={isScheduling || !isFormValid} className="w-full btn-premium">
             <Play className="mr-2 h-5 w-5" />
             {isScheduling ? 'Agendando Campanha...' : 'Agendar Campanha'}
+          </Button>
+
+          <Button size="lg" variant="outline" onClick={onAdvancedSchedule} disabled={isScheduling || !isFormValid} className="w-full border-primary text-primary hover:bg-primary/10">
+            <Server className="mr-2 h-5 w-5" />
+            {isScheduling ? 'Enfileirando...' : 'Agendar Campanha Avançada (Fila)'}
           </Button>
         </div>
       </div>

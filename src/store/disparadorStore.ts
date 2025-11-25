@@ -12,6 +12,8 @@ import {
 } from '../services/evolutionApi';
 import { uploadFileToSupabase } from '../services/supabaseStorage';
 import { supabase } from '../services/supabaseClient';
+import { useAdminStore } from './adminStore';
+import { qstashClient } from '../services/qstashClient';
 
 interface Instance {
   name: string;
@@ -70,6 +72,17 @@ interface DisparadorState {
     usarIA: boolean;
     horaAgendamento: string;
   }) => Promise<void>;
+  sendAdvancedCampaign: (params: {
+    contatos: Contact[];
+    instances: string[];
+    tempoMin: number;
+    tempoMax: number;
+    templates: MessageTemplate[];
+    campaignName: string;
+    publicTarget: string;
+    content: string;
+    scheduledFor?: string;
+  }) => Promise<void>;
 }
 
 export const useDisparadorStore = create<DisparadorState>((set, get) => ({
@@ -93,24 +106,31 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { data: userData } = await supabase
-        .from('users_dispara_lead_saas_02')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .single();
+      // Check for impersonation (Super Admin)
+      const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+      let targetTenantId = impersonatedTenantId;
 
-      if (!userData?.tenant_id) {
-        console.error("Tenant ID not found for user:", user.id);
-        throw new Error("Tenant não encontrado");
+      if (!targetTenantId) {
+        const { data: userData } = await supabase
+          .from('users_dispara_lead_saas_02')
+          .select('tenant_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!userData?.tenant_id) {
+          console.error("Tenant ID not found for user:", user.id);
+          throw new Error("Tenant não encontrado");
+        }
+        targetTenantId = userData.tenant_id;
       }
 
-      console.log("Loading instances for Tenant ID:", userData.tenant_id);
+      console.log("Loading instances for Tenant ID:", targetTenantId);
 
       // Fetch tenant's instances from our DB (Source of Truth)
       const { data: dbInstances, error: dbError } = await supabase
         .from('instances_dispara_lead_saas_02')
         .select('instance_name, connection_status')
-        .eq('tenant_id', userData.tenant_id);
+        .eq('tenant_id', targetTenantId);
 
       if (dbError) {
         console.error("Error fetching instances from DB:", dbError);
@@ -440,6 +460,168 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       connectionStatus: instance.status
     }));
     set({ filteredInstances: filtered });
+  },
+
+  sendAdvancedCampaign: async (params: {
+    contatos: Contact[];
+    instances: string[];
+    tempoMin: number;
+    tempoMax: number;
+    templates: MessageTemplate[];
+    campaignName: string;
+    publicTarget: string;
+    content: string;
+    scheduledFor?: string; // ISO string if scheduled
+  }) => {
+    const { contatos, instances, tempoMin, tempoMax, templates, campaignName, publicTarget, content, scheduledFor } = params;
+    set({ isLoading: true });
+
+    try {
+      // 1. Get User & Tenant
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Check for impersonation (Super Admin)
+      const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+      let targetTenantId = impersonatedTenantId;
+
+      if (!targetTenantId) {
+        const { data: userData } = await supabase
+          .from('users_dispara_lead_saas_02')
+          .select('tenant_id')
+          .eq('id', user.id)
+          .single();
+        targetTenantId = userData?.tenant_id;
+      }
+
+      if (!targetTenantId) throw new Error("Tenant não encontrado");
+
+      // 2. Create Campaign
+      const { data: campaign, error: campaignError } = await supabase
+        .from('campaigns_dispara_lead_saas_02')
+        .insert({
+          tenant_id: targetTenantId,
+          user_id: user.id,
+          name: campaignName,
+          target_audience: publicTarget,
+          creative: content,
+          status: 'pending',
+          total_messages: contatos.length * templates.length,
+          instances: instances,
+          delay_min: tempoMin,
+          delay_max: tempoMax,
+          is_scheduled: !!scheduledFor,
+          scheduled_for: scheduledFor || null
+        })
+        .select()
+        .single();
+
+      if (campaignError) throw campaignError;
+
+      // 3. Prepare Messages & Logs
+      const messagesToEnqueue: any[] = [];
+      const logsToInsert: any[] = [];
+
+      // Calculate base delay if scheduled, otherwise start now
+      const baseTime = scheduledFor ? new Date(scheduledFor).getTime() : Date.now();
+      let accumulatedDelay = 0;
+
+      for (let i = 0; i < contatos.length; i++) {
+        const contact = contatos[i];
+        const instanceName = instances[i % instances.length];
+
+        for (const template of templates) {
+          // Personalize text
+          let personalizedText = template.text;
+          personalizedText = personalizedText.replace(/\{(\w+)\}/g, (_: string, key: string) => {
+            const fullValue = contact[key] || "";
+            if (template.text.includes(`{${key.split(" ")[0]}}`)) {
+              return fullValue.split(" ")[0];
+            }
+            return fullValue;
+          });
+
+          const messageId = crypto.randomUUID();
+
+          // Prepare Log
+          logsToInsert.push({
+            id: messageId,
+            tenant_id: targetTenantId,
+            campaign_id: campaign.id,
+            instance_name: instanceName,
+            phone_number: contact.telefone,
+            message_content: personalizedText,
+            status: 'pending',
+            campaign_name: campaignName,
+            campaign_type: scheduledFor ? 'Agendada (QStash)' : 'Imediata (QStash)',
+            metadata: {
+              publico: publicTarget,
+              criativo: content
+            }
+          });
+
+          // Calculate random delay for this message (ms)
+          const randomDelay = Math.floor(Math.random() * (tempoMax - tempoMin + 1) + tempoMin) * 1000;
+          accumulatedDelay += randomDelay;
+
+          // Determine delivery time
+          // If scheduled, baseTime is the schedule time. If immediate, baseTime is now.
+          // We add accumulatedDelay (spacing) to this base time.
+          const deliveryTime = baseTime + accumulatedDelay;
+
+          // Prepare QStash Payload
+          const qstashPayload: any = {
+            messageId,
+            phoneNumber: contact.telefone,
+            messageContent: personalizedText,
+            instanceName,
+            campaignId: campaign.id,
+            tenantId: targetTenantId,
+            mediaUrl: template.mediaUrl,
+            mediaType: template.type !== 'texto' ? template.type : undefined
+          };
+
+          if (scheduledFor) {
+            // For scheduled campaigns, use absolute timestamp (seconds)
+            qstashPayload.notBefore = Math.floor(deliveryTime / 1000);
+          } else {
+            // For immediate campaigns, use relative delay (seconds)
+            qstashPayload.delay = Math.floor(accumulatedDelay / 1000);
+          }
+
+          messagesToEnqueue.push(qstashPayload);
+        }
+      }
+
+      // 4. Insert Logs (Bulk)
+      const { error: logsError } = await supabase
+        .from('message_logs_dispara_lead_saas_02')
+        .insert(logsToInsert);
+
+      if (logsError) throw logsError;
+
+      // 5. Enqueue to QStash
+      await qstashClient.enqueueBatch(messagesToEnqueue);
+
+      // 6. Update Status
+      await supabase
+        .from('message_logs_dispara_lead_saas_02')
+        .update({ status: 'queued', queued_at: new Date().toISOString() })
+        .eq('campaign_id', campaign.id);
+
+      await supabase
+        .from('campaigns_dispara_lead_saas_02')
+        .update({ status: 'processing', started_at: new Date().toISOString() })
+        .eq('id', campaign.id);
+
+      showSuccess(`Campanha iniciada! ${messagesToEnqueue.length} mensagens enfileiradas.`);
+
+    } catch (error) {
+      console.error("Erro ao enviar campanha avançada:", error);
+      showError("Falha ao iniciar campanha: " + (error as Error).message);
+    } finally {
+      set({ isLoading: false });
+    }
   },
 }));
 

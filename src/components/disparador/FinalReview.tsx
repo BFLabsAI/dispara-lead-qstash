@@ -16,6 +16,7 @@ interface FinalReviewProps {
   usarIA: boolean;
   setUsarIA: (u: boolean) => void;
   onSend: () => void;
+  onAdvancedSend: () => void;
   isSending: boolean;
   summary: {
     contacts: number;
@@ -32,6 +33,7 @@ export const FinalReview = ({
   tempoMax, setTempoMax,
   usarIA, setUsarIA,
   onSend, isSending,
+  onAdvancedSend,
   summary,
   campaignName,
   publicTarget,
@@ -43,7 +45,7 @@ export const FinalReview = ({
         {/* Coluna da Esquerda: Resumo */}
         <div className="space-y-6">
           <h4 className="text-lg font-bold">Resumo da Campanha</h4>
-          
+
           {/* Big Numbers - Estilo Progress Circle */}
           <div className="flex justify-around items-center pt-4">
             <SummaryCircle icon={Users} label="Contatos" value={summary.contacts} color="text-green-500" ringColor="border-green-500/30" />
@@ -62,7 +64,7 @@ export const FinalReview = ({
             </ul>
           </div>
         </div>
-        
+
         {/* Coluna da Direita: Ajustes e Disparo */}
         <div className="space-y-6 flex flex-col justify-between">
           <div>
@@ -91,6 +93,11 @@ export const FinalReview = ({
           <Button size="lg" onClick={onSend} disabled={isSending} className="w-full btn-premium">
             <Play className="mr-2 h-5 w-5" />
             {isSending ? 'Disparando...' : 'Disparar Campanha'}
+          </Button>
+
+          <Button size="lg" variant="outline" onClick={onAdvancedSend} disabled={isSending} className="w-full border-primary text-primary hover:bg-primary/10">
+            <Server className="mr-2 h-5 w-5" />
+            {isSending ? 'Enfileirando...' : 'Campanha Avançada (Fila)'}
           </Button>
         </div>
       </div>

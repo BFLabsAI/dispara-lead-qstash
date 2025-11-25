@@ -29,7 +29,7 @@ export const ShooterConfig = () => {
   const [isSending, setIsSending] = useState(false);
 
   // Store
-  const { instances, contatos, sendMessages, loadInstances } = useDisparadorStore();
+  const { instances, contatos, sendMessages, sendAdvancedCampaign, loadInstances } = useDisparadorStore();
 
   useEffect(() => {
     loadInstances();
@@ -41,16 +41,36 @@ export const ShooterConfig = () => {
     if (tempoMin < 1 || tempoMax < 1 || tempoMax < tempoMin) return showError("Tempos inválidos.");
 
     setIsSending(true);
-    await sendMessages({ 
-      contatos, 
-      instances: selectedInstances, 
-      tempoMin, 
-      tempoMax, 
-      usarIA, 
+    await sendMessages({
+      contatos,
+      instances: selectedInstances,
+      tempoMin,
+      tempoMax,
+      usarIA,
       templates,
       campaignName, // Passando o nome da campanha
       publicTarget, // Passando o público-alvo
       content // Passando o conteúdo
+    });
+    setIsSending(false);
+  };
+
+  const handleAdvancedSend = async () => {
+    if (selectedInstances.length === 0) return showError("Nenhuma instância selecionada.");
+    if (contatos.length === 0) return showError("Nenhum contato fornecido.");
+    if (tempoMin < 1 || tempoMax < 1 || tempoMax < tempoMin) return showError("Tempos inválidos.");
+    if (!campaignName) return showError("Nome da campanha é obrigatório.");
+
+    setIsSending(true);
+    await sendAdvancedCampaign({
+      contatos,
+      instances: selectedInstances,
+      tempoMin,
+      tempoMax,
+      templates,
+      campaignName,
+      publicTarget,
+      content
     });
     setIsSending(false);
   };
@@ -100,6 +120,7 @@ export const ShooterConfig = () => {
           tempoMax={tempoMax} setTempoMax={setTempoMax}
           usarIA={usarIA} setUsarIA={setUsarIA}
           onSend={handleSend} isSending={isSending}
+          onAdvancedSend={handleAdvancedSend}
           summary={summary}
           campaignName={campaignName}
           publicTarget={publicTarget}
