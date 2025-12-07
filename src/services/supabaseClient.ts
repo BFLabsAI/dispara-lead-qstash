@@ -383,49 +383,50 @@ const statsCache = new Map<string, { data: any, timestamp: number }>();
 const STATS_CACHE_TTL = 60000; // 1 minute
 
 export async function getDashboardStatsOptimized() {
-  const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
-  const cacheKey = `dashboard_stats_${impersonatedTenantId || 'all'}`;
-  const cached = statsCache.get(cacheKey);
-
-  if (cached && Date.now() - cached.timestamp < STATS_CACHE_TTL) {
-    return cached.data;
-  }
-
-  const operation = async () => {
-    let query = supabase
-      .from('message_logs_dispara_lead_saas_02')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (impersonatedTenantId) {
-      query = query.eq('tenant_id', impersonatedTenantId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch dashboard stats: ${error.message}`);
-    }
-
-    return getDisparadorStats((data || []).map(item => mapSaaSLogToDisparadorData(item as unknown as SaaSLog)));
-  };
-
   try {
-    const stats = await retryWithBackoff(operation, 2, 500);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
 
-    // Cache the result
-    statsCache.set(cacheKey, { data: stats, timestamp: Date.now() });
+    // Get tenant_id
+    const { data: userData } = await supabase
+      .from('users_dispara_lead_saas_02')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
 
-    return stats;
+    if (!userData?.tenant_id) throw new Error('Tenant not found');
+
+    // Call the RPC function
+    const { data, error } = await supabase
+      .rpc('get_dashboard_stats', { p_tenant_id: userData.tenant_id });
+
+    if (error) throw error;
+
+    return {
+      total: data.total_envios,
+      successful: data.total_envios, // Legacy mapping
+      failed: 0,
+      withAI: data.total_ia,
+      successRate: 100,
+      instanceStats: {},
+      campaignStats: {
+        scheduled: data.scheduled_campaigns,
+        pending_messages: data.scheduled_messages
+      },
+      dailyStats: data.daily_stats
+    };
   } catch (error) {
-    // Return cached stats if available
-    if (cached) {
-      console.warn('Returning expired cached stats due to fetch failure');
-      return cached.data;
-    }
-
-    console.error('Failed to get dashboard stats:', error);
-    return getDisparadorStats([]); // Return empty stats on error
+    console.error('Error fetching dashboard stats:', error);
+    // Fallback to empty stats
+    return {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      withAI: 0,
+      successRate: 0,
+      instanceStats: {},
+      campaignStats: {}
+    };
   }
 }
 

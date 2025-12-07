@@ -20,60 +20,23 @@ export default function Register() {
         setLoading(true);
 
         try {
-            // 1. Sign up user
+            // 1. Sign up user with metadata
+            // The Postgres Trigger 'on_auth_user_created_dispara_lead' will automatically:
+            // - Create the Tenant
+            // - Create the User Profile linked to the Tenant
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        company_name: companyName,
+                        full_name: companyName // Or add a separate input for full name if needed
+                    }
+                }
             });
 
             if (authError) throw authError;
             if (!authData.user) throw new Error("Erro ao criar usuário.");
-
-            // 2. Create Tenant (Company)
-            // Note: Ideally this should be done via a Postgres Trigger on auth.users insert
-            // or an Edge Function to ensure atomicity.
-            // For now, we'll do it client-side but RLS might block us if we don't have a policy allowing new users to create tenants.
-            // We need a policy on 'tenants_dispara_lead_saas_02' allowing INSERT for authenticated users.
-            // And a policy on 'users_dispara_lead_saas_02' allowing INSERT.
-
-            // Let's assume we have a trigger or we call an RPC.
-            // If not, we might fail here if RLS is strict.
-            // Let's try to insert directly.
-
-            // Create Tenant
-            const slug = companyName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(Math.random() * 1000);
-
-            // We need to fetch a default plan first
-            const { data: plan } = await supabase.from('plans_dispara_lead_saas_02').select('id').eq('slug', 'basic').single();
-
-            if (!plan) throw new Error("Plano padrão não encontrado.");
-
-            const { data: tenant, error: tenantError } = await supabase
-                .from('tenants_dispara_lead_saas_02')
-                .insert({
-                    name: companyName,
-                    slug: slug,
-                    plan_id: plan.id,
-                    owner_id: authData.user.id,
-                    status: 'active'
-                })
-                .select()
-                .single();
-
-            if (tenantError) throw tenantError;
-
-            // 3. Create User Profile linked to Tenant
-            const { error: profileError } = await supabase
-                .from('users_dispara_lead_saas_02')
-                .insert({
-                    id: authData.user.id,
-                    tenant_id: tenant.id,
-                    role: 'owner',
-                    email: email,
-                    full_name: companyName // Use company name as initial name or ask for it
-                });
-
-            if (profileError) throw profileError;
 
             toast({
                 title: "Conta criada com sucesso!",
