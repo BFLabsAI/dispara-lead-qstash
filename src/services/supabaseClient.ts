@@ -42,6 +42,7 @@ export interface DisparadorData {
   tipo_campanha: string;
   created_at?: string;
   id?: number | string; // Changed to allow UUID
+  scheduled_for?: string;
 }
 
 interface SaaSLog {
@@ -53,6 +54,9 @@ interface SaaSLog {
   campaign_name: string;
   campaign_type: string;
   created_at: string;
+  scheduled_for?: string;
+  provider_message_id?: string;
+  provider_response?: any;
   metadata?: {
     usaria?: boolean;
     publico?: string;
@@ -65,7 +69,7 @@ const mapSaaSLogToDisparadorData = (log: SaaSLog): DisparadorData => {
   return {
     id: log.id,
     numero: log.phone_number,
-    tipo_envio: log.status === 'sent' ? 'sucesso' : 'falha',
+    tipo_envio: log.status === 'sent' ? 'sucesso' : (log.status === 'queued' ? 'fila' : 'falha'),
     usaria: log.metadata?.usaria || false,
     usarIA: log.metadata?.usaria || false,
     instancia: log.instance_name,
@@ -74,7 +78,8 @@ const mapSaaSLogToDisparadorData = (log: SaaSLog): DisparadorData => {
     publico: log.metadata?.publico || '',
     criativo: log.metadata?.criativo || '',
     tipo_campanha: log.campaign_type,
-    created_at: log.created_at
+    created_at: log.created_at,
+    scheduled_for: log.scheduled_for
   };
 };
 
@@ -112,7 +117,7 @@ import { useAdminStore } from '@/store/adminStore';
 
 // ... (existing imports)
 
-// Fetch paginated data from message_logs_dispara_lead_saas_02 table with retry logic
+// Fetch paginated data from message_logs_dispara_lead_saas_03 table with retry logic
 export async function fetchDisparadorDataPaginated(
   page: number = 1,
   pageSize: number = 50,
@@ -129,7 +134,7 @@ export async function fetchDisparadorDataPaginated(
 
     // Build the query with optimized column selection
     let query = supabase
-      .from('message_logs_dispara_lead_saas_02')
+      .from('message_logs_dispara_lead_saas_03')
       .select('*', { count: 'exact', head: false });
 
     // Apply impersonation filter if set
@@ -198,7 +203,7 @@ export async function fetchRecentDisparadorData(limit: number = 100): Promise<Di
 
   const operation = async () => {
     let query = supabase
-      .from('message_logs_dispara_lead_saas_02')
+      .from('message_logs_dispara_lead_saas_03')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -250,7 +255,7 @@ export async function fetchAllDisparadorData(): Promise<DisparadorData[]> {
       const to = from + pageSize - 1;
 
       let query = supabase
-        .from('message_logs_dispara_lead_saas_02')
+        .from('message_logs_dispara_lead_saas_03')
         .select('*')
         .order('created_at', { ascending: false })
         .range(from, to);
@@ -319,7 +324,7 @@ export function subscribeToDisparadorUpdates(
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'message_logs_dispara_lead_saas_02',
+          table: 'message_logs_dispara_lead_saas_03',
           filter: filter
         },
         async (payload) => {
@@ -403,11 +408,14 @@ export async function getDashboardStatsOptimized() {
     if (error) throw error;
 
     return {
-      total: data.total_envios,
-      successful: data.total_envios, // Legacy mapping
-      failed: 0,
+      total: data.total_envios + data.total_queued + data.total_failed, // Total is now sum of all states
+      successful: data.total_envios, // This is now strictly 'sent'
+      failed: data.total_failed,
+      queued: data.total_queued, // Expose queued explicitly
       withAI: data.total_ia,
-      successRate: 100,
+      successRate: (data.total_envios + data.total_failed) > 0
+        ? (data.total_envios / (data.total_envios + data.total_failed)) * 100
+        : 0,
       instanceStats: {},
       campaignStats: {
         scheduled: data.scheduled_campaigns,
@@ -422,6 +430,7 @@ export async function getDashboardStatsOptimized() {
       total: 0,
       successful: 0,
       failed: 0,
+      queued: 0,
       withAI: 0,
       successRate: 0,
       instanceStats: {},
@@ -434,31 +443,36 @@ export async function getDashboardStatsOptimized() {
 export function getDisparadorStats(data: DisparadorData[]) {
   const total = data.length;
   const successful = data.filter(item => item.tipo_envio === 'sucesso').length;
-  const failed = total - successful;
+  const queued = data.filter(item => item.tipo_envio === 'fila').length;
+  const failed = total - successful - queued;
   const withAI = data.filter(item => item.usaria || item.usarIA).length;
 
   // Group by instance
   const instanceStats = data.reduce((acc, item) => {
     if (!acc[item.instancia]) {
-      acc[item.instancia] = { total: 0, successful: 0, failed: 0 };
+      acc[item.instancia] = { total: 0, successful: 0, failed: 0, queued: 0 };
     }
     acc[item.instancia].total++;
     if (item.tipo_envio === 'sucesso') {
       acc[item.instancia].successful++;
+    } else if (item.tipo_envio === 'fila') {
+      acc[item.instancia].queued = (acc[item.instancia].queued || 0) + 1;
     } else {
       acc[item.instancia].failed++;
     }
     return acc;
-  }, {} as Record<string, { total: number; successful: number; failed: number }>);
+  }, {} as Record<string, { total: number; successful: number; failed: number; queued?: number }>);
 
   // Group by campaign
   const campaignStats = data.reduce((acc, item) => {
     if (!acc[item.nome_campanha]) {
-      acc[item.nome_campanha] = { total: 0, successful: 0, failed: 0, withAI: 0 };
+      acc[item.nome_campanha] = { total: 0, successful: 0, failed: 0, withAI: 0, queued: 0 };
     }
     acc[item.nome_campanha].total++;
     if (item.tipo_envio === 'sucesso') {
       acc[item.nome_campanha].successful++;
+    } else if (item.tipo_envio === 'fila') {
+      acc[item.nome_campanha].queued = (acc[item.nome_campanha].queued || 0) + 1;
     } else {
       acc[item.nome_campanha].failed++;
     }
@@ -466,14 +480,15 @@ export function getDisparadorStats(data: DisparadorData[]) {
       acc[item.nome_campanha].withAI++;
     }
     return acc;
-  }, {} as Record<string, { total: number; successful: number; failed: number; withAI: number }>);
+  }, {} as Record<string, { total: number; successful: number; failed: number; withAI: number; queued?: number }>);
 
   return {
     total,
     successful,
     failed,
+    queued,
     withAI,
-    successRate: total > 0 ? (successful / total) * 100 : 0,
+    successRate: (successful + failed) > 0 ? (successful / (successful + failed)) * 100 : 0, // Exclude queued from rate
     instanceStats,
     campaignStats
   };
@@ -483,7 +498,7 @@ export function getDisparadorStats(data: DisparadorData[]) {
 export async function checkSupabaseConnection(): Promise<boolean> {
   try {
     const { data, error } = await supabase
-      .from('message_logs_dispara_lead_saas_02')
+      .from('message_logs_dispara_lead_saas_03')
       .select('id')
       .limit(1);
 

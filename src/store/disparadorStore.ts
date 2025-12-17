@@ -2,14 +2,13 @@ import { create } from 'zustand';
 import { showSuccess, showError } from '../utils/toast';
 import * as XLSX from "xlsx";
 import {
-  fetchAllInstances,
+  /* fetchAllInstances (unused), */
   generateQrCode,
-  getConnectionState,
+  disconnectInstanceClient,
   sendTextMessage,
   sendMediaMessage,
-  filterInstances,
-  type EvolutionInstance
-} from '../services/evolutionApi';
+  type UazapiInstance
+} from '../services/uazapiClient';
 import { uploadFileToSupabase } from '../services/supabaseStorage';
 import { supabase } from '../services/supabaseClient';
 import { useAdminStore } from './adminStore';
@@ -33,14 +32,19 @@ interface DisparadorState {
   filteredInstances: Instance[];
   isLoading: boolean;
   qrCode: string | null;
+  qrTimestamp: number | null; // Track when QR was generated
+  isQrDialogOpen: boolean;    // Explicitly control dialog visibility
   qrInstance: string | null;
   contatos: Contact[];
   interromper: boolean;
   instanceFilter: string;
+  disconnectingInstance: string | null;
 
-  loadInstances: () => Promise<void>;
-  syncInstances: () => Promise<void>; // Added syncInstances
-  fetchQrCode: (instanceName: string) => Promise<void>;
+  syncInstances: (silent?: boolean) => Promise<void>;
+  loadInstances: (silent?: boolean) => Promise<void>;
+  disconnectInstance: (instanceName: string) => Promise<void>;
+  fetchQrCode: (instanceName: string, forceNew?: boolean) => Promise<void>;
+  closeQrDialog: () => void;
   resetQr: () => void;
   setContatos: (contatos: Contact[]) => void;
   setInstanceFilter: (filter: string) => void;
@@ -55,7 +59,9 @@ interface DisparadorState {
     templates: MessageTemplate[];
     campaignName: string;
     publicTarget: string;
+    publicTarget: string;
     content: string;
+    scheduledFor?: string;
   }) => Promise<{ sucessos: number; erros: number; log: string }>;
   stopSending: () => void;
   scheduleCampaign: (params: { // Nova função para agendar campanha
@@ -72,17 +78,7 @@ interface DisparadorState {
     usarIA: boolean;
     horaAgendamento: string;
   }) => Promise<void>;
-  sendAdvancedCampaign: (params: {
-    contatos: Contact[];
-    instances: string[];
-    tempoMin: number;
-    tempoMax: number;
-    templates: MessageTemplate[];
-    campaignName: string;
-    publicTarget: string;
-    content: string;
-    scheduledFor?: string;
-  }) => Promise<void>;
+
 }
 
 export const useDisparadorStore = create<DisparadorState>((set, get) => ({
@@ -90,17 +86,25 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   filteredInstances: [],
   isLoading: false,
   qrCode: null,
+  qrTimestamp: null,
+  isQrDialogOpen: false,
   qrInstance: null,
   contatos: [],
   interromper: false,
   instanceFilter: '',
+  disconnectingInstance: null,
 
   resetQr: () => {
-    set({ qrCode: null, qrInstance: null });
+    set({ qrCode: null, qrInstance: null, qrTimestamp: null, isQrDialogOpen: false });
   },
 
-  loadInstances: async () => {
-    set({ isLoading: true });
+  closeQrDialog: () => {
+    // Just close the dialog but keep the state (so timer persists)
+    set({ isQrDialogOpen: false });
+  },
+
+  loadInstances: async (silent = false) => {
+    if (!silent) set({ isLoading: true });
     try {
       // Get current user and tenant
       const { data: { user } } = await supabase.auth.getUser();
@@ -124,49 +128,26 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
         targetTenantId = userData.tenant_id;
       }
 
-      console.log("Loading instances for Tenant ID:", targetTenantId);
-
       // Fetch tenant's instances from our DB (Source of Truth)
       const { data: dbInstances, error: dbError } = await supabase
         .from('instances_dispara_lead_saas_02')
-        .select('instance_name, connection_status')
+        .select('instance_name, status')
         .eq('tenant_id', targetTenantId);
 
       if (dbError) {
         console.error("Error fetching instances from DB:", dbError);
       }
 
-      console.log("DB Instances found:", dbInstances);
-
       if (!dbInstances || dbInstances.length === 0) {
-        console.warn("No instances found in DB for this tenant.");
         set({ instances: [], filteredInstances: [] });
         return;
       }
 
       // Map DB instances directly to UI format
-      // The DB is now the source of truth for both existence and status
-      // BUT we need to sync with Evolution API for real-time status
-      let allInstances: EvolutionInstance[] = [];
-      try {
-        allInstances = await fetchAllInstances();
-      } catch (apiError) {
-        console.error("Failed to fetch from Evolution API:", apiError);
-        // If API fails, we fall back to DB status
-      }
-
-      const formattedInstances = dbInstances.map(dbInst => {
-        // Find the corresponding instance in Evolution API to get real-time status
-        const apiInst = allInstances.find(i => i.name === dbInst.instance_name);
-
-        // Use API status if available, otherwise fallback to DB status, then 'DISCONNECTED'
-        const realTimeStatus = apiInst ? apiInst.status : (dbInst.connection_status || "DISCONNECTED");
-
-        return {
-          name: dbInst.instance_name,
-          connectionStatus: realTimeStatus
-        };
-      });
+      const formattedInstances = dbInstances.map(dbInst => ({
+        name: dbInst.instance_name,
+        connectionStatus: dbInst.status || 'disconnected' // Correct column is 'status'
+      }));
 
       set({
         instances: formattedInstances,
@@ -176,64 +157,113 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       showError("Erro ao carregar instâncias: " + (error as Error).message);
       set({ instances: [], filteredInstances: [] });
     } finally {
-      set({ isLoading: false });
+      if (!silent) set({ isLoading: false });
     }
   },
 
-  syncInstances: async () => {
-    set({ isLoading: true });
+  syncInstances: async (silent = false) => {
+    if (!silent) set({ isLoading: true });
     try {
-      const evoInstances = await fetchAllInstances();
-
-      const { data: dbInstances, error: dbError } = await supabase
-        .from('instances_dispara_lead_saas_02')
-        .select('*');
-
-      if (dbError) throw dbError;
-
-      for (const evoInst of evoInstances) {
-        // Find matching DB instance
-        const match = dbInstances?.find(dbInst => dbInst.instance_name === evoInst.name);
-
-        if (match) {
-          // Update DB with Evo data (status, apiKey)
-          await supabase
-            .from('instances_dispara_lead_saas_02')
-            .update({
-              connection_status: evoInst.status,
-              api_key: (evoInst as any).apiKey, // Update API Key
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', match.id);
+      const { instances } = get();
+      if (!instances.length) {
+        // If no instances loaded, try loading first
+        await get().loadInstances(silent);
+        const { instances: updatedList } = get();
+        if (!updatedList.length) {
+          if (!silent) set({ isLoading: false });
+          return;
         }
       }
 
-      // Reload instances to reflect changes
-      await get().loadInstances();
-      showSuccess("Sincronização concluída com sucesso!");
+      // We need to import getConnectionStatus here or move it to top imports
+      // Importing locally to avoid circular dependency issues if any
+      const { getConnectionStatus } = await import('../services/uazapiClient');
+
+      // Process sequentially to avoid rate limits? Or parallel?
+      // Parallel is fine for a few instances.
+      const syncPromises = get().instances.map(async (inst) => {
+        try {
+          // Call proxy with ensure_webhooks=true as requested by user
+          // "refresh calls check connection then webhook if webhook ok do nothing, if not setupwebhooks"
+          await getConnectionStatus(inst.name, true);
+        } catch (e) {
+          console.error(`Failed to sync ${inst.name}:`, e);
+        }
+      });
+
+      await Promise.all(syncPromises);
+
+      // Refresh data from DB to get updated statuses
+      await get().loadInstances(silent);
+      if (!silent) showSuccess("Instâncias sincronizadas.");
+
     } catch (error) {
-      console.error("Sync error:", error);
-      showError("Erro ao sincronizar instâncias: " + (error as Error).message);
+      if (!silent) showError("Erro ao sincronizar: " + (error as Error).message);
     } finally {
-      set({ isLoading: false });
+      if (!silent) set({ isLoading: false });
     }
   },
 
-  fetchQrCode: async (instanceName: string) => {
-    if (get().qrInstance === instanceName && get().qrCode) return;
+  fetchQrCode: async (instanceName: string, forceNew = false) => {
+    const { qrCode: oldQr, qrInstance: oldInstance, qrTimestamp: oldTimestamp } = get();
 
-    set({ qrCode: null, qrInstance: instanceName });
+    // Set target instance and open dialog immediately
+    set({ qrInstance: instanceName, isQrDialogOpen: true });
+
     try {
       const data = await generateQrCode(instanceName);
+
       if (data.qrCode) {
-        set({ qrCode: data.qrCode });
+        const newQr = data.qrCode;
+
+        // If it's the exact same string (cached from backend) AND we have a valid timestamp, keep old timestamp
+        // Otherwise, it's considered "new-ish" or we lost tracking, so reset timestamp.
+        let newTimestamp = Date.now();
+        if (oldQr === newQr && oldInstance === instanceName && oldTimestamp) {
+          const age = Date.now() - oldTimestamp;
+          if (age < 120000) {
+            newTimestamp = oldTimestamp; // Keep original time
+          }
+        }
+
+        set({ qrCode: newQr, qrTimestamp: newTimestamp });
       } else {
-        set({ qrCode: null });
-        showError("Já está conectado ou houve um erro.");
+        const responseFn = data as any;
+        if (responseFn.status === 'connected') {
+          showSuccess("Instância já conectada!");
+          set({ isQrDialogOpen: false });
+          get().loadInstances(true);
+        } else {
+          set({ qrCode: null, qrTimestamp: null });
+          showError("Erro: " + (responseFn.message || "Não foi possível gerar QR Code"));
+        }
       }
     } catch (error) {
       showError("Erro ao buscar QR Code: " + (error as Error).message);
       set({ qrCode: null });
+    }
+  },
+
+  disconnectInstance: async (instanceName: string) => {
+    // Set localized loading state
+    set({ disconnectingInstance: instanceName });
+
+    try {
+      await disconnectInstanceClient(instanceName);
+      showSuccess("Instância desconectada.");
+      // Reload silently to update status
+      await get().loadInstances(true);
+    } catch (error) {
+      showError("Erro ao desconectar: " + (error as Error).message);
+    } finally {
+      // Clear localized loading state
+      set({ disconnectingInstance: null });
+
+      // If we are disconnecting the instance currently showing (or hidden) in QR dialog/state, reset it.
+      // This prevents "Expired" state from persisting to the next connection attempt.
+      if (get().qrInstance === instanceName) {
+        get().resetQr();
+      }
     }
   },
 
@@ -285,195 +315,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   },
 
   sendMessages: async (params) => {
-    const { contatos, instances, tempoMin, tempoMax, usarIA, templates, campaignName, publicTarget, content } = params;
-    set({ interromper: false });
-    let sucessos = 0;
-    let erros = 0;
-    let log = "";
-    const list = contatos.length ? contatos : [];
-
-    for (let i = 0; i < list.length; i++) {
-      if (get().interromper) {
-        log += "⏹️ Interrompido pelo usuário\n";
-        break;
-      }
-      const item = list[i];
-      const choice = instances[i % instances.length];
-
-      try {
-        // Send each message in the template
-        for (const template of templates) {
-          let personalizedText = template.text;
-
-          // Replace variables in the message
-          personalizedText = personalizedText.replace(/\{(\w+)\}/g, (_: string, key: string) => {
-            const fullValue = item[key] || "";
-            // If the template uses just the first word, return that
-            if (template.text.includes(`{${key.split(" ")[0]}}`)) {
-              return fullValue.split(" ")[0];
-            }
-            return fullValue;
-          });
-
-          // Send message based on type
-          if (template.type === 'texto' || !template.mediaUrl) {
-            // Send text message
-            await sendTextMessage({
-              instanceName: choice,
-              number: item.telefone,
-              text: personalizedText
-            });
-          } else if (template.type === 'imagem' && template.mediaUrl) {
-            // Send image message
-            await sendMediaMessage({
-              instanceName: choice,
-              number: item.telefone,
-              mediatype: 'image',
-              media: template.mediaUrl,
-              caption: personalizedText
-            });
-          } else if (template.type === 'video' && template.mediaUrl) {
-            // Send video message
-            await sendMediaMessage({
-              instanceName: choice,
-              number: item.telefone,
-              mediatype: 'video',
-              media: template.mediaUrl,
-              caption: personalizedText
-            });
-          } else if (template.type === 'audio' && template.mediaUrl) {
-            // Send audio message
-            await sendMediaMessage({
-              instanceName: choice,
-              number: item.telefone,
-              mediatype: 'audio',
-              media: template.mediaUrl
-            });
-          }
-
-          // Small delay between messages for the same contact
-          await new Promise(r => setTimeout(r, 500));
-        }
-
-        // Save success log to database
-        await saveMessageLog({
-          numero: item.telefone,
-          tipo_envio: 'sucesso',
-          usarIA: usarIA,
-          instancia: choice,
-          texto: templates.map(t => t.text).join(', '),
-          nome_campanha: campaignName,
-          publico: publicTarget,
-          criativo: content,
-          tipo_campanha: 'Disparo Pontual'
-        });
-
-        sucessos++;
-        log += `✅ ${item.telefone} via ${choice}\n`;
-      } catch (e) {
-        // Save error log to database
-        await saveMessageLog({
-          numero: item.telefone,
-          tipo_envio: 'erro',
-          usarIA: usarIA,
-          instancia: choice,
-          texto: templates.map(t => t.text).join(', '),
-          nome_campanha: campaignName,
-          publico: publicTarget,
-          criativo: content,
-          tipo_campanha: 'Disparo Pontual'
-        });
-
-        erros++;
-        log += `❌ ${item.telefone} via ${choice} – Erro: ${(e as Error).message}\n`;
-      }
-
-      // Apply delay between contacts
-      const delay = (Math.random() * (tempoMax - tempoMin) + tempoMin) * 1000;
-      await new Promise((r) => setTimeout(r, delay));
-    }
-
-    const finalLog = `RELATÓRIO DE ENVIO\n\nTotal: ${list.length}\nEnviados com sucesso: ${sucessos}\nTotal com erro: ${erros}\n\n--- DETALHES ---\n${log}`;
-    const blob = new Blob([finalLog], { type: "text/plain" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "log_disparo.txt";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    showSuccess(get().interromper ? "Envio interrompido!" : "Envio concluído!");
-    return { sucessos, erros, log: finalLog };
-  },
-
-  scheduleCampaign: async (params) => {
-    try {
-      // Get current user to get tenant_id
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado.");
-
-      const { data: profile } = await supabase.from('users_dispara_lead_saas_02').select('tenant_id').eq('id', user.id).single();
-      if (!profile) throw new Error("Perfil de usuário não encontrado.");
-
-      // Map params to the existing table structure
-      const campaignData = {
-        tenant_id: profile.tenant_id,
-        campaign_name: params.campaignName,
-        scheduled_at: params.horaAgendamento,
-        status: 'pending',
-        contacts_json: params.contatos,
-        message_template: params.templates,
-        instance_names: params.instances,
-        created_by: user.id,
-        created_at: new Date().toISOString()
-      };
-
-      const { error } = await supabase
-        .from('schedules_dispara_lead_saas_02')
-        .insert(campaignData);
-
-      if (error) {
-        throw new Error(`Falha ao agendar disparo: ${error.message}`);
-      }
-
-      showSuccess("Campanha agendada com sucesso!");
-    } catch (error) {
-      showError("Erro ao agendar disparo: " + (error as Error).message);
-      throw error;
-    }
-  },
-
-  stopSending: () => set({ interromper: true }),
-
-  setContatos: (contatos) => set({ contatos }),
-
-  setInstanceFilter: (filter: string) => {
-    set({ instanceFilter: filter });
-    const { instances } = get();
-    // Convert instances to EvolutionInstance format for filtering
-    const evolutionInstances = instances.map(instance => ({
-      name: instance.name,
-      status: instance.connectionStatus as EvolutionInstance['status']
-    }));
-    const filteredEvolution = filterInstances(evolutionInstances, filter);
-    // Convert back to Instance format
-    const filtered = filteredEvolution.map(instance => ({
-      name: instance.name,
-      connectionStatus: instance.status
-    }));
-    set({ filteredInstances: filtered });
-  },
-
-  sendAdvancedCampaign: async (params: {
-    contatos: Contact[];
-    instances: string[];
-    tempoMin: number;
-    tempoMax: number;
-    templates: MessageTemplate[];
-    campaignName: string;
-    publicTarget: string;
-    content: string;
-    scheduledFor?: string; // ISO string if scheduled
-  }) => {
-    const { contatos, instances, tempoMin, tempoMax, templates, campaignName, publicTarget, content, scheduledFor } = params;
+    const { contatos, instances, tempoMin, tempoMax, templates, campaignName, publicTarget, content, scheduledFor } = params as any; // Allow extra params for now or update interface
     set({ isLoading: true });
 
     try {
@@ -496,15 +338,18 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
 
       if (!targetTenantId) throw new Error("Tenant não encontrado");
 
+      // Check mandatory campaign name (if missing, auto-generate)
+      const finalCampaignName = campaignName || `Disparo Rápido ${new Date().toLocaleTimeString()}`;
+
       // 2. Create Campaign
       const { data: campaign, error: campaignError } = await supabase
         .from('campaigns_dispara_lead_saas_02')
         .insert({
           tenant_id: targetTenantId,
           user_id: user.id,
-          name: campaignName,
-          target_audience: publicTarget,
-          creative: content,
+          name: finalCampaignName,
+          target_audience: publicTarget || "Lista Manual",
+          creative: content || "Conteúdo Variável",
           status: 'pending',
           total_messages: contatos.length * templates.length,
           instances: instances,
@@ -543,6 +388,14 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
 
           const messageId = crypto.randomUUID();
 
+          // Calculate random delay for this message (ms)
+          const randomDelay = Math.floor(Math.random() * (tempoMax - tempoMin + 1) + tempoMin) * 1000;
+          accumulatedDelay += randomDelay;
+
+          // Determine delivery time (Execution Time)
+          const deliveryTime = baseTime + accumulatedDelay;
+          const deliveryDate = new Date(deliveryTime).toISOString();
+
           // Prepare Log
           logsToInsert.push({
             id: messageId,
@@ -551,23 +404,16 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             instance_name: instanceName,
             phone_number: contact.telefone,
             message_content: personalizedText,
-            status: 'pending',
-            campaign_name: campaignName,
+            status: 'queued', // Init as queued
+            scheduled_for: deliveryDate, // Exact execution time
+            created_at: new Date().toISOString(), // DB Insert time
+            campaign_name: finalCampaignName,
             campaign_type: scheduledFor ? 'Agendada (QStash)' : 'Imediata (QStash)',
             metadata: {
               publico: publicTarget,
               criativo: content
             }
           });
-
-          // Calculate random delay for this message (ms)
-          const randomDelay = Math.floor(Math.random() * (tempoMax - tempoMin + 1) + tempoMin) * 1000;
-          accumulatedDelay += randomDelay;
-
-          // Determine delivery time
-          // If scheduled, baseTime is the schedule time. If immediate, baseTime is now.
-          // We add accumulatedDelay (spacing) to this base time.
-          const deliveryTime = baseTime + accumulatedDelay;
 
           // Prepare QStash Payload
           const qstashPayload: any = {
@@ -578,16 +424,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             campaignId: campaign.id,
             tenantId: targetTenantId,
             mediaUrl: template.mediaUrl,
-            mediaType: template.type !== 'texto' ? template.type : undefined
+            mediaType: template.type !== 'texto' ? template.type : undefined,
+            notBefore: Math.floor(deliveryTime / 1000) // Always use absolute timestamp for precision
           };
-
-          if (scheduledFor) {
-            // For scheduled campaigns, use absolute timestamp (seconds)
-            qstashPayload.notBefore = Math.floor(deliveryTime / 1000);
-          } else {
-            // For immediate campaigns, use relative delay (seconds)
-            qstashPayload.delay = Math.floor(accumulatedDelay / 1000);
-          }
 
           messagesToEnqueue.push(qstashPayload);
         }
@@ -595,7 +434,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
 
       // 4. Insert Logs (Bulk)
       const { error: logsError } = await supabase
-        .from('message_logs_dispara_lead_saas_02')
+        .from('message_logs_dispara_lead_saas_03')
         .insert(logsToInsert);
 
       if (logsError) throw logsError;
@@ -604,24 +443,35 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       await qstashClient.enqueueBatch(messagesToEnqueue);
 
       // 6. Update Status
-      await supabase
-        .from('message_logs_dispara_lead_saas_02')
-        .update({ status: 'queued', queued_at: new Date().toISOString() })
-        .eq('campaign_id', campaign.id);
-
+      // No need to update queued_at/scheduled_for again, it was set per-message
       await supabase
         .from('campaigns_dispara_lead_saas_02')
         .update({ status: 'processing', started_at: new Date().toISOString() })
         .eq('id', campaign.id);
 
       showSuccess(`Campanha iniciada! ${messagesToEnqueue.length} mensagens enfileiradas.`);
+      return { sucessos: messagesToEnqueue.length, erros: 0, log: "Enfileirado via QStash" }; // Adhere to interface roughly
 
     } catch (error) {
       console.error("Erro ao enviar campanha avançada:", error);
       showError("Falha ao iniciar campanha: " + (error as Error).message);
+      throw error;
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  setContatos: (contatos: Contact[]) => set({ contatos }),
+  setInstanceFilter: (filter: string) => set({ instanceFilter: filter }),
+  stopSending: () => set({ interromper: true, isLoading: false }),
+
+  scheduleCampaign: async (params) => {
+    // Adapt params to sendMessages, mapping horaAgendamento to scheduledFor
+    const { horaAgendamento, ...rest } = params;
+    await get().sendMessages({
+      ...rest,
+      scheduledFor: horaAgendamento
+    });
   },
 }));
 
@@ -643,7 +493,7 @@ async function saveMessageLog(logData: {
       const { data: profile } = await supabase.from('users_dispara_lead_saas_02').select('tenant_id').eq('id', user.id).single();
       if (profile) {
         const { error } = await supabase
-          .from('message_logs_dispara_lead_saas_02')
+          .from('message_logs_dispara_lead_saas_03')
           .insert({
             tenant_id: profile.tenant_id,
             instance_name: logData.instancia,

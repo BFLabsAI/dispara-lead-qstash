@@ -11,10 +11,12 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle, XCircle, QrCode, Server, Zap, Link, Search, Plus, Trash2, Power, RefreshCw, Loader2 } from "lucide-react";
 import { useDisparadorStore } from "../../store/disparadorStore";
+import { useAdminStore } from "../../store/adminStore";
 import { supabase } from "@/services/supabaseClient";
 import { QrDialog } from "./QrDialog";
 import { showError, showSuccess } from "@/utils/toast";
 import { InstanceCard } from "./InstanceCard";
+import { createInstance } from "@/services/uazapiClient";
 
 const WEBHOOK_EVENTS = [
   "MESSAGES_UPSERT", "CONTACTS_UPSERT", "CONNECTION_UPDATE", "SEND_MESSAGE", "GROUP_UPDATE", "CALL"
@@ -94,19 +96,26 @@ export const InstanceManager = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Check for impersonation (Super Admin)
+      // We must check the store state directly as we are in a component
+      const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+
       const { data: userData } = await supabase
         .from('users_dispara_lead_saas_02')
         .select('tenant_id')
-        .eq('id', user.id)
+        .eq('id', user.id) // Still fetch user to validade auth
         .single();
 
-      if (!userData?.tenant_id) throw new Error("Tenant não encontrado");
+      // Use impersonated ID if exists, otherwise user's tenant
+      const targetTenantId = impersonatedTenantId || userData?.tenant_id;
+
+      if (!targetTenantId) throw new Error("Tenant não encontrado");
 
       // Check plan limits
       const { data: tenant } = await supabase
         .from('tenants_dispara_lead_saas_02')
         .select('*, plans_dispara_lead_saas_02(*)')
-        .eq('id', userData.tenant_id)
+        .eq('id', targetTenantId)
         .single();
 
       const plan = tenant?.plans_dispara_lead_saas_02;
@@ -117,7 +126,7 @@ export const InstanceManager = () => {
       const { count } = await supabase
         .from('instances_dispara_lead_saas_02')
         .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', userData.tenant_id);
+        .eq('tenant_id', targetTenantId);
 
       if ((count || 0) >= maxInstances) {
         showError(`Limite de instâncias atingido (${maxInstances}). Faça upgrade do plano.`);
@@ -125,16 +134,8 @@ export const InstanceManager = () => {
       }
 
       // Create instance
-      const { data, error } = await supabase.functions.invoke('manage-instances', {
-        body: {
-          action: 'create',
-          tenant_id: userData.tenant_id,
-          instance_name: newInstanceName
-        }
-      });
-
-      if (error) throw new Error(error.message || 'Erro ao chamar função');
-      if (data.error) throw new Error(data.error);
+      // Using UazAPI Proxy via Client Service
+      await createInstance(newInstanceName, targetTenantId);
 
       showSuccess("Instância criada com sucesso!");
       setNewInstanceName("");

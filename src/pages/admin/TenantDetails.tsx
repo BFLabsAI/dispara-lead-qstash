@@ -12,7 +12,7 @@ import { Trash2, Plus, RefreshCw, LayoutDashboard, Pencil } from "lucide-react";
 import { useAdminStore } from "@/store/adminStore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchAllInstances, type EvolutionInstance } from "@/services/evolutionApi";
+import { createInstance, deleteInstance, type UazapiInstance } from "@/services/uazapiClient";
 
 interface Tenant {
     id: string;
@@ -48,7 +48,7 @@ export default function TenantDetails() {
     const setImpersonatedTenantId = useAdminStore((state) => state.setImpersonatedTenantId);
     const [tenant, setTenant] = useState<Tenant | null>(null);
     const [users, setUsers] = useState<User[]>([]);
-    const [instances, setInstances] = useState<Instance[]>([]);
+    const [instances, setInstances] = useState<UazapiInstance[]>([]);
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(true);
     const [newInstanceName, setNewInstanceName] = useState("");
@@ -93,29 +93,19 @@ export default function TenantDetails() {
             setUsers(usersData || []);
 
             // Load Instances
-            const { data: instancesData } = await supabase
+            console.log('Loading instances for tenant:', id);
+            const { data: instancesData, error: instancesError } = await supabase
                 .from('instances_dispara_lead_saas_02')
                 .select('*')
                 .eq('tenant_id', id);
 
-            // Fetch real-time status from Evolution API
-            let evoInstances: EvolutionInstance[] = [];
-            try {
-                evoInstances = await fetchAllInstances();
-            } catch (error) {
-                console.error("Failed to fetch from Evolution API:", error);
+            if (instancesError) {
+                console.error('Error loading instances:', instancesError);
+            } else {
+                console.log('Instances loaded:', instancesData);
             }
 
-            // Merge DB data with real-time status
-            const mergedInstances = (instancesData || []).map((dbInst: any) => {
-                const evoInst = evoInstances.find(i => i.name === dbInst.instance_name);
-                return {
-                    ...dbInst,
-                    connection_status: evoInst ? evoInst.status : (dbInst.connection_status || 'DISCONNECTED')
-                };
-            });
-
-            setInstances(mergedInstances);
+            setInstances(instancesData || []);
 
             // Load Plans
             const { data: plansData } = await supabase
@@ -205,20 +195,11 @@ export default function TenantDetails() {
         if (!newInstanceName) return;
 
         try {
-            const { data, error } = await supabase.functions.invoke('manage-instances', {
-                body: {
-                    action: 'create',
-                    tenant_id: id,
-                    instance_name: newInstanceName
-                }
-            });
-
-            if (error) throw new Error(error.message || 'Erro ao chamar função');
-            if (data.error) throw new Error(data.error);
+            await createInstance(newInstanceName, id!); // id is tenant_id from params
 
             toast({
                 title: "Instância criada",
-                description: "A instância foi criada na Evolution API e registrada."
+                description: "A instância foi criada na UazAPI e registrada."
             });
 
             setNewInstanceName("");
@@ -236,16 +217,7 @@ export default function TenantDetails() {
         if (!confirm(`Tem certeza que deseja excluir a instância ${instanceName}?`)) return;
 
         try {
-            const { data, error } = await supabase.functions.invoke('manage-instances', {
-                body: {
-                    action: 'delete',
-                    tenant_id: id,
-                    instance_name: instanceName
-                }
-            });
-
-            if (error) throw new Error(error.message || 'Erro ao chamar função');
-            if (data.error) throw new Error(data.error);
+            await deleteInstance(instanceName, id!);
 
             toast({
                 title: "Instância removida",

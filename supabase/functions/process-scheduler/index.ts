@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
 
             // Insert all logs in one go
             const { error: insertError } = await supabase
-                .from('message_logs_dispara_lead_saas_02')
+                .from('message_logs_dispara_lead_saas_03')
                 .insert(logEntries);
 
             if (insertError) {

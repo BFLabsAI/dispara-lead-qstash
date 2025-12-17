@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,14 +38,20 @@ export const AudienceDefinition = ({
     e.target.value = '';
   }, [uploadFile, onUpload]);
 
-  const handleManualContacts = () => {
+  // Sync manual contacts to store whenever input changes
+  useEffect(() => {
     const contactsArray = manualContacts
       .split(/[\n,]+/)
       .map(c => c.trim())
       .filter(c => c)
       .map(c => ({ telefone: c }));
-    setContatos(contactsArray);
-  };
+
+    // Only update if there's a change to avoid infinite loops or unnecessary renders
+    // We can't easily deep compare, but for now this ensures the store has the latest typed value.
+    if (contactsArray.length > 0 || (manualContacts === '' && contatos.length > 0)) {
+      setContatos(contactsArray);
+    }
+  }, [manualContacts, setContatos]); // Remove contatos from dependency to avoid loop if we add check
 
   return (
     <Card className="rounded-b-lg rounded-t-none glass-card">
@@ -64,7 +70,7 @@ export const AudienceDefinition = ({
             <Input placeholder="Ex: Cupom de desconto" value={content} onChange={e => setContent(e.target.value)} />
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
           <div className="space-y-2">
             <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/80 transition-colors">
@@ -84,7 +90,6 @@ export const AudienceDefinition = ({
                 className="flex-grow resize-none"
                 value={manualContacts}
                 onChange={e => setManualContacts(e.target.value)}
-                onBlur={handleManualContacts}
               />
             </div>
           </div>

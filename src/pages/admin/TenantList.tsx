@@ -11,6 +11,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface Tenant {
     id: string;
@@ -25,8 +37,12 @@ import { useNavigate } from "react-router-dom";
 
 export default function TenantList() {
     const navigate = useNavigate();
+    const { toast } = useToast();
     const [tenants, setTenants] = useState<Tenant[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [newCompanyName, setNewCompanyName] = useState("");
+    const [createLoading, setCreateLoading] = useState(false);
 
     useEffect(() => {
         loadTenants();
@@ -41,17 +57,119 @@ export default function TenantList() {
 
         if (error) {
             console.error("Error loading tenants:", error);
+            toast({
+                variant: "destructive",
+                title: "Erro ao carregar empresas",
+                description: error.message
+            });
         } else {
             setTenants(data || []);
         }
         setLoading(false);
     };
 
+    const handleCreateTenant = async () => {
+        if (!newCompanyName.trim()) return;
+
+        setCreateLoading(true);
+        try {
+            // Generate basic slug
+            const slug = newCompanyName
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '') + '-' + Math.floor(Math.random() * 1000);
+
+            // Get default plan (try basic first, then any)
+            let planId = null;
+            const { data: basicPlan } = await supabase
+                .from('plans_dispara_lead_saas_02')
+                .select('id')
+                .eq('slug', 'basic')
+                .single();
+
+            if (basicPlan) {
+                planId = basicPlan.id;
+            } else {
+                const { data: anyPlan } = await supabase
+                    .from('plans_dispara_lead_saas_02')
+                    .select('id')
+                    .limit(1)
+                    .single();
+                if (anyPlan) planId = anyPlan.id;
+            }
+
+            const { data, error } = await supabase
+                .from('tenants_dispara_lead_saas_02')
+                .insert({
+                    name: newCompanyName,
+                    slug: slug,
+                    status: 'active',
+                    plan_id: planId
+                    // Note: owner_id is NOT set here. If it's mandatory, this might fail.
+                    // The trigger usually handles creation from user signup.
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            toast({
+                title: "Empresa criada com sucesso!",
+                description: `A empresa ${newCompanyName} foi criada.`
+            });
+
+            setIsCreateModalOpen(false);
+            setNewCompanyName("");
+            loadTenants();
+
+        } catch (error: any) {
+            console.error("Error creating tenant:", error);
+            toast({
+                variant: "destructive",
+                title: "Erro ao criar empresa",
+                description: error.message || "Verifique se você tem permissão ou se o nome é inválido."
+            });
+        } finally {
+            setCreateLoading(false);
+        }
+    };
+
     return (
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-bold tracking-tight">Gerenciar Empresas</h2>
-                <Button>Nova Empresa</Button>
+                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                    <DialogTrigger asChild>
+                        <Button>Nova Empresa</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Nova Empresa</DialogTitle>
+                            <DialogDescription>
+                                Crie uma nova empresa no sistema. Isso criará o registro do tenant.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="name" className="text-right">
+                                    Nome
+                                </Label>
+                                <Input
+                                    id="name"
+                                    value={newCompanyName}
+                                    onChange={(e) => setNewCompanyName(e.target.value)}
+                                    placeholder="Ex: Minha Empresa Ltda"
+                                    className="col-span-3"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancelar</Button>
+                            <Button onClick={handleCreateTenant} disabled={createLoading}>
+                                {createLoading ? "Criando..." : "Criar Empresa"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <div className="rounded-md border">

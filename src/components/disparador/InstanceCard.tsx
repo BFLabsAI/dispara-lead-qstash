@@ -28,26 +28,26 @@ interface InstanceCardProps {
 }
 
 export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: InstanceCardProps) => {
-  const { fetchQrCode } = useDisparadorStore();
+  const { fetchQrCode, disconnectInstance, disconnectingInstance } = useDisparadorStore();
   const isConnected = instance.connectionStatus === "open" || instance.connectionStatus === "connected";
 
   const statusConfig: StatusConfig = isConnected
     ? {
-        text: "Ativa e Operacional",
-        badgeClass:
-          "bg-green-500/10 text-green-700 dark:text-green-300 border border-green-500/20",
-        dotClass: "bg-green-500",
-        textClass: "text-green-700 dark:text-green-300",
-        Icon: CheckCircle,
-      }
+      text: "Ativa e Operacional",
+      badgeClass:
+        "bg-green-500/10 text-green-700 dark:text-green-300 border border-green-500/20",
+      dotClass: "bg-green-500",
+      textClass: "text-green-700 dark:text-green-300",
+      Icon: CheckCircle,
+    }
     : {
-        text: "Desconectada",
-        badgeClass:
-          "bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20",
-        dotClass: "bg-red-500",
-        textClass: "text-red-700 dark:text-red-300",
-        Icon: XCircle,
-      };
+      text: "Desconectada",
+      badgeClass:
+        "bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20",
+      dotClass: "bg-red-500",
+      textClass: "text-red-700 dark:text-red-300",
+      Icon: XCircle,
+    };
 
   const formattedName = instance.name
     .toLowerCase()
@@ -100,11 +100,20 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {isConnected ? (
           <Button
-            onClick={() => fetchQrCode(instance.name)}
-            className="w-full bg-red-600 hover:bg-red-700 text-white"
+            onClick={() => {
+              if (confirm("Tem certeza que deseja desconectar?")) {
+                disconnectInstance(instance.name);
+              }
+            }}
+            disabled={disconnectingInstance === instance.name}
+            className="w-full bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
           >
-            <i className="fas fa-power-off mr-2" />
-            Desconectar
+            {disconnectingInstance === instance.name ? (
+              <i className="fas fa-spinner fa-spin mr-2" />
+            ) : (
+              <i className="fas fa-power-off mr-2" />
+            )}
+            {disconnectingInstance === instance.name ? "Desconectando..." : "Desconectar"}
           </Button>
         ) : (
           <Button

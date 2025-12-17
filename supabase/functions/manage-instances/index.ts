@@ -9,11 +9,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
+        return new Response('ok', { headers: corsHeaders, status: 200 })
     }
 
     try {
@@ -66,7 +67,8 @@ serve(async (req) => {
                 body: JSON.stringify({
                     instanceName: instance_name,
                     token: crypto.randomUUID(), // Generate a random token for the instance
-                    qrcode: true
+                    qrcode: true,
+                    integration: 'WHATSAPP-BAILEYS'
                 })
             })
 
@@ -131,10 +133,11 @@ serve(async (req) => {
 
         throw new Error('Invalid action')
 
-    } catch (error) {
+    } catch (error: any) {
+        console.error('Error in manage-instances:', error);
         return new Response(
             JSON.stringify({ error: error.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
     }
 })

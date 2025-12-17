@@ -31,13 +31,14 @@ export const Dashboard = () => {
   const {
     data: dashboardData,
     isLoading: loading,
+    isFetching,
     error,
     refetch
   } = useQuery({
     queryKey: ['dashboardData', 'all', impersonatedTenantId],
     queryFn: () => getDashboardDataAll(),
-    staleTime: 30000, // 30 segundos - considera dados frescos
-    gcTime: 300000, // 5 minutos - mantém no cache (renamed from cacheTime in v5)
+    staleTime: 30000,
+    gcTime: 300000,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -58,7 +59,9 @@ export const Dashboard = () => {
     return campaignStats.filter((c: any) => c.status === 'pending' && c.scheduled_for && c.scheduled_for > now);
   }, [campaignStats]);
 
-  const scheduledCampaignsCount = scheduledCampaignsList.length;
+  const futureCampaignNames = useMemo(() => new Set(scheduledCampaignsList.map((c: any) => c.name)), [scheduledCampaignsList]);
+
+  // Messages strictly belonging to future campaigns (Agendadas)
   const scheduledMessagesCount = scheduledCampaignsList.reduce((acc: number, curr: any) => acc + (curr.total_messages || 0), 0);
 
   // Apply filters to all data
@@ -121,6 +124,9 @@ export const Dashboard = () => {
     return ["all", ...Array.from(options).sort()];
   }, [allData]);
 
+  // Combined loading state
+  const isBusy = loading || isFetching;
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -142,8 +148,20 @@ export const Dashboard = () => {
     );
   }
 
-  const totalEnvios = filteredData.length;
-  const totalIA = filteredData.filter((d) => d.usaria || d.usarIA).length;
+  const totalQueued = filteredData.filter((d) => d.tipo_envio === 'fila').length;
+
+  // Calculate Active Queue (Real Queue) = Total Queued (Logs) - Future Campaign Messages (Logs)
+  // We filter logs to find messages that are Queued BUT NOT part of a Future Campaign
+  const activeQueuedCount = filteredData.filter((d) =>
+    d.tipo_envio === 'fila' && !futureCampaignNames.has(d.nome_campanha)
+  ).length;
+
+  // Use scheduledMessagesCount (from Stats) for 'Agendadas' as it is the plan size.
+  // Use activeQueuedCount (from Logs) for 'Fila' as it represents actionable items now.
+
+  // Total Envios should strictly be processed messages (Success + Failed), excluding Queue
+  const totalEnvios = filteredData.length - totalQueued;
+  const totalIA = filteredData.filter((d) => (d.usaria || d.usarIA) && d.tipo_envio !== 'fila').length;
   const totalSemIA = totalEnvios - totalIA;
 
   return (
@@ -162,11 +180,18 @@ export const Dashboard = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { refetch(); queryClient.invalidateQueries({ queryKey: ['campaignStats'] }); }}
-              disabled={loading}
+              onClick={() => {
+                import("../services/supabaseClient").then(({ clearAllCaches }) => {
+                  clearAllCaches();
+                  queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
+                  queryClient.invalidateQueries({ queryKey: ['campaignStats'] });
+                  refetch();
+                });
+              }}
+              disabled={isBusy}
               className="flex items-center gap-2"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isBusy ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
           </div>
@@ -184,8 +209,8 @@ export const Dashboard = () => {
         totalEnvios={totalEnvios}
         totalIA={totalIA}
         totalSemIA={totalSemIA}
-        scheduledCampaigns={scheduledCampaignsCount}
-        scheduledMessages={scheduledMessagesCount}
+        agendadasCount={scheduledMessagesCount}
+        filaCount={activeQueuedCount}
       />
       <Charts filteredData={filteredData} />
       <Charts filteredData={filteredData} />

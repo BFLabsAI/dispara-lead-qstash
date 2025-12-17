@@ -65,10 +65,21 @@ export default function PlansList() {
 
     const handleSave = async () => {
         try {
+            const price = parseFloat(formData.price);
+            // Generate simple slug from name: "My Plan" -> "my-plan"
+            const generatedSlug = formData.name
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9]/g, "-")
+                .replace(/-+/g, "-")
+                .replace(/^-|-$/g, "");
+
             const payload = {
                 name: formData.name,
                 description: formData.description,
-                price: parseFloat(formData.price),
+                price: isNaN(price) ? 0 : price,
+                slug: generatedSlug,
                 features: formData.features ? JSON.parse(formData.features) : {},
                 limits: formData.limits ? JSON.parse(formData.limits) : {}
             };
@@ -270,8 +281,9 @@ export default function PlansList() {
                                         type="number"
                                         value={JSON.parse(formData.limits || '{}').agent_messages_limit || ''}
                                         onChange={(e) => {
+                                            const val = parseInt(e.target.value);
                                             const currentLimits = JSON.parse(formData.limits || '{}');
-                                            const newLimits = { ...currentLimits, agent_messages_limit: parseInt(e.target.value) };
+                                            const newLimits = { ...currentLimits, agent_messages_limit: isNaN(val) ? 0 : val };
                                             setFormData({ ...formData, limits: JSON.stringify(newLimits) });
                                         }}
                                         placeholder="Ex: 1000"
@@ -284,8 +296,9 @@ export default function PlansList() {
                                         type="number"
                                         value={JSON.parse(formData.limits || '{}').instances_limit || ''}
                                         onChange={(e) => {
+                                            const val = parseInt(e.target.value);
                                             const currentLimits = JSON.parse(formData.limits || '{}');
-                                            const newLimits = { ...currentLimits, instances_limit: parseInt(e.target.value) };
+                                            const newLimits = { ...currentLimits, instances_limit: isNaN(val) ? 0 : val };
                                             setFormData({ ...formData, limits: JSON.stringify(newLimits) });
                                         }}
                                         placeholder="Ex: 1"

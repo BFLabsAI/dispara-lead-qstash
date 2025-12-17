@@ -1,0 +1,101 @@
+# QR Code, Connection & Webhook Lifecycle
+
+This document explains the specific internal logic for QR Code generation (including caching), Instance Connection checks, and Webhook management in the [uazapi_proxy_audita_lead](file:///Users/brunofalcao/dyad-apps/audita-lead/supabase/functions/uazapi_proxy_audita_lead) function.
+
+## 1. QR Code Handling Lifecycle
+
+The system implements a **caching mechanism** to prevent unnecessary calls to UazAPI and to avoid invalidating the QR code by regenerating it too frequently.
+
+### Flow Diagram
+
+```mermaid
+graph TD
+    A[User clicks 'Conectar'] --> B{QR Code in DB?}
+    B -- Yes --> C{Generated < 2 mins ago?}
+    C -- Yes --> D[RETURN Cached QR Code]
+    C -- No --> E[Generate New QR Code]
+    B -- No --> E
+    E --> F[Call UazAPI: POST /instance/connect]
+    F --> G{Response Status}
+    G -- 200 OK --> H[Extract QR Code Base64]
+    G -- 409 Conflict --> I[Wait 3s & Retry]
+    G -- 404 Not Found --> J[Auto-Restore Instance & Retry]
+    H --> K[Update DB: qrcode + qrcode_generated_at]
+    K --> L[Return New QR Code]
+```
+
+### Detailed Logic
+
+1.  **Cache Check**:
+    *   The function checks `instances_audita_lead` for `qrcode` and `qrcode_generated_at`.
+    *   **Rule**: If `now() - qrcode_generated_at < 2 minutes`, the **cached QR code** is returned immediately. UazAPI is NOT called.
+    *   **Reason**: UazAPI (Evolution API) sessions can be flaky if [connect](file:///Users/brunofalcao/dyad-apps/audita-lead/src/hooks/useInstances.ts#185-193) is called repeatedly while a session is initializing.
+
+2.  **Generation (Cache Miss)**:
+    *   **Endpoint**: `POST /instance/connect`
+    *   **Conflict Handling (409)**: If UazAPI returns 409 (another connection attempt in progress), the proxy waits **3 seconds** and retries once.
+    *   **Restoration (404)**: If UazAPI says "Instance Not Found" (e.g., server restart), the proxy automatically calls `/instance/init` to recreate the instance on the fly, updates the token in the DB, and then retries the connection.
+
+3.  **Database Update**:
+    *   On success, the new `base64` QR code and the current timestamp are saved to the instance record.
+
+---
+
+## 2. Instance Connection Check (`get_status`)
+
+This process ensures the database status stays in sync with the actual UazAPI status.
+
+### Flow Overview
+
+1.  **Request**: Frontend requests `action: "get_status"`.
+2.  **UazAPI Call**:
+    *   `GET /instance/status`
+    *   Uses the instance-specific `token`.
+3.  **Status Normalization**:
+    *   **Connected**: If UazAPI returns `open` or `connected`.
+    *   **Disconnected**: Everything else (including `connecting`, `close`, etc.).
+4.  **Database Sync**:
+    *   The `instances_audita_lead` table is updated with the normalized status.
+    *   If `connected`, `last_connected_at` is updated.
+
+---
+
+## 3. Webhook Setup & Verification ([ensureWebhook](file:///Users/brunofalcao/dyad-apps/audita-lead/supabase/functions/uazapi_proxy_audita_lead/index.ts#117-188))
+
+Use this logic to guarantee that your Supabase Edge Functions receive events from UazAPI. This runs automatically on **Create** and **Reconnect**.
+
+### The [ensureWebhook](file:///Users/brunofalcao/dyad-apps/audita-lead/supabase/functions/uazapi_proxy_audita_lead/index.ts#117-188) Helper
+
+This internal function is **idempotent**—it only registers webhooks if they don't already exist.
+
+1.  **Check Existing**:
+    *   Calls `GET /webhook` on UazAPI.
+    *   Parses the list of registered webhooks.
+2.  **Duplicate Prevention**:
+    *   Checks if a webhook with the **same URL** already exists and is enabled.
+    *   If it exists, it **SKIPS** registration (Returns `"skipped_already_exists"`).
+3.  **Registration**:
+    *   If not found, calls `POST /webhook` with:
+        *   `url`: Your Supabase logic URL (e.g., `.../webhook_messages_audita_lead`).
+        *   `events`: `["messages"]` or `["connection"]`.
+        *   `enabled`: `true`.
+4.  **Repair Mode**:
+    *   When calling `get_status` with `ensure_webhooks: true`, this logic runs forcibly to fix any missing webhooks on a running instance.
+
+### Webhook Endpoints
+
+| Webhook Name | Function URL | Events | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Connection** | `.../webhook_connection_audita_lead` | `connection` | Updates `status` in DB when phone connects/disconnects. |
+| **Messages** | `.../webhook_messages_audita_lead` | `messages` | Saves incoming texts/media to `messages_audita_lead`. |
+
+---
+
+## 4. Reconnection Logic ([reconnect](file:///Users/brunofalcao/dyad-apps/audita-lead/src/hooks/useInstances.ts#185-193))
+
+Use this when an instance is stuck or needs a fresh session.
+
+1.  **Force Logout**: Calls `DELETE /instance/logout` to clear any zombie sessions on UazAPI.
+2.  **Wait**: Pauses for **2 seconds** to allow UazAPI to clean up.
+3.  **Ensure Webhooks**: Re-runs the webhook registration to ensure they persist.
+4.  **Connect**: Proceed to standard **QR Code Generation** flow (bypassing cache).

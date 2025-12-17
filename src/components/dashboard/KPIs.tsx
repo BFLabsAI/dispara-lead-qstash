@@ -7,11 +7,11 @@ interface KPIsProps {
   totalEnvios: number;
   totalIA: number;
   totalSemIA: number;
-  scheduledCampaigns?: number;
-  scheduledMessages?: number;
+  agendadasCount: number;
+  filaCount: number;
 }
 
-export const KPIs = ({ totalEnvios, totalIA, totalSemIA, scheduledCampaigns = 0, scheduledMessages = 0 }: KPIsProps) => {
+export const KPIs = ({ totalEnvios, totalIA, totalSemIA, agendadasCount, filaCount }: KPIsProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-6">
       <Card className="glass-card animate-slide-in-up">
@@ -61,8 +61,8 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA, scheduledCampaigns = 0,
             </div>
             <h3 className="font-semibold text-lg">Agendadas</h3>
           </div>
-          <p className="text-4xl font-bold text-blue-500">{scheduledCampaigns.toLocaleString()}</p>
-          <p className="text-sm font-medium text-blue-500/80">Campanhas futuras</p>
+          <p className="text-4xl font-bold text-blue-500">{agendadasCount.toLocaleString()}</p>
+          <p className="text-sm font-medium text-blue-500/80">Mensagens futuras</p>
         </CardContent>
       </Card>
 
@@ -74,7 +74,7 @@ export const KPIs = ({ totalEnvios, totalIA, totalSemIA, scheduledCampaigns = 0,
             </div>
             <h3 className="font-semibold text-lg">Msg. na Fila</h3>
           </div>
-          <p className="text-4xl font-bold text-orange-500">{scheduledMessages.toLocaleString()}</p>
+          <p className="text-4xl font-bold text-orange-500">{filaCount.toLocaleString()}</p>
           <p className="text-sm font-medium text-orange-500/80">Aguardando envio</p>
         </CardContent>
       </Card>

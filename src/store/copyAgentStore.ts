@@ -385,7 +385,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
         const { data: profile } = await supabase.from('users_dispara_lead_saas_02').select('tenant_id').eq('id', user.id).single();
 
         if (profile) {
-          await supabase.from('message_logs_dispara_lead_saas_02').insert({
+          await supabase.from('message_logs_dispara_lead_saas_03').insert({
             tenant_id: profile.tenant_id,
             status: 'sent',
             instance_name: 'CopyAgent',
