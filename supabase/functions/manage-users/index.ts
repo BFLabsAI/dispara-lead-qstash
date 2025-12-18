@@ -46,7 +46,7 @@ serve(async (req) => {
         const requesterTenantId = requesterProfile?.tenant_id
 
         // Parse Request
-        const { action, tenant_id, email, full_name, role, userId } = await req.json()
+        const { action, tenant_id, email, full_name, role, userId, redirectTo } = await req.json()
 
         // --- AUTHORIZATION CHECK ---
         // Basic rule: Must be Super Admin OR (Tenant Owner/Admin acting on SAME tenant)
@@ -115,6 +115,23 @@ serve(async (req) => {
             )
         }
 
+        // --- ACTION: RESEND INVITE ---
+        if (action === 'resend_invite') {
+            if (!email) throw new Error('Email is required');
+
+            const options: any = {};
+            if (redirectTo) options.redirectTo = redirectTo;
+
+            // Reuse existing invite logic - Supabase handles resends by sending a new magic link
+            const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, options);
+            if (error) throw error;
+
+            return new Response(
+                JSON.stringify({ message: 'Invite resent successfully' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+            );
+        }
+
         // --- ACTION: DELETE ---
         if (action === 'delete') {
             if (!userId) {
@@ -124,12 +141,14 @@ serve(async (req) => {
             // 1. Fetch target user to verify tenant ownership
             const { data: targetUser, error: fetchError } = await supabaseAdmin
                 .from('users_dispara_lead_saas_02')
-                .select('tenant_id')
+                .select('tenant_id, role')
                 .eq('id', userId)
                 .single()
 
             if (fetchError || !targetUser) {
-                throw new Error('User not found')
+                // If not in public table, try deleting from Auth just in case
+                await supabaseAdmin.auth.admin.deleteUser(userId);
+                return new Response(JSON.stringify({ message: 'User deleted (was orphan)' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
             }
 
             // 2. Security Check for Deletion
@@ -137,35 +156,51 @@ serve(async (req) => {
                 if (targetUser.tenant_id !== requesterTenantId) {
                     throw new Error(`Forbidden: You cannot delete users from other tenants. MyTenant: ${requesterTenantId}, TargetTenant: ${targetUser.tenant_id}`)
                 }
-                // Prevent self-deletion via this API if desired, or allow it. 
-                // Usually preventing deleting yourself is good practice to avoid lockouts.
                 if (userId === user.id) {
                     throw new Error('Forbidden: You cannot delete your own account')
                 }
             }
 
-            // 3. Delete from Auth (this usually cascades if configured, but we do it explicitly)
-            // 3. Delete from Auth (this usually cascades if configured, but we do it explicitly)
-            // We verify if the user exists in Auth first, or just try delete and ignore specific error
-            const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-            if (deleteAuthError) {
-                // If user not found, we continue to delete public record (cleanup orphan)
-                // Otherwise we throw
-                if (!deleteAuthError.message.includes("User not found") && !deleteAuthError.message.includes("not find user")) {
-                    console.error("Auth delete error:", deleteAuthError);
-                    // Optional: decide if we should block or continue. 
-                    // For now, let's block only on critical errors, but "not found" is fine.
-                    throw deleteAuthError;
+            // 3. Handle Owner Deletion (Cascade Tenant)
+            // If the user to be deleted is the owner of the tenant, we might need to delete the tenant
+            // OR forbid it? User requested to fix "Database Error". 
+            // Often, deleting the OWNER means deleting the account.
+            if (targetUser.role === 'owner') {
+                // Check if there are other users? (Optional safety)
+                // For now, we assume deleting owner -> delete tenant attempts to sweep everything.
+                console.log(`Deleting tenant ${targetUser.tenant_id} for owner ${userId}`);
+                const { error: tenantDelError } = await supabaseAdmin
+                    .from('tenants_dispara_lead_saas_02')
+                    .delete()
+                    .eq('id', targetUser.tenant_id);
+
+                if (tenantDelError) {
+                    console.error('Error deleting tenant:', tenantDelError);
+                    // If tenant delete fails, we might still fail on user delete, but proceed to try.
                 }
-                console.warn("Auth user not found, proceeding to delete public record.");
             }
 
-            // 4. Delete from Public Table (if not cascaded by FK)
-            // We'll attempt it just in case, ignoring error if it was already cascaded
-            await supabaseAdmin
+            // 4. Delete from Public Table First (Explicit cleanup)
+            const { error: publicDelError } = await supabaseAdmin
                 .from('users_dispara_lead_saas_02')
                 .delete()
                 .eq('id', userId)
+
+            if (publicDelError) {
+                console.error('Error deleting public user record:', publicDelError);
+                // If it's a FK error and we haven't handled it (e.g. not owner?), throw.
+                if (publicDelError.message.includes('foreign key constraint')) {
+                    throw new Error(`Cannot delete user: They have related data (Campaigns, etc.) that prevents deletion. Error: ${publicDelError.message}`);
+                }
+            }
+
+            // 5. Delete from Auth
+            const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+            if (deleteAuthError) {
+                if (!deleteAuthError.message.includes("User not found") && !deleteAuthError.message.includes("not find user")) {
+                    throw deleteAuthError;
+                }
+            }
 
             return new Response(
                 JSON.stringify({ message: 'User deleted successfully' }),

@@ -28,6 +28,7 @@ export default function Register() {
                 email,
                 password,
                 options: {
+                    emailRedirectTo: window.location.origin,
                     data: {
                         company_name: companyName,
                         full_name: companyName // Or add a separate input for full name if needed

@@ -12,7 +12,7 @@ import {
 import { uploadFileToSupabase } from '../services/supabaseStorage';
 import { supabase } from '../services/supabaseClient';
 import { useAdminStore } from './adminStore';
-import { qstashClient } from '../services/qstashClient';
+// import { qstashClient } from '../services/qstashClient';
 
 interface Instance {
   name: string;
@@ -460,8 +460,22 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
 
       if (logsError) throw logsError;
 
-      // 5. Enqueue to QStash
-      await qstashClient.enqueueBatch(messagesToEnqueue);
+      // 5. Enqueue to QStash via Edge Function (Backend)
+      const { data: enqueueData, error: enqueueError } = await supabase.functions.invoke('enqueue-campaign', {
+        body: { messages: messagesToEnqueue }
+      });
+
+      if (enqueueError) {
+        throw new Error(`Erro network Edge Function: ${enqueueError.message}`);
+      }
+
+      // Handle "Deep Debug" 200 OK errors
+      if (enqueueData && enqueueData.success === false) {
+        console.error("QStash Debug Error:", enqueueData);
+        throw new Error(`QStash Error: ${enqueueData.error} (Stage: ${enqueueData.stage})`);
+      }
+
+      console.log("Enqueue result:", enqueueData);
 
       // 6. Update Status
       // No need to update queued_at/scheduled_for again, it was set per-message

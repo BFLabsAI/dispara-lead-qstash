@@ -158,6 +158,35 @@ export default function UsersPage() {
         }
     });
 
+    // 5. Resend Invite Mutation
+    const resendInviteMutation = useMutation({
+        mutationFn: async (email: string) => {
+            const { data, error } = await supabase.functions.invoke('manage-users', {
+                body: {
+                    action: 'resend_invite',
+                    email: email,
+                    tenant_id: currentTenantId,
+                    redirectTo: window.location.origin // Ensure we use the current page origin, not localhost default
+                }
+            });
+
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+
+            return data;
+        },
+        onSuccess: () => {
+            toast({ title: "Convite reenviado", description: "O email de convite foi enviado novamente." });
+        },
+        onError: (error: Error) => {
+            toast({
+                variant: "destructive",
+                title: "Erro ao reenviar",
+                description: error.message
+            });
+        }
+    });
+
     const handleInvite = (e: React.FormEvent) => {
         e.preventDefault();
         if (!inviteEmail) return;
@@ -288,14 +317,26 @@ export default function UsersPage() {
                                     <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                                     <TableCell className="text-right">
                                         {user.role !== 'owner' && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                onClick={() => setUserToDelete(user)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                                    onClick={() => resendInviteMutation.mutate(user.email)}
+                                                    title="Reenviar Convite"
+                                                >
+                                                    <Mail className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                    onClick={() => setUserToDelete(user)}
+                                                    title="Excluir Usuário"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         )}
                                     </TableCell>
                                 </TableRow>
