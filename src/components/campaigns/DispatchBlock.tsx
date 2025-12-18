@@ -103,7 +103,7 @@ export const DispatchBlock = ({
       </div>
 
       {/* Criador de Mensagens */}
-      <MessageCreator templates={templates} setTemplates={setTemplates} />
+      <MessageCreator templates={templates} setTemplates={setTemplates} variables={variables || []} />
 
       {/* Variáveis Disponíveis */}
       {variables.length > 0 && (
