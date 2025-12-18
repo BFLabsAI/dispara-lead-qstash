@@ -145,8 +145,20 @@ serve(async (req) => {
             }
 
             // 3. Delete from Auth (this usually cascades if configured, but we do it explicitly)
+            // 3. Delete from Auth (this usually cascades if configured, but we do it explicitly)
+            // We verify if the user exists in Auth first, or just try delete and ignore specific error
             const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-            if (deleteAuthError) throw deleteAuthError
+            if (deleteAuthError) {
+                // If user not found, we continue to delete public record (cleanup orphan)
+                // Otherwise we throw
+                if (!deleteAuthError.message.includes("User not found") && !deleteAuthError.message.includes("not find user")) {
+                    console.error("Auth delete error:", deleteAuthError);
+                    // Optional: decide if we should block or continue. 
+                    // For now, let's block only on critical errors, but "not found" is fine.
+                    throw deleteAuthError;
+                }
+                console.warn("Auth user not found, proceeding to delete public record.");
+            }
 
             // 4. Delete from Public Table (if not cascaded by FK)
             // We'll attempt it just in case, ignoring error if it was already cascaded
