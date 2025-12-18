@@ -3,18 +3,76 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Trash2, Plus, Image as ImageIcon, Paperclip, Mic } from "lucide-react";
 import { useDisparadorStore } from "../../store/disparadorStore";
+import { useState, useRef, forwardRef, useImperativeHandle } from "react";
+import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from "@/components/ui/popover";
+import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+
+const HighlightTextarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(({ className, value, onChange, onSelect, ...props }, ref) => {
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(ref, () => textareaRef.current!);
+
+  const handleScroll = () => {
+    if (backdropRef.current && textareaRef.current) {
+      backdropRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  };
+
+  const renderHighlights = (text: string) => {
+    if (!text) return null;
+    return text.split(/(\{.*?\})/g).map((part, i) => {
+      if (part.startsWith('{') && part.endsWith('}')) {
+        return (
+          <span key={i} className="text-green-600 font-bold bg-green-500/10 rounded-[2px]">
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
+  return (
+    <div className={cn("relative group", className)}>
+      <div
+        ref={backdropRef}
+        className="absolute inset-0 px-3 py-2 whitespace-pre-wrap break-words pointer-events-none font-sans text-sm leading-[1.5] overflow-hidden text-foreground bg-transparent"
+        aria-hidden="true"
+      >
+        {renderHighlights(value as string)}
+        {/* Trailing break to ensure height match if ends with newline */}
+        {(value as string)?.endsWith('\n') && <br />}
+      </div>
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={onChange}
+        onSelect={onSelect}
+        onScroll={handleScroll}
+        className="relative block w-full h-full px-3 py-2 bg-transparent text-transparent caret-foreground font-sans text-sm leading-[1.5] resize-none focus:outline-none border-0 ring-0 focus:ring-0 scrollbar-hide"
+        spellCheck={false}
+        {...props}
+      />
+    </div>
+  );
+});
+HighlightTextarea.displayName = "HighlightTextarea";
 
 interface MessageCreatorProps {
   templates: any[];
   setTemplates: (templates: any[]) => void;
+  variables: string[];
 }
 
-export const MessageCreator = ({ templates, setTemplates }: MessageCreatorProps) => {
+export const MessageCreator = ({ templates, setTemplates, variables }: MessageCreatorProps) => {
   const { mediaUpload } = useDisparadorStore();
+  const [menuOpenIndex, setMenuOpenIndex] = useState<number | null>(null);
+  const [cursorPos, setCursorPos] = useState(0);
 
   const addMessage = () => {
     setTemplates([...templates, { type: 'texto', text: '', mediaUrl: '' }]);
@@ -43,6 +101,16 @@ export const MessageCreator = ({ templates, setTemplates }: MessageCreatorProps)
     return text.replace(/\{(\w+)\}/g, (match) => `<span class="bg-blue-200 text-blue-800 px-1 rounded">${match}</span>`);
   };
 
+  const insertVariable = (variable: string, index: number) => {
+    const currentText = templates[index].text;
+    const before = currentText.slice(0, cursorPos - 1); // remove the '{'
+    const after = currentText.slice(cursorPos);
+    const newText = `${before}{${variable}}${after}`;
+
+    updateTemplate(index, { ...templates[index], text: newText });
+    setMenuOpenIndex(null);
+  };
+
   return (
     <Card className="rounded-b-lg rounded-t-none glass-card">
       <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -66,12 +134,42 @@ export const MessageCreator = ({ templates, setTemplates }: MessageCreatorProps)
                     <SelectItem value="imagem">Imagem</SelectItem>
                   </SelectContent>
                 </Select>
-                <Textarea
-                  placeholder={template.type === 'texto' ? "Digite sua mensagem..." : "Digite a legenda (opcional)..."}
-                  value={template.text}
-                  onChange={(e) => updateTemplate(index, { ...template, text: e.target.value })}
-                  className="mt-2"
-                />
+
+                <Popover open={menuOpenIndex === index} onOpenChange={(open) => !open && setMenuOpenIndex(null)}>
+                  <PopoverAnchor asChild>
+                    <HighlightTextarea
+                      placeholder={template.type === 'texto' ? "Digite sua mensagem..." : "Digite a legenda (opcional)..."}
+                      value={template.text}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const pos = e.target.selectionStart;
+                        updateTemplate(index, { ...template, text: val });
+                        setCursorPos(pos);
+                        if (val.charAt(pos - 1) === '{') {
+                          setMenuOpenIndex(index);
+                        }
+                      }}
+                      onSelect={(e) => {
+                        // Update cursor pos on select/click too to ensure correct insert position
+                        setCursorPos(e.currentTarget.selectionStart);
+                      }}
+                      className="mt-2 min-h-[100px] w-full rounded-md border border-input bg-background/50 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+                    />
+                  </PopoverAnchor>
+                  <PopoverContent className="w-[200px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <Command>
+                      <CommandList>
+                        <CommandGroup heading="Variáveis Disponíveis">
+                          {variables.map(v => (
+                            <CommandItem key={v} onSelect={() => insertVariable(v, index)}>
+                              <span>{v}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 {template.type === 'imagem' && (
                   <Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, index)} className="mt-2" />
                 )}
@@ -82,7 +180,7 @@ export const MessageCreator = ({ templates, setTemplates }: MessageCreatorProps)
             <Plus className="h-4 w-4 mr-2" /> Adicionar Bloco de Mensagem
           </Button>
         </div>
-        
+
         <div className="flex justify-center items-center">
           <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] shadow-xl">
             <div className="w-[148px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>

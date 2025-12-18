@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Logs from "./pages/Logs";
 import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
+import Audiences from "./pages/Audiences";
 import CampaignSchedulerPage from "./pages/CampaignSchedulerPage";
 import CopyAgentPage from "./pages/CopyAgentPage";
 import Login from "./pages/Login";
@@ -68,6 +69,7 @@ const App = () => (
                   <Route path="/logs" element={<Logs />} />
                   <Route path="/instancias" element={<Instancias />} />
                   <Route path="/disparo" element={<Disparo />} />
+                  <Route path="/audiences" element={<Audiences />} />
                   <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} />
                   <Route path="/copy-agent" element={<CopyAgentPage />} />
                 </Route>

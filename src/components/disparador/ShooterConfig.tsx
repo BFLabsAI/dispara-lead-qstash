@@ -23,13 +23,55 @@ export const ShooterConfig = () => {
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [variables, setVariables] = useState<string[]>([]);
   const [templates, setTemplates] = useState<any[]>([{ type: 'texto', text: '', mediaUrl: '' }]);
-  const [tempoMin, setTempoMin] = useState(2);
-  const [tempoMax, setTempoMax] = useState(5);
+  const [tempoMin, setTempoMin] = useState(15);
+  const [tempoMax, setTempoMax] = useState(25);
   const [usarIA, setUsarIA] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   // Store
   const { instances, contatos, sendMessages, loadInstances } = useDisparadorStore();
+
+  const handleTempoMin = (val: number) => {
+    const minLimit = contatos.length > 150 ? 25 : 15;
+    const newMin = Math.max(minLimit, val);
+    setTempoMin(newMin);
+    if (tempoMax < newMin + 10) {
+      setTempoMax(newMin + 10);
+    }
+  };
+
+  const handleTempoMax = (val: number) => {
+    const newMax = Math.max(0, val);
+    setTempoMax(newMax);
+    if (tempoMin > newMax - 10) {
+      setTempoMin(Math.max(0, newMax - 10)); // Logic in handleTempoMin will re-enforce limit if needed? No, separate state.
+      // If we lower Max, Min is lowered. Check limit?
+      // If Max=30, Min becomes 20. But if Limit=25?
+      // Then Max cannot be 30. Max must be >= 35.
+      // So verify Max lower bound?
+      // Logic: Max >= Min + 10 >= Limit + 10.
+      const minLimit = contatos.length > 150 ? 25 : 15;
+      if (newMax < minLimit + 10) {
+        // Revert or clamp?
+        // Clamp Max to minLimit + 10
+        setTempoMax(minLimit + 10);
+        setTempoMin(minLimit);
+      } else {
+        // Normal gap enforcement
+        if (tempoMin > newMax - 10) {
+          setTempoMin(newMax - 10);
+        }
+      }
+    }
+  };
+
+  // Auto-adjust when contacts change
+  useEffect(() => {
+    const minLimit = contatos.length > 150 ? 25 : 15;
+    if (tempoMin < minLimit) {
+      handleTempoMin(minLimit);
+    }
+  }, [contatos.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadInstances();
@@ -90,14 +132,14 @@ export const ShooterConfig = () => {
 
       <section>
         <SectionHeader icon={MessageSquare} number={3} title="Crie a Mensagem da Campanha" subtitle="Construa a sua mensagem e use as variáveis para máxima personalização." />
-        <MessageCreator templates={templates} setTemplates={setTemplates} />
+        <MessageCreator templates={templates} setTemplates={setTemplates} variables={variables} />
       </section>
 
       <section>
         <SectionHeader icon={Settings} number={4} title="Ajustes Finais e Envio" subtitle="Configure os últimos detalhes e revise sua campanha antes de disparar." />
         <FinalReview
-          tempoMin={tempoMin} setTempoMin={setTempoMin}
-          tempoMax={tempoMax} setTempoMax={setTempoMax}
+          tempoMin={tempoMin} setTempoMin={handleTempoMin}
+          tempoMax={tempoMax} setTempoMax={handleTempoMax}
           usarIA={usarIA} setUsarIA={setUsarIA}
           onSend={handleSend} isSending={isSending}
 

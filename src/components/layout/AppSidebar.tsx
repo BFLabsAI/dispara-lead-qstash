@@ -8,7 +8,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Home, LayoutDashboard, Server, Send, Settings, CalendarDays,
   MessageSquare, HardDrive, Link as LinkIcon, Bot,
-  ChevronLeft, ChevronRight, Sun, Moon, Building
+  ChevronLeft, ChevronRight, Sun, Moon, Building, Users
 } from 'lucide-react';
 import {
   Accordion,
@@ -113,6 +113,7 @@ export const AppSidebar = () => {
   const navItems = [
     { name: 'Home', href: '/welcome', icon: Home, type: 'link' },
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, type: 'link' },
+    { name: 'Públicos', href: '/audiences', icon: Users, type: 'link' },
     { name: 'Logs', href: '/logs', icon: HardDrive, type: 'link' },
     {
       name: 'Disparo',
