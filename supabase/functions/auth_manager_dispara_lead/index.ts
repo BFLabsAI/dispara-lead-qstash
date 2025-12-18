@@ -86,6 +86,21 @@ Deno.serve(async (req) => {
         // --- ACTIONS ---
 
         if (action === 'invite') {
+            // 0. Ensure user exists (Create if not exists)
+            // This handles cases where user was deleted or is brand new
+            const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+                email: email,
+                email_confirm: true, // Auto-confirm since admin is inviting
+                user_metadata: { full_name: name || email.split('@')[0] }
+            });
+
+            // Ignore "User already registered" error
+            if (createError && !createError.message.includes("already registered") && !createError.message.includes("already exists")) {
+                console.warn("Create user warning (ignoring if duplicate):", createError);
+                // We don't throw here immediately, we let generateLink fail if it's a real issue,
+                // or simply proceed if the user already exists.
+            }
+
             // 1. Generate Magic Link
             const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'magiclink',
@@ -162,9 +177,9 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('Auth Manager Error:', error);
-        return new Response(JSON.stringify({ error: error.message }), {
+        return new Response(JSON.stringify({ error: `Auth Manager Error: ${error.message}` }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
+            status: 200,
         });
     }
 });
