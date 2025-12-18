@@ -27,7 +27,7 @@ interface UserProfile {
     id: string;
     email: string;
     full_name: string;
-    role: 'owner' | 'admin' | 'user';
+    role: 'owner' | 'admin' | 'member';
     created_at: string;
     tenant_id: string;
 }
@@ -38,7 +38,7 @@ export default function UsersPage() {
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteName, setInviteName] = useState('');
-    const [inviteRole, setInviteRole] = useState<'admin' | 'user'>('admin');
+    const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('admin');
 
     // Delete State
     const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
@@ -63,7 +63,7 @@ export default function UsersPage() {
         }
     });
 
-    const currentUserRole = currentUserData?.role || 'user';
+    const currentUserRole = currentUserData?.role || 'member';
     // Effective Tenant: Impersonated (if super admin switched) OR User's own tenant
     const currentTenantId = impersonatedTenantId || currentUserData?.tenant_id;
 
@@ -89,11 +89,6 @@ export default function UsersPage() {
     const inviteMutation = useMutation({
         mutationFn: async (payload: { email: string, name: string, role: string }) => {
             if (!currentTenantId) throw new Error("Tenant ID not found");
-
-            // We use 'manage-users' for both operations now ideally, but keeping 'auth_manager' for invite as is to minimize changes unless needed.
-            // Wait, standardizing on 'manage-users' might be cleaner if it supports invite (it does).
-            // But let's stick to existing working invite flow unless broken. 
-            // The existing code uses 'auth_manager_dispara_lead' for invites.
 
             const { data, error } = await supabase.functions.invoke('auth_manager_dispara_lead', {
                 body: {
@@ -259,13 +254,13 @@ export default function UsersPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="role">Função</Label>
-                                <Select value={inviteRole} onValueChange={(v: 'admin' | 'user') => setInviteRole(v)}>
+                                <Select value={inviteRole} onValueChange={(v: 'admin' | 'member') => setInviteRole(v)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione a função" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="admin">Administrador</SelectItem>
-                                        <SelectItem value="user">Usuário</SelectItem>
+                                        <SelectItem value="member">Usuário</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

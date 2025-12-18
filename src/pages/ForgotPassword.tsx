@@ -19,7 +19,7 @@ export default function ForgotPassword() {
         setLoading(true);
 
         try {
-            const { error } = await supabase.functions.invoke('auth_manager_dispara_lead', {
+            const { error } = await supabase.functions.invoke('manage-users', {
                 body: {
                     action: 'recovery',
                     email,

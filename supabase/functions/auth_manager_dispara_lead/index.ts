@@ -86,19 +86,20 @@ Deno.serve(async (req) => {
         // --- ACTIONS ---
 
         if (action === 'invite') {
+            console.log(`[AUTH_MANAGER] Starting invite for ${email}`);
+
             // 0. Ensure user exists (Create if not exists)
-            // This handles cases where user was deleted or is brand new
             const { error: createError } = await supabaseAdmin.auth.admin.createUser({
                 email: email,
-                email_confirm: true, // Auto-confirm since admin is inviting
-                user_metadata: { full_name: name || email.split('@')[0] }
+                email_confirm: true,
+                user_metadata: {
+                    full_name: name || email.split('@')[0],
+                    invited_to_tenant_id: tenant_id
+                }
             });
 
-            // Ignore "User already registered" error
             if (createError && !createError.message.includes("already registered") && !createError.message.includes("already exists")) {
-                console.warn("Create user warning (ignoring if duplicate):", createError);
-                // We don't throw here immediately, we let generateLink fail if it's a real issue,
-                // or simply proceed if the user already exists.
+                console.warn("[AUTH_MANAGER] Create user warning:", createError);
             }
 
             // 1. Generate Magic Link
@@ -108,20 +109,34 @@ Deno.serve(async (req) => {
                 options: { redirectTo: redirectTo }
             });
 
-            if (linkError) throw linkError;
+            if (linkError) {
+                console.error("[AUTH_MANAGER] Generate Link Error:", linkError);
+                throw linkError;
+            }
+
             const targetUser = linkData.user;
-            if (!targetUser) throw new Error("Failed to resolve user");
+            if (!targetUser) throw new Error("Failed to resolve user from link generation");
 
             // 2. Upsert User Profile
-            await supabaseAdmin
+            const finalRole = (role === 'user' ? 'member' : role) || 'member';
+            console.log(`[AUTH_MANAGER] Upserting user: ${targetUser.id} | Role: ${finalRole}`);
+
+            const { error: upsertError } = await supabaseAdmin
                 .from('users_dispara_lead_saas_02')
                 .upsert({
                     id: targetUser.id,
                     email: email,
                     full_name: name || email.split('@')[0],
-                    tenant_id: tenant_id, // Assign to tenant
-                    role: role || 'user' // Use provided role
+                    tenant_id: tenant_id,
+                    role: finalRole
                 }, { onConflict: 'id' });
+
+            if (upsertError) {
+                console.error('[AUTH_MANAGER] Upsert Error:', upsertError);
+                // Try to delete the auth user to prevent zombie state
+                await supabaseAdmin.auth.admin.deleteUser(targetUser.id);
+                throw new Error(`Database Error saving new user: ${upsertError.message}`);
+            }
 
             // 3. Send Email
             await sendBrevoEmail({
@@ -177,7 +192,7 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('Auth Manager Error:', error);
-        return new Response(JSON.stringify({ error: `Auth Manager Error: ${error.message}` }), {
+        return new Response(JSON.stringify({ error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         });
