@@ -43,6 +43,7 @@ export interface DisparadorData {
   created_at?: string;
   id?: number | string; // Changed to allow UUID
   scheduled_for?: string;
+  responded_at?: string;
 }
 
 interface SaaSLog {
@@ -55,6 +56,7 @@ interface SaaSLog {
   campaign_type: string;
   created_at: string;
   scheduled_for?: string;
+  responded_at?: string;
   provider_message_id?: string;
   provider_response?: any;
   metadata?: {
@@ -79,7 +81,8 @@ const mapSaaSLogToDisparadorData = (log: SaaSLog): DisparadorData => {
     criativo: log.metadata?.criativo || '',
     tipo_campanha: log.campaign_type,
     created_at: log.created_at,
-    scheduled_for: log.scheduled_for
+    scheduled_for: log.scheduled_for,
+    responded_at: log.responded_at
   };
 };
 
@@ -115,6 +118,16 @@ const retryWithBackoff = async <T>(
 
 import { useAdminStore } from '@/store/adminStore';
 
+// Helper to get effective tenant ID (Impersonated OR Authenticated)
+const getEffectiveTenantId = async () => {
+  const impersonated = useAdminStore.getState().impersonatedTenantId;
+  if (impersonated) return impersonated;
+
+  // Fallback to authenticated user's tenant
+  const { data } = await supabase.rpc('get_my_tenant_id');
+  return data;
+};
+
 // ... (existing imports)
 
 // Fetch paginated data from message_logs_dispara_lead_saas_03 table with retry logic
@@ -130,17 +143,17 @@ export async function fetchDisparadorDataPaginated(
   }
 ): Promise<{ data: DisparadorData[], count: number }> {
   const operation = async () => {
-    const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) {
+      console.warn("No tenant ID found for pagination fetch");
+      return { data: [], count: 0 };
+    }
 
     // Build the query with optimized column selection
     let query = supabase
       .from('message_logs_dispara_lead_saas_03')
-      .select('*', { count: 'exact', head: false });
-
-    // Apply impersonation filter if set
-    if (impersonatedTenantId) {
-      query = query.eq('tenant_id', impersonatedTenantId);
-    }
+      .select('*', { count: 'exact', head: false })
+      .eq('tenant_id', tenantId);
 
     // Apply filters efficiently
     if (filters?.instance) {
@@ -202,15 +215,15 @@ export async function fetchRecentDisparadorData(limit: number = 100): Promise<Di
   }
 
   const operation = async () => {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return [];
+
     let query = supabase
       .from('message_logs_dispara_lead_saas_03')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (impersonatedTenantId) {
-      query = query.eq('tenant_id', impersonatedTenantId);
-    }
+      .limit(limit)
+      .eq('tenant_id', tenantId);
 
     const { data, error } = await query;
 
@@ -244,7 +257,9 @@ export async function fetchRecentDisparadorData(limit: number = 100): Promise<Di
 // Legacy function - now optimized to fetch all data recursively
 export async function fetchAllDisparadorData(): Promise<DisparadorData[]> {
   const operation = async () => {
-    const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return [];
+
     let allData: DisparadorData[] = [];
     let page = 0;
     const pageSize = 1000; // Supabase default limit
@@ -258,11 +273,8 @@ export async function fetchAllDisparadorData(): Promise<DisparadorData[]> {
         .from('message_logs_dispara_lead_saas_03')
         .select('*')
         .order('created_at', { ascending: false })
-        .range(from, to);
-
-      if (impersonatedTenantId) {
-        query = query.eq('tenant_id', impersonatedTenantId);
-      }
+        .range(from, to)
+        .eq('tenant_id', tenantId);
 
       const { data, error } = await query;
 
@@ -305,12 +317,11 @@ export function subscribeToDisparadorUpdates(
   let retryCount = 0;
   const maxRetries = 5;
 
-  const createChannel = () => {
-    const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
-    let filter = undefined;
-    if (impersonatedTenantId) {
-      filter = `tenant_id=eq.${impersonatedTenantId}`;
-    }
+  const createChannel = async () => {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return null;
+
+    const filter = `tenant_id=eq.${tenantId}`;
 
     const channel = supabase
       .channel('message_logs_changes', {
@@ -373,7 +384,10 @@ export function subscribeToDisparadorUpdates(
     });
 
   // Create initial subscription
-  let currentChannel = createChannel();
+  let currentChannel: any = null;
+  createChannel().then(channel => {
+    currentChannel = channel;
+  });
 
   // Return unsubscribe function
   return () => {
@@ -413,6 +427,10 @@ export async function getDashboardStatsOptimized() {
       failed: data.total_failed,
       queued: data.total_queued, // Expose queued explicitly
       withAI: data.total_ia,
+      responded: data.total_responded,
+      responseRate: data.total_envios > 0
+        ? (data.total_responded / data.total_envios) * 100
+        : 0,
       successRate: (data.total_envios + data.total_failed) > 0
         ? (data.total_envios / (data.total_envios + data.total_failed)) * 100
         : 0,
@@ -432,6 +450,8 @@ export async function getDashboardStatsOptimized() {
       failed: 0,
       queued: 0,
       withAI: 0,
+      responded: 0,
+      responseRate: 0,
       successRate: 0,
       instanceStats: {},
       campaignStats: {}
@@ -517,15 +537,13 @@ export function clearAllCaches() {
 
 // Fetch campaign statistics
 export async function fetchCampaignStats() {
-  const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+  const tenantId = await getEffectiveTenantId();
+  if (!tenantId) return [];
 
   let query = supabase
     .from('campaigns_dispara_lead_saas_02')
-    .select('*');
-
-  if (impersonatedTenantId) {
-    query = query.eq('tenant_id', impersonatedTenantId);
-  }
+    .select('*')
+    .eq('tenant_id', tenantId);
 
   const { data, error } = await query;
 

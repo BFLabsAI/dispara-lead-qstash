@@ -146,15 +146,21 @@ export const CampaignFinalReviewAndSchedule = ({
               </div>
             </div>
           </div>
-          <Button size="lg" onClick={onSchedule} disabled={isScheduling || !isFormValid} className="w-full btn-premium">
+          <Button
+            size="lg"
+            onClick={onSchedule}
+            disabled={isScheduling || !isFormValid}
+            className="w-full btn-premium"
+          >
             <Play className="mr-2 h-5 w-5" />
-            {isScheduling ? 'Agendando Campanha...' : 'Agendar Campanha'}
+            {isScheduling ? 'Agendando...' : 'Agendar Campanha'}
           </Button>
+          {!isFormValid && (
+            <p className="text-center text-xs text-muted-foreground mt-2">
+              Preencha todos os campos e configure pelo menos um disparo para habilitar.
+            </p>
+          )}
 
-          <Button size="lg" variant="outline" onClick={onAdvancedSchedule} disabled={isScheduling || !isFormValid} className="w-full border-primary text-primary hover:bg-primary/10">
-            <Server className="mr-2 h-5 w-5" />
-            {isScheduling ? 'Enfileirando...' : 'Agendar Campanha Avançada (Fila)'}
-          </Button>
         </div>
       </div>
     </Card>

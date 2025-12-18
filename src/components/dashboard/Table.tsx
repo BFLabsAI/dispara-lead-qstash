@@ -45,6 +45,7 @@ export const DashboardTable = ({ data }: TableProps) => {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Modo de Disparo</TableHead>
                   <TableHead>Usou IA?</TableHead>
+                  <TableHead>Respondeu?</TableHead>
                   <TableHead>Mensagem</TableHead>
                 </TableRow>
               </TableHeader>
@@ -81,6 +82,15 @@ export const DashboardTable = ({ data }: TableProps) => {
                         <Badge variant="destructive">
                           <XCircle className="h-3 w-3 mr-1" /> Não
                         </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {item.responded_at ? (
+                        <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+                          <CheckCircle className="h-3 w-3 mr-1" /> Sim
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
                       )}
                     </TableCell>
                     <TableCell className="max-w-lg truncate" title={item.texto}>

@@ -59,7 +59,6 @@ interface DisparadorState {
     templates: MessageTemplate[];
     campaignName: string;
     publicTarget: string;
-    publicTarget: string;
     content: string;
     scheduledFor?: string;
   }) => Promise<{ sucessos: number; erros: number; log: string }>;
@@ -110,22 +109,35 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Check for impersonation (Super Admin)
-      const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
-      let targetTenantId = impersonatedTenantId;
+      // Fetch user profile to check Role and Tenant
+      const { data: userData } = await supabase
+        .from('users_dispara_lead_saas_02')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single();
 
-      if (!targetTenantId) {
-        const { data: userData } = await supabase
-          .from('users_dispara_lead_saas_02')
-          .select('tenant_id')
-          .eq('id', user.id)
-          .single();
+      if (!userData?.tenant_id) {
+        console.error("Tenant ID not found for user:", user.id);
+        throw new Error("Tenant não encontrado");
+      }
 
-        if (!userData?.tenant_id) {
-          console.error("Tenant ID not found for user:", user.id);
-          throw new Error("Tenant não encontrado");
-        }
-        targetTenantId = userData.tenant_id;
+      // Determine Target Tenant
+      // Default to user's own tenant
+      let targetTenantId = userData.tenant_id;
+
+      // Only allow impersonation if user is actually a Super Admin
+      // We check this via RPC or by trusting that only Super Admins can set the store (but store is client-side).
+      // Safer: check RPC.
+      const { data: isSuper } = await supabase.rpc('is_super_admin');
+      const impersonatedId = useAdminStore.getState().impersonatedTenantId;
+
+      if (isSuper && impersonatedId) {
+        targetTenantId = impersonatedId;
+      } else if (impersonatedId && !isSuper) {
+        // Detected stale state: Regular user with admin store set. Clear it.
+        console.warn("Clearing stale admin state for regular user");
+        useAdminStore.getState().setImpersonatedTenantId(null);
+        useAdminStore.getState().setAdminTenantId(null);
       }
 
       // Fetch tenant's instances from our DB (Source of Truth)
@@ -315,7 +327,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   },
 
   sendMessages: async (params) => {
-    const { contatos, instances, tempoMin, tempoMax, templates, campaignName, publicTarget, content, scheduledFor } = params as any; // Allow extra params for now or update interface
+    const { contatos, instances, tempoMin, tempoMax, templates, campaignName, publicTarget, content, scheduledFor, usarIA } = params as any; // Allow extra params for now or update interface
     set({ isLoading: true });
 
     try {
@@ -323,20 +335,24 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Check for impersonation (Super Admin)
-      const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
-      let targetTenantId = impersonatedTenantId;
+      // Fetch user profile
+      const { data: userData } = await supabase
+        .from('users_dispara_lead_saas_02')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single();
 
-      if (!targetTenantId) {
-        const { data: userData } = await supabase
-          .from('users_dispara_lead_saas_02')
-          .select('tenant_id')
-          .eq('id', user.id)
-          .single();
-        targetTenantId = userData?.tenant_id;
+      if (!userData?.tenant_id) throw new Error("Tenant não encontrado");
+
+      // Check for impersonation (Super Admin ONLY)
+      let targetTenantId = userData.tenant_id;
+
+      const { data: isSuper } = await supabase.rpc('is_super_admin');
+      const impersonatedId = useAdminStore.getState().impersonatedTenantId;
+
+      if (isSuper && impersonatedId) {
+        targetTenantId = impersonatedId;
       }
-
-      if (!targetTenantId) throw new Error("Tenant não encontrado");
 
       // Check mandatory campaign name (if missing, auto-generate)
       const finalCampaignName = campaignName || `Disparo Rápido ${new Date().toLocaleTimeString()}`;
@@ -408,7 +424,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             scheduled_for: deliveryDate, // Exact execution time
             created_at: new Date().toISOString(), // DB Insert time
             campaign_name: finalCampaignName,
-            campaign_type: scheduledFor ? 'Agendada (QStash)' : 'Imediata (QStash)',
+            campaign_type: scheduledFor ? 'Agendada' : 'Imediata',
             metadata: {
               publico: publicTarget,
               criativo: content
@@ -421,11 +437,16 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             phoneNumber: contact.telefone,
             messageContent: personalizedText,
             instanceName,
+            instanceToken: undefined, // Cleared if previously set, logic moved to Edge Function
             campaignId: campaign.id,
             tenantId: targetTenantId,
             mediaUrl: template.mediaUrl,
             mediaType: template.type !== 'texto' ? template.type : undefined,
-            notBefore: Math.floor(deliveryTime / 1000) // Always use absolute timestamp for precision
+            notBefore: Math.floor(deliveryTime / 1000), // Always use absolute timestamp for precision
+            // Use AI endpoint if selected
+            destinationUrl: usarIA
+              ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-message-ai`
+              : undefined
           };
 
           messagesToEnqueue.push(qstashPayload);

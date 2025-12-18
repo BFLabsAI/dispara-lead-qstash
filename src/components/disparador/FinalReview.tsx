@@ -91,7 +91,7 @@ export const FinalReview = ({
           </div>
           <Button size="lg" onClick={onSend} disabled={isSending} className="w-full btn-premium">
             <Play className="mr-2 h-5 w-5" />
-            {isSending ? 'Enfileirando Disparos...' : 'Iniciar Campanha (QStash)'}
+            {isSending ? 'Enfileirando...' : 'Iniciar Campanha'}
           </Button>
         </div>
       </div>

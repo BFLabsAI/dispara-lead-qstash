@@ -4,7 +4,7 @@
 const SUPABASE_URL = 'https://iixeygzkgfwetchjvpvo.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpeGV5Z3prZ2Z3ZXRjaGp2cHZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNzk2MywiZXhwIjoyMDcxMTgzOTYzfQ.bD-BNU1r3UYLHpRLvHQ4gn3jplRdYq8TZRHa54UCmbc';
 
-const BUCKET_NAME = 'disparador-r7';
+const BUCKET_NAME = 'media_dispara_lead_saas';
 
 export interface UploadResult {
   fileUrl: string;

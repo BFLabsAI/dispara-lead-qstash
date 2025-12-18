@@ -9,17 +9,15 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 serve(async (req) => {
     try {
         const payload = await req.json();
-        const event = payload.event;
-        const instanceName = payload.instance;
-        const data = payload.data; // varies by event
+        console.log('Webhook Payload Received:', JSON.stringify(payload));
 
-        // We care about MESSAGES_UPSERT or SEND_MESSAGE
-        // UazAPI usually sends 'MESSAGES_UPSERT' for incoming/outgoing storage
-        if (event === 'MESSAGES_UPSERT' && data) {
-            const message = data.message; // Determine structure based on UazAPI docs/logs
-            if (!message) return new Response('No message data', { status: 200 });
+        const { EventType, instanceName, message } = payload;
 
-            // Fetch Tenant ID based on instanceName
+        console.log(`Processing EventType: ${EventType}, Instance: ${instanceName}`);
+
+        // Handle UazAPI 'messages' event
+        if (EventType === 'messages' && message) {
+            // Fetch Tenant ID
             const { data: instanceData } = await supabase
                 .from('instances_dispara_lead_saas_02')
                 .select('id, tenant_id')
@@ -34,32 +32,18 @@ serve(async (req) => {
             const tenantId = instanceData.tenant_id;
             const instanceId = instanceData.id;
 
-            // Extract details
-            const key = data.key;
-            const isFromMe = key?.fromMe || false;
-            const remoteJid = key?.remoteJid || ''; // Contains phone number
-            const phone = remoteJid.split('@')[0];
-            const pushName = data.pushName;
+            // Extract Message Details
+            const isFromMe = message.fromMe;
+            // Prioritize sender_pn (Phone Number JID) to avoid LID (Local ID)
+            const senderJid = message.sender_pn || message.chatid || message.sender || '';
+            const phone = senderJid.split('@')[0];
+            const pushName = message.senderName || '';
+            const content = message.text || message.content || '';
+            const messageType = message.type || 'text';
+            const messageTimestamp = message.messageTimestamp;
 
-            let content = '';
-            let messageType = 'text';
-            let mediaUrl = null;
-
-            // Parsing content (Simplified for Baileys/UazAPI structure)
-            if (message.conversation) {
-                content = message.conversation;
-            } else if (message.extendedTextMessage?.text) {
-                content = message.extendedTextMessage.text;
-            } else if (message.imageMessage) {
-                messageType = 'image';
-                content = message.imageMessage.caption || '';
-                // Media handling usually requires fetching/downloading. 
-                // UazAPI might provide a URL in specific fields or we might need to process media separately.
-                // For now, storing caption.
-            } else if (message.videoMessage) {
-                messageType = 'video';
-                content = message.videoMessage.caption || '';
-            }
+            // Adjust timestamp (likely already in MS, but just in case check length or generic Date parsing)
+            const sentAt = new Date(messageTimestamp).toISOString();
 
             // 1. Upsert Contact
             const { data: contactData, error: contactError } = await supabase
@@ -76,24 +60,62 @@ serve(async (req) => {
             if (contactError) console.error('Contact Upsert Error:', contactError);
 
             // 2. Insert Message
-            // Check if exists to avoid duplicates (idempotency)
             const { error: msgError } = await supabase
                 .from('messages_dispara_lead_saas_02')
                 .insert({
                     tenant_id: tenantId,
                     instance_id: instanceId,
                     contact_id: contactData?.id,
-                    uazapi_message_id: key?.id,
+                    uazapi_message_id: message.id,
                     direction: isFromMe ? 'outbound' : 'inbound',
                     message_type: messageType,
                     content: content,
-                    media_url: mediaUrl,
-                    sent_at: new Date(Number(data.messageTimestamp) * 1000).toISOString(),
+                    media_url: null,
+                    sent_at: sentAt,
                     sender_name: pushName
                 });
 
-            if (msgError && msgError.code !== '23505') { // Ignore unique constraint violation
+            if (msgError && msgError.code !== '23505') {
                 console.error('Message Insert Error:', msgError);
+            }
+
+            // 3. Track Campaign Response (If Inbound)
+            if (!isFromMe) {
+                // Generate phone variations for matching (Handle Brazil 9th digit)
+                const possiblePhones = [phone];
+                if (phone.startsWith('55')) {
+                    if (phone.length === 12) {
+                        // Case: 55 + DDD + 8digits (e.g., 558588888888) -> Add 9
+                        const with9 = phone.slice(0, 4) + '9' + phone.slice(4);
+                        possiblePhones.push(with9);
+                    } else if (phone.length === 13) {
+                        // Case: 55 + DDD + 9 + 8digits (e.g., 5585988888888) -> Remove 9
+                        const without9 = phone.slice(0, 4) + phone.slice(5);
+                        possiblePhones.push(without9);
+                    }
+                }
+
+                console.log(`Checking for campaign response from ${possiblePhones.join(' or ')} for tenant ${tenantId}`);
+                const { data: lastCampaignMsg } = await supabase
+                    .from('message_logs_dispara_lead_saas_03')
+                    .select('id')
+                    .eq('tenant_id', tenantId)
+                    .in('phone_number', possiblePhones)
+                    .eq('status', 'sent')
+                    .is('responded_at', null)
+                    .order('sent_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (lastCampaignMsg) {
+                    console.log(`Found campaign message to update: ${lastCampaignMsg.id}`);
+                    await supabase
+                        .from('message_logs_dispara_lead_saas_03')
+                        .update({ responded_at: new Date().toISOString() })
+                        .eq('id', lastCampaignMsg.id);
+                } else {
+                    console.log('No matching campaign message found to mark as responded.');
+                }
             }
         }
 
@@ -101,6 +123,7 @@ serve(async (req) => {
             headers: { "Content-Type": "application/json" },
             status: 200,
         });
+
     } catch (error) {
         console.error(error);
         return new Response(JSON.stringify({ error: error.message }), {

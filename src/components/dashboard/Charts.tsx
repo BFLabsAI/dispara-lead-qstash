@@ -54,7 +54,7 @@ const GenericTooltipContent = ({ active, payload, label, theme }: any) => {
 };
 
 const EmptyChartState = ({ title, icon: Icon }: { title: string; icon: React.ComponentType<{ className?: string }> }) => (
-  <div className="flex flex-col items-center justify-center h-[350px] text-center text-gray-500 dark:text-gray-400">
+  <div className="flex flex-col items-center justify-center h-[250px] sm:h-[350px] text-center text-gray-500 dark:text-gray-400">
     <div className="p-4 bg-green-500/20 rounded-xl mb-4 animate-pulse-glow border border-green-500/30">
       <Icon className="h-8 w-8 text-green-600" />
     </div>
@@ -180,7 +180,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Campanha</h3>
           </div>
           {hasData ? (
-            <div className="h-[400px] w-full">
+            <div className="h-[300px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
                   <Pie
@@ -220,7 +220,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Público</h3>
           </div>
           {hasData ? (
-            <div className="h-[400px] w-full">
+            <div className="h-[300px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
                   <Pie
@@ -260,7 +260,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Criativo</h3>
           </div>
           {hasData ? (
-            <div className="h-[400px] w-full">
+            <div className="h-[300px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
                   <Pie
@@ -300,7 +300,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Tipo</h3>
           </div>
           {hasData ? (
-            <div className="h-[400px] w-full">
+            <div className="h-[300px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
                   <Pie
@@ -340,7 +340,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Instância</h3>
           </div>
           {hasData ? (
-            <div className="h-[400px] w-full">
+            <div className="h-[300px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
                   <Pie
@@ -380,7 +380,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Envios por Hora</h3>
           </div>
           {hasData ? (
-            <div className="h-[400px] w-full">
+            <div className="h-[300px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={horaData.map((v, i) => ({ hour: i, value: v, name: `${i}h` }))} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
@@ -407,7 +407,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             </h3>
           </div>
           {hasData ? (
-            <div className="h-[400px] w-full">
+            <div className="h-[300px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={sortedTimeline.map(item => ({ ...item, name: item.day }))} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />
@@ -433,7 +433,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
             <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-300">Disparos por Modo</h3>
           </div>
           {hasData ? (
-            <div className="h-[400px] w-full">
+            <div className="h-[300px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barDataDisparosPorModo} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "rgba(255,255,255,0.1)" : "rgba(16,185,129,0.1)"} />

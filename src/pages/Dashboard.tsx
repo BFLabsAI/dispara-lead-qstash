@@ -2,16 +2,16 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Filters } from "@/components/dashboard/Filters";
 import { KPIs } from "@/components/dashboard/KPIs";
 import { Charts } from "@/components/dashboard/Charts";
+import { DashboardTable } from "@/components/dashboard/Table";
 import { supabase } from "../services/supabaseClient";
 import { getDashboardDataAll, getDashboardDataPaginated, getCampaignStats } from "../services/dashboardService";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { RefreshCw } from "lucide-react";
 
 import { useAdminStore } from "@/store/adminStore";
 
@@ -24,8 +24,10 @@ export const Dashboard = () => {
     campaign: "all",
     publico: "all",
     criativo: "all",
+    responseStatus: "all",
     dateRange: null
   });
+  const [currentPage, setCurrentPage] = useState(1);
 
   // React Query para buscar todos os dados com cache inteligente
   const {
@@ -83,6 +85,13 @@ export const Dashboard = () => {
     if (filters.criativo !== "all") {
       filtered = filtered.filter(item => item.criativo === filters.criativo);
     }
+    if (filters.responseStatus !== "all") {
+      if (filters.responseStatus === "responded") {
+        filtered = filtered.filter(item => item.responded_at);
+      } else if (filters.responseStatus === "not_responded") {
+        filtered = filtered.filter(item => !item.responded_at);
+      }
+    }
     if (filters.dateRange?.from) {
       filtered = filtered.filter(item => item.date >= filters.dateRange.from);
     }
@@ -92,6 +101,20 @@ export const Dashboard = () => {
 
     return filtered;
   }, [allData, filters]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+
+  // Pagination Logic
+  const itemsPerPage = 20;
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const currentData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredData.slice(start, start + itemsPerPage);
+  }, [filteredData, currentPage]);
+
 
   // Generate filter options from all data (not filtered)
   const instanceOptions = useMemo(() => {
@@ -211,9 +234,43 @@ export const Dashboard = () => {
         totalSemIA={totalSemIA}
         agendadasCount={scheduledMessagesCount}
         filaCount={activeQueuedCount}
+        totalResponded={filteredData.filter((d) => d.responded_at).length}
+        responseRate={
+          totalEnvios > 0
+            ? (filteredData.filter((d) => d.responded_at).length / totalEnvios) * 100
+            : 0
+        }
       />
       <Charts filteredData={filteredData} />
-      <Charts filteredData={filteredData} />
+
+      <DashboardTable data={currentData} />
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-4 mb-8">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Anterior
+          </Button>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            Página {currentPage} de {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Próxima
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

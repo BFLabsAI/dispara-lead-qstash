@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, RefreshCw, LayoutDashboard, Pencil } from "lucide-react";
+import { Trash2, Plus, RefreshCw, LayoutDashboard, Pencil, AlertTriangle, Database } from "lucide-react";
 import { useAdminStore } from "@/store/adminStore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -244,6 +244,69 @@ export default function TenantDetails() {
         });
     };
 
+    // --- Data Management Handlers ---
+    const [flushLoading, setFlushLoading] = useState<string | null>(null);
+
+    const handleFlushLogs = async () => {
+        if (!confirm(`ATENÇÃO: Isso irá APAGAR PERMANENTEMENTE todos os logs de mensagens e campanhas da empresa "${tenant?.name}". Tem certeza?`)) return;
+        setFlushLoading('logs');
+        try {
+            // Delete message logs
+            const { error: logsError } = await supabase
+                .from('message_logs_dispara_lead_saas_03')
+                .delete()
+                .eq('tenant_id', id);
+            if (logsError) throw logsError;
+
+            // Delete campaigns
+            const { error: campaignsError } = await supabase
+                .from('campaigns_dispara_lead_saas_02')
+                .delete()
+                .eq('tenant_id', id);
+            if (campaignsError) throw campaignsError;
+
+            toast({ title: "Sucesso", description: "Logs e campanhas apagados com sucesso." });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Erro", description: error.message });
+        } finally {
+            setFlushLoading(null);
+        }
+    };
+
+    const handleFlushAudiences = async () => {
+        if (!confirm(`ATENÇÃO: Isso irá APAGAR PERMANENTEMENTE todos os públicos salvos da empresa "${tenant?.name}". Tem certeza?`)) return;
+        setFlushLoading('audiences');
+        try {
+            // First delete contacts
+            const { data: audiences } = await supabase
+                .from('audiences_dispara_lead_saas_02')
+                .select('id')
+                .eq('tenant_id', id);
+
+            if (audiences && audiences.length > 0) {
+                const audienceIds = audiences.map(a => a.id);
+                const { error: contactsError } = await supabase
+                    .from('audience_contacts_dispara_lead_saas_02')
+                    .delete()
+                    .in('audience_id', audienceIds);
+                if (contactsError) throw contactsError;
+            }
+
+            // Then delete audiences
+            const { error: audiencesError } = await supabase
+                .from('audiences_dispara_lead_saas_02')
+                .delete()
+                .eq('tenant_id', id);
+            if (audiencesError) throw audiencesError;
+
+            toast({ title: "Sucesso", description: "Públicos apagados com sucesso." });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Erro", description: error.message });
+        } finally {
+            setFlushLoading(null);
+        }
+    };
+
     if (loading) return <div>Carregando...</div>;
     if (!tenant) return <div>Empresa não encontrada</div>;
 
@@ -271,6 +334,7 @@ export default function TenantDetails() {
                     <TabsTrigger value="instances">Instâncias Evolution</TabsTrigger>
                     <TabsTrigger value="users">Usuários</TabsTrigger>
                     <TabsTrigger value="settings">Configurações</TabsTrigger>
+                    <TabsTrigger value="data-management">Gestão de Dados</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="instances" className="space-y-4">
@@ -391,6 +455,64 @@ export default function TenantDetails() {
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Editar Informações
                                 </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="data-management">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Database className="h-5 w-5" />
+                                Gestão de Dados
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                                    <div>
+                                        <p className="font-medium text-destructive">Zona de Perigo</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            As ações nesta seção são irreversíveis. Todos os dados apagados não poderão ser recuperados.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between p-4 border rounded-lg">
+                                    <div>
+                                        <p className="font-medium">Limpar Logs e Campanhas</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Apaga todos os registros de mensagens enviadas e histórico de campanhas.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="destructive"
+                                        onClick={handleFlushLogs}
+                                        disabled={flushLoading !== null}
+                                    >
+                                        {flushLoading === 'logs' ? 'Apagando...' : 'Limpar Logs'}
+                                    </Button>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 border rounded-lg">
+                                    <div>
+                                        <p className="font-medium">Limpar Públicos</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Apaga todos os públicos salvos e seus contatos associados.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="destructive"
+                                        onClick={handleFlushAudiences}
+                                        disabled={flushLoading !== null}
+                                    >
+                                        {flushLoading === 'audiences' ? 'Apagando...' : 'Limpar Públicos'}
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

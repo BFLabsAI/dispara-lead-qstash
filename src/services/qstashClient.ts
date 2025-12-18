@@ -19,6 +19,7 @@ interface EnqueueParams {
     notBefore?: number; // unix timestamp in seconds
     mediaUrl?: string;
     mediaType?: 'image' | 'video' | 'audio';
+    destinationUrl?: string; // Optional: Override default destination
 }
 
 export const qstashClient = {
@@ -26,7 +27,7 @@ export const qstashClient = {
      * Enqueues a single message to QStash
      */
     async enqueueMessage(params: EnqueueParams) {
-        const destinationUrl = `${SUPABASE_URL}/functions/v1/process-message`;
+        const destinationUrl = params.destinationUrl || `${SUPABASE_URL}/functions/v1/process-message`;
 
         try {
             const result = await client.publishJSON({
@@ -47,10 +48,11 @@ export const qstashClient = {
      * Enqueues a batch of messages to QStash (more efficient for large campaigns)
      */
     async enqueueBatch(messages: EnqueueParams[]) {
-        const destinationUrl = `${SUPABASE_URL}/functions/v1/process-message`;
+        // We assume all messages in a batch likely go to the same place, 
+        // but let's handle per-message override to be safe/flexible.
 
         const batch = messages.map(msg => ({
-            url: destinationUrl,
+            url: msg.destinationUrl || `${SUPABASE_URL}/functions/v1/process-message`,
             body: JSON.stringify(msg),
             headers: { "Content-Type": "application/json" },
             delay: msg.delay,

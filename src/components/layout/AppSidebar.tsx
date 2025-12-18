@@ -8,7 +8,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Home, LayoutDashboard, Server, Send, Settings, CalendarDays,
   MessageSquare, HardDrive, Link as LinkIcon, Bot,
-  ChevronLeft, ChevronRight, Sun, Moon, Building, Users
+  ChevronLeft, ChevronRight, Sun, Moon, Building, Users, LogOut
 } from 'lucide-react';
 import {
   Accordion,
@@ -27,9 +27,12 @@ import { useAdminStore } from "@/store/adminStore";
 import { supabase } from "@/services/supabaseClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { useIsMobile } from "@/hooks/use-mobile";
+
 export const AppSidebar = () => {
   const { theme, toggleTheme } = useTheme();
   const { isSidebarOpen, toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
   const location = useLocation();
   const impersonatedTenantId = useAdminStore((state) => state.impersonatedTenantId);
   const setImpersonatedTenantId = useAdminStore((state) => state.setImpersonatedTenantId);
@@ -96,9 +99,11 @@ export const AppSidebar = () => {
       // This ensures we filter by the admin's tenant ID and don't show ALL data
       if (adminTenantId) {
         setImpersonatedTenantId(adminTenantId);
+        setTimeout(() => window.location.reload(), 100);
       }
     } else {
       setImpersonatedTenantId(value);
+      setTimeout(() => window.location.reload(), 100);
     }
   };
 
@@ -109,6 +114,27 @@ export const AppSidebar = () => {
   } else {
     logoSrc = theme === 'dark' ? '/icon dark.png' : '/icon white.png';
   }
+
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkUserRole();
+  }, []);
+
+  const checkUserRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('users_dispara_lead_saas_02')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (data) {
+      setUserRole(data.role);
+    }
+  };
 
   const navItems = [
     { name: 'Home', href: '/welcome', icon: Home, type: 'link' },
@@ -131,6 +157,7 @@ export const AppSidebar = () => {
       type: 'accordion',
       subItems: [
         { name: 'Instâncias', href: '/instancias', icon: Server },
+        ...((userRole === 'admin' || userRole === 'owner') ? [{ name: 'Equipe', href: '/settings/users', icon: Users }] : []),
       ],
     },
   ];
@@ -141,8 +168,10 @@ export const AppSidebar = () => {
     <aside
       className={cn(
         "fixed inset-y-0 left-0 z-40 transition-all duration-300 ease-in-out",
-        isSidebarOpen ? "w-64" : "w-[72px]",
-        "bg-sidebar dark:bg-gray-900 dark:border-r dark:border-gray-800",
+        isMobile
+          ? (isSidebarOpen ? "translate-x-0 w-64 shadow-2xl" : "-translate-x-full w-64")
+          : (isSidebarOpen ? "w-64" : "w-[72px]"),
+        "bg-white dark:bg-gray-900 border-r border-border dark:border-gray-800",
         isImpersonating ? "top-[52px]" : "top-0" // Adjust top position if banner is visible
       )}
     >
@@ -302,6 +331,30 @@ export const AppSidebar = () => {
             return null;
           })}
         </nav>
+
+        {/* Logout */}
+        <div className={cn("p-4 border-t border-border flex items-center", isSidebarOpen ? "justify-between" : "justify-center")}>
+          {isSidebarOpen && <span className="text-sm text-sidebar-foreground">Sair</span>}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={async () => {
+              // Clear admin store to prevent stale impersonation
+              useAdminStore.getState().setImpersonatedTenantId(null);
+              useAdminStore.getState().setAdminTenantId(null);
+
+              await supabase.auth.signOut();
+              window.location.href = '/login';
+            }}
+            className={cn(
+              "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              !isSidebarOpen && "w-full"
+            )}
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="sr-only">Sair</span>
+          </Button>
+        </div>
 
         {/* Alternador de Tema */}
         <div className={cn("p-4 border-t border-border flex items-center", isSidebarOpen ? "justify-between" : "justify-center")}>

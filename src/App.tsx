@@ -13,10 +13,12 @@ import Disparo from "./pages/Disparo";
 import Audiences from "./pages/Audiences";
 import CampaignSchedulerPage from "./pages/CampaignSchedulerPage";
 import CopyAgentPage from "./pages/CopyAgentPage";
+import UsersPage from "./pages/settings/UsersPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import FinishProfilePage from "./pages/FinishProfilePage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { AdminLayout } from "./components/layout/AdminLayout";
@@ -24,6 +26,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import TenantList from "./pages/admin/TenantList";
 import TenantDetails from "./pages/admin/TenantDetails";
 import PlansList from "./pages/admin/PlansList";
+import EmailTemplatesPage from "./pages/admin/EmailTemplatesPage";
 import Obrigado from "./pages/Obrigado";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -63,6 +66,9 @@ const App = () => (
 
               {/* Rotas protegidas que usam o DashboardLayout */}
               <Route element={<ProtectedRoute />}>
+                <Route path="/finish-profile" element={<FinishProfilePage />} />
+              </Route>
+              <Route element={<ProtectedRoute />}>
                 <Route element={<DashboardLayout />}>
                   <Route path="/welcome" element={<Home />} />
                   <Route path="/dashboard" element={<Dashboard />} />
@@ -72,6 +78,7 @@ const App = () => (
                   <Route path="/audiences" element={<Audiences />} />
                   <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} />
                   <Route path="/copy-agent" element={<CopyAgentPage />} />
+                  <Route path="/settings/users" element={<UsersPage />} />
                 </Route>
               </Route>
 
@@ -82,6 +89,7 @@ const App = () => (
                   <Route path="tenants" element={<TenantList />} />
                   <Route path="tenants/:id" element={<TenantDetails />} />
                   <Route path="plans" element={<PlansList />} />
+                  <Route path="email-templates" element={<EmailTemplatesPage />} />
                 </Route>
               </Route>
 

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { useAdminStore } from "@/store/adminStore";
 
 export interface Tag {
     id: string;
@@ -27,8 +28,24 @@ export const audienceService = {
     /**
      * Fetch all audiences with their tags
      */
+    /**
+     * Fetch all audiences with their tags (Filtered by Tenant)
+     */
     async getAudiences() {
-        // 1. Fetch Audiences
+        // 1. Get Tenant ID (Check store first for impersonation)
+        let tenantId = useAdminStore.getState().impersonatedTenantId;
+
+        if (!tenantId) {
+            const { data, error } = await supabase.rpc('get_my_tenant_id');
+            if (!error && data) tenantId = data;
+        }
+
+        if (!tenantId) {
+            console.error("Error fetching tenant ID or no tenant found");
+            return [];
+        }
+
+        // 2. Fetch Audiences
         const { data: audiences, error } = await supabase
             .from('audiences_dispara_lead_saas_02')
             .select(`
@@ -37,11 +54,12 @@ export const audienceService = {
           tag:tags_dispara_lead_saas_02 (*)
         )
       `)
+            .eq('tenant_id', tenantId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
 
-        // 2. Map tags to clean structure
+        // 3. Map tags to clean structure
         return audiences.map((a: any) => ({
             ...a,
             tags: a.audience_tags_dispara_lead_saas_02.map((t: any) => t.tag)
@@ -49,12 +67,22 @@ export const audienceService = {
     },
 
     /**
-     * Fetch all available tags
+     * Fetch all available tags (Filtered by Tenant)
      */
     async getTags() {
+        let tenantId = useAdminStore.getState().impersonatedTenantId;
+
+        if (!tenantId) {
+            const { data, error } = await supabase.rpc('get_my_tenant_id');
+            if (!error && data) tenantId = data;
+        }
+
+        if (!tenantId) return [];
+
         const { data, error } = await supabase
             .from('tags_dispara_lead_saas_02')
             .select('*')
+            .eq('tenant_id', tenantId)
             .order('name');
 
         if (error) throw error;

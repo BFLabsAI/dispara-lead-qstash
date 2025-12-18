@@ -1,0 +1,1252 @@
+# Source Code Compendium
+
+This document contains the full source code for the requested components.
+
+## 1. HTML Email Templates
+
+These are the default templates used by the system for Welcome emails and Password Recovery.
+
+### A. Welcome / Signup Template (`signup`)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; background-color: #f4f4f5; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    .button { display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+    h1 { color: #111827; }
+    p { color: #4b5563; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bem-vindo ao Audita Lead! 🚀</h1>
+    <p>Olá,</p>
+    <p>Estamos muito felizes em ter você conosco. Para começar a usar sua conta, por favor confirme seu email clicando no botão abaixo:</p>
+    <br/>
+    <a href="{{action_url}}" class="button">Confirmar Email</a>
+    <br/><br/>
+    <p>Se você não criou esta conta, pode ignorar este email.</p>
+    <p>Atenciosamente,<br/>Equipe Audita Lead</p>
+  </div>
+</body>
+</html>
+```
+
+### B. Password Recovery Template (`recovery`)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; background-color: #f4f4f5; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    .button { display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+    h1 { color: #111827; }
+    p { color: #4b5563; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Recuperação de Senha 🔒</h1>
+    <p>Recebemos uma solicitação para redefinir sua senha.</p>
+    <p>Clique no botão abaixo para criar uma nova senha:</p>
+    <br/>
+    <a href="{{action_url}}" class="button">Redefinir Senha</a>
+    <br/><br/>
+    <p>Se você não solicitou isso, sua conta está segura e você pode ignorar este email.</p>
+    <p>Atenciosamente,<br/>Equipe Audita Lead</p>
+  </div>
+</body>
+</html>
+```
+
+---
+
+## 2. Supabase Edge Functions
+
+### A. Auth Manager (`auth-manager-audita-lead`)
+
+Handles custom user creation, password reset logic, and Brevo email sending.
+
+**File:** [supabase/functions/auth-manager-audita-lead/index.ts](file:///Users/brunofalcao/dyad-apps/audita-lead/supabase/functions/auth-manager-audita-lead/index.ts)
+
+```typescript
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Secrets
+const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+// Prefer the custom key if set (to resolve potential system env issues), fallback to system default
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+const APP_CONFIG = {
+  url: 'https://audita-lead.app', 
+  senderName: 'Audita Lead',
+  senderEmail: 'tecnologia@bflabs.com.br' // Verified sender in Brevo
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const { action, email, password, redirectTo, tenantId, role } = await req.json();
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error("Missing Supabase configuration");
+    }
+
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // 1. ISOLATION & ACCESS CHECK
+    const { data: userAccess } = await supabaseAdmin
+        .from('users_audita_lead')
+        .select('*')
+        .eq('email', email) // Note: for list_members, email might be undefined, which is fine as valid check is optional or skipped
+        .maybeSingle();
+
+    // STRICT ISOLATION Logic
+    if (action === 'forgot_password' || action === 'login') {
+        if (!userAccess) {
+             console.error(`[Auth Manager] Access Denied for ${email}: Not in users_audita_lead`);
+             return new Response(JSON.stringify({ success: true, message: "If account exists, email sent" }), { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json'} 
+             });
+        }
+    }
+
+    // 2. FETCH TEMPLATE
+    const templateType = action === 'signup' ? 'signup' : (action === 'forgot_password' ? 'recovery' : 'invite');
+    const { data: template } = await supabaseAdmin
+        .from('email_templates_audita_lead')
+        .select('*')
+        .eq('type', templateType)
+        .maybeSingle();
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+        // If no auth header, we can't get the user. 
+        // For login/signup/forgot, this is fine (no user needed).
+        // For invite/list_members, we need user.
+        // We'll handle this in the verifyTenantAdmin check.
+    }
+
+    const supabaseClient = createClient(
+      SUPABASE_URL,
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader ?? '' } } }
+    );
+
+    // Get the user making the request
+    const { data: { user: caller } } = await supabaseClient.auth.getUser();
+
+    // Helper: Verify Caller Tenant Permissions
+    const verifyTenantAdmin = async (tenantId: string) => {
+        console.log(`[Auth Manager] Verifying Admin for tenant: ${tenantId}`);
+        if (!caller) {
+            console.error("[Auth Manager] No authenticated caller found");
+            throw new Error("Unauthorized: No user found");
+        }
+        
+        console.log(`[Auth Manager] Caller ID: ${caller.id}`);
+
+        const { data: publicUser } = await supabaseAdmin
+            .from('users_audita_lead')
+            .select('id, role')
+            .eq('auth_user_id', caller.id)
+            .single();
+        if (!publicUser) {
+            console.warn(`[Auth Manager] Profile not found for auth_id: ${caller.id}. Checking Auth Metadata...`);
+            
+            // Fallback: Check Auth Metadata (e.g. if profile sync failed or manual superadmin)
+            const isSuperAdminEnv = caller.app_metadata?.role === 'superadmin' || caller.user_metadata?.role === 'superadmin';
+            
+            if (isSuperAdminEnv) {
+                 console.log("[Auth Manager] Superadmin bypass granted via Auth Metadata");
+                 return true;
+            }
+
+            console.error(`[Auth Manager] Profile not found and no Auth Metadata role.`);
+            throw new Error("Unauthorized: Profile not found. Please contact support.");
+        }
+        
+        console.log(`[Auth Manager] Public User: ${publicUser.id} Role: ${publicUser.role}`);
+
+        if (publicUser.role === 'superadmin') {
+            console.log("[Auth Manager] Superadmin bypass granted via Profile");
+            return true;
+        }
+
+        const { data: tenantMember } = await supabaseAdmin
+            .from('user_tenants_audita_lead')
+            .select('role')
+            .eq('user_id', caller.id) // Use Auth ID, not Profile ID
+            .eq('tenant_id', tenantId)
+            .single();
+
+        if (!tenantMember || tenantMember.role !== 'admin') {
+             console.error(`[Auth Manager] Access Denied. Member: ${JSON.stringify(tenantMember)}`);
+             throw new Error("Unauthorized: You must be an admin of this tenant");
+        }
+        console.log("[Auth Manager] Admin verified");
+        return true;
+    };
+
+
+    // 3. EXECUTE AUTH ACTION
+    let actionLink = "";
+    let userName = userAccess?.name || (email ? email.split('@')[0] : '');
+
+    if (action === 'login') {
+         const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'magiclink',
+            email,
+            options: { redirectTo: redirectTo || `${APP_CONFIG.url}/auth/callback` }
+        });
+        if (error) throw error;
+        actionLink = linkData.properties.action_link;
+    } 
+    else if (action === 'forgot_password') {
+         const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'recovery',
+            email,
+            options: { redirectTo: redirectTo || `${APP_CONFIG.url}/reset-password` }
+        });
+        if (error) throw error;
+        actionLink = linkData.properties.action_link;
+    }
+    else if (action === 'signup') {
+        const { data: authUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: false,
+            user_metadata: { app_origin: 'audita_lead' }
+        });
+        
+        if (createError) throw createError;
+
+        const tenantIdNew = crypto.randomUUID(); 
+        await supabaseAdmin.from('users_audita_lead').insert({
+            auth_user_id: authUser.user.id,
+            email: email,
+            tenant_id: tenantIdNew, 
+            role: 'admin',
+            name: userName
+        });
+        
+        const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'signup',
+            email,
+            options: { redirectTo: redirectTo || `${APP_CONFIG.url}/auth/callback` }
+        });
+        if (error) throw error;
+        actionLink = linkData.properties.action_link;
+    }
+    else if (action === 'invite') {
+        // tenantId and role now from top-level destructuring
+        if (!tenantId) throw new Error("Missing tenantId for invite");
+        
+        // SECURITY CHECK
+        await verifyTenantAdmin(tenantId);
+
+        // 1. Check if Auth User exists
+        let userId = "";
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = existingUsers.users.find(u => u.email === email);
+
+
+        if (existingUser) {
+            userId = existingUser.id;
+        } else {
+            // Create user with temp password (user will set new one via recovery) OR magic link
+            // We use inviteUserByEmail if we want standard supabase flow, but we are doing custom
+            // So we create user + generate link
+            const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                email,
+                email_confirm: true, // Auto confirm so they can login immediately after setting pass
+                user_metadata: { app_origin: 'audita_lead' }
+            });
+            if (createError) throw createError;
+            userId = newUser.user.id;
+        }
+
+        // 2. Upsert Public User Profile
+        const { error: upsertError } = await supabaseAdmin
+            .from('users_audita_lead')
+            .upsert({
+                auth_user_id: userId,
+                email: email,
+                name: email.split('@')[0], // Default name
+                role: 'user', // Default global role (tenant role handles permissions)
+                tenant_id: tenantId // Default tenant
+            }, { onConflict: 'auth_user_id' });
+
+        if (upsertError) throw upsertError;
+
+        // 3. Get Public ID
+        const { data: publicUser } = await supabaseAdmin
+            .from('users_audita_lead')
+            .select('id')
+            .eq('auth_user_id', userId) // Better to query by auth_user_id since we have it and it's unique
+        if (publicUser) {
+            console.log(`[Auth Manager] Linking user (AuthID: ${userId}) to tenant ${tenantId}`);
+            // 4. Link to Tenant (UPSERT to ensure we don't fail if already exists)
+            // Note: FK points to users_audita_lead.auth_user_id, so we use userId logic.
+            const { error: linkError } = await supabaseAdmin.from('user_tenants_audita_lead').upsert({
+                user_id: userId, // Use Auth ID because FK references auth_user_id
+                tenant_id: tenantId,
+                role: role || 'member',
+                is_active: true
+            }, { onConflict: 'user_id, tenant_id' }); 
+
+            if (linkError) {
+                console.error("[Auth Manager] Failed to link tenant:", linkError);
+                throw linkError;
+            }
+        }
+
+        // 5. Generate Link (Magic Link for first login / set password)
+        const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'magiclink',
+            email,
+            options: { redirectTo: redirectTo || `${APP_CONFIG.url}/auth/callback` }
+        });
+        
+        if (error) throw error;
+        actionLink = linkData.properties.action_link;
+    }
+
+    // 4. PREPARE & SEND EMAIL (VIA BREVO)
+    if (actionLink) {
+        // Default HTML
+        const defaultHtml = `
+            <div style="font-family: sans-serif; padding: 20px;">
+                <h1>${action === 'signup' ? 'Welcome!' : 'Reset Password'}</h1>
+                <p>Click below to continue:</p>
+                <a href="{{action_url}}" style="display:inline-block; padding: 10px 20px; background: #059669; color: white; text-decoration: none; border-radius: 5px;">
+                    ${action === 'signup' ? 'Confirm Account' : 'Reset Password'}
+                </a>
+            </div>
+        `;
+
+        let html = template?.html_content || defaultHtml;
+        const subject = template?.subject || (action === 'signup' ? 'Bem-vindo ao Audita Lead' : (action === 'invite' ? 'Convite para Audita Lead' : 'Recuperação de Senha'));
+
+        // Replace Variables
+        html = html.replace(/{{action_url}}/g, actionLink);
+        html = html.replace(/{{email}}/g, email);
+        html = html.replace(/{{name}}/g, userName);
+
+        console.log(`[Auth Manager] Sending email to ${email} via Brevo`);
+
+        if (BREVO_API_KEY) {
+            // Brevo API Call
+            // https://developers.brevo.com/reference/sendtransacemail
+            const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                    'api-key': BREVO_API_KEY,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    sender: { 
+                        name: APP_CONFIG.senderName, 
+                        email: APP_CONFIG.senderEmail 
+                    },
+                    to: [{ email: email }],
+                    subject: subject,
+                    htmlContent: html
+                })
+            });
+
+            if (!brevoRes.ok) {
+                const errText = await brevoRes.text();
+                // Don't leak provider errors to client, just log
+                console.error("[Auth Manager] Brevo API Error:", errText);
+                return new Response(JSON.stringify({ error: "Failed to send email" }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json'} });
+            }
+        } else {
+            console.warn("[Auth Manager] BREVO_API_KEY not set. Email NOT sent.");
+        }
+    }
+    else if (action === 'list_members') {
+        // tenantId from top-level destructuring
+        if (!tenantId) throw new Error("Missing tenantId");
+
+        // SECURITY CHECK
+        await verifyTenantAdmin(tenantId);
+
+        // Use Admin Client to bypass RLS
+        const { data: members, error } = await supabaseAdmin
+            .from('user_tenants_audita_lead')
+            .select(`
+                id,
+                user_id,
+                role,
+                is_active,
+                user:users_audita_lead (
+                    name,
+                    email,
+                    avatar_url,
+                    last_sign_in_at
+                )
+            `)
+            .eq('tenant_id', tenantId);
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ success: true, data: members }), { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json'} 
+        });
+    }
+
+    return new Response(JSON.stringify({ success: true }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json'} 
+    });
+
+  } catch (error) {
+    console.error("[Auth Manager] Error:", error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json'} });
+  }
+});
+```
+
+### B. UazAPI Proxy ([uazapi_proxy_audita_lead](file:///Users/brunofalcao/dyad-apps/audita-lead/supabase/functions/uazapi_proxy_audita_lead))
+
+Handles proxying requests to the Evolution API (UazAPI) instance, managing authentication, logging, and state updates.
+
+**File:** [supabase/functions/uazapi_proxy_audita_lead/index.ts](file:///Users/brunofalcao/dyad-apps/audita-lead/supabase/functions/uazapi_proxy_audita_lead/index.ts)
+
+```typescript
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const uazapiBaseUrl = Deno.env.get("UAZAPI_BASE_URL");
+    const uazapiToken = Deno.env.get("UAZAPI_TOKEN");
+
+    if (!uazapiBaseUrl || !uazapiToken) {
+      return new Response(
+        JSON.stringify({ error: "Credenciais UAZAPI não configuradas" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Não autorizado: Header ausente" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+
+    if (!user || userError) {
+      return new Response(
+        JSON.stringify({ error: "Usuário não autenticado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const body = await req.json();
+    const { action, name, tenant_id, uazapi_instance_id, ensure_webhooks, user_email, user_name } = body;
+
+    if (!tenant_id && action === 'create_instance') {
+        return new Response(
+            JSON.stringify({ error: "Tenant ID é obrigatório" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+    }
+
+    // CHECK PERMISSIONS
+    const { data: userData } = await supabaseClient
+        .from('users_audita_lead')
+        .select('role')
+        .eq('auth_user_id', user.id)
+        .single();
+    
+    const isSuperAdmin = userData?.role === 'superadmin';
+
+    // --- PERMISSIONS HELPER ---
+    const checkTenantAccess = async (targetTenantId: string): Promise<boolean> => {
+        if (!targetTenantId) return false;
+        if (isSuperAdmin) return true;
+        
+        const { data: access } = await supabaseClient
+            .from('user_tenants_audita_lead')
+            .select('id')
+            .eq('user_id', user.id) 
+            .eq('tenant_id', targetTenantId)
+            .single();
+            
+        return !!access;
+    };
+
+    if (tenant_id) {
+        const hasAccess = await checkTenantAccess(tenant_id);
+        if (!hasAccess) {
+             return new Response(
+                JSON.stringify({ error: "Acesso negado ao tenant" }), 
+                { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+             );
+        }
+    }
+
+    // --- HELPER FOR LOGGING ---
+    const logAction = async (
+        action: string, 
+        reqPayload: any, 
+        resPayload: any, 
+        statusCode: number, 
+        instanceId: string | null = null,
+        tenantId: string | null = null
+    ) => {
+        try {
+            if (!tenantId) return; // Cannot log without tenant_id
+
+            await supabaseClient.from('uazapi_logs_audita_lead').insert({
+                tenant_id: tenantId,
+                instance_id: instanceId,
+                action: action,
+                request_payload: reqPayload,
+                response_payload: resPayload,
+                status_code: statusCode
+            });
+        } catch (logError) {
+            console.error("Failed to log action:", logError);
+        }
+    };
+
+    // --- HELPER FOR WEBHOOKS ---
+    const ensureWebhook = async (
+        instanceToken: string,
+        targetUrl: string,
+        events: string[],
+        apikey: string,
+        excludeMessages: string[] = []
+    ): Promise<string> => {
+        try {
+            // Append API Key to URL for authentication (since Uazapi doesn't send Bearer header)
+            const urlWithAuth = `${targetUrl}?apikey=${apikey}`;
+            
+            console.log(`Checking existing webhooks for URL: ${targetUrl}`);
+            const checkRes = await fetch(`${uazapiBaseUrl}/webhook`, {
+                method: "GET",
+                headers: {
+                    "token": instanceToken,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            let existingWebhooks: any[] = [];
+            if (checkRes.ok) {
+                const data = await checkRes.json();
+                console.log(`Webhook check response for ${targetUrl}:`, JSON.stringify(data));
+
+                // API might return array directly or object with array
+                if (Array.isArray(data)) {
+                    existingWebhooks = data;
+                } else if (data && data.webhooks && Array.isArray(data.webhooks)) {
+                    existingWebhooks = data.webhooks;
+                }
+            }
+
+            // Check if a webhook with this URL (ignoring query params for safety, or matching exact)
+            // Let's match the base URL to avoid duplicates if key changes
+            const alreadyExists = existingWebhooks.some((w: any) => w.url.startsWith(targetUrl) && w.enabled);
+
+            if (alreadyExists) {
+                console.log(`Webhook already exists for ${targetUrl}. Skipping.`);
+                return "skipped_already_exists";
+            }
+
+            console.log(`Registering new webhook for ${targetUrl}...`);
+            const createRes = await fetch(`${uazapiBaseUrl}/webhook`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "token": instanceToken,
+                },
+                body: JSON.stringify({
+                    action: "add",
+                    enabled: true,
+                    url: urlWithAuth, // Register with Auth Param
+                    events: events,
+                    excludeMessages: excludeMessages.length > 0 ? excludeMessages : undefined
+                })
+            });
+            
+            if (createRes.ok) {
+                return "registered";
+            } else {
+                const errText = await createRes.text();
+                console.error(`Failed to register webhook: ${errText}`);
+                return `error_api_${createRes.status}`;
+            }
+        } catch (e: any) {
+            console.error("Error ensuring webhook:", e);
+            return `error_exception: ${e.message || e}`;
+        }
+    };
+
+    // --- ACTIONS ---
+
+    if (action === "create_instance") {
+      if (!name) {
+        const errorRes = { error: "Nome da instância é obrigatório" };
+        await logAction(action, { name, tenant_id }, errorRes, 400, null, tenant_id);
+        return new Response(
+          JSON.stringify(errorRes),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`Creating instance '${name}' for tenant '${tenant_id}'`);
+
+      const initResponse = await fetch(`${uazapiBaseUrl}/instance/init`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "admintoken": uazapiToken,
+        },
+        body: JSON.stringify({
+          name: name,
+          systemName: "audita-lead",
+          adminField01: tenant_id,
+          adminField02: "created_via_audita_lead"
+        }),
+      });
+
+      const initData = await initResponse.json();
+
+      if (!initResponse.ok) {
+        console.error("Uazapi Init Error:", initData);
+        await logAction(action, { name, tenant_id }, initData, initResponse.status, null, tenant_id);
+        return new Response(
+          JSON.stringify({ error: initData.message || "Falha ao criar instância na Uazapi" }),
+          { status: initResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const instanceToken = initData.token || initData.hash?.token || initData.instance?.token;
+      
+      if (!instanceToken) {
+          const errorRes = { error: "Token da instância não retornado pela Uazapi" };
+          await logAction(action, { name, tenant_id }, errorRes, 500, null, tenant_id);
+          return new Response(
+            JSON.stringify(errorRes),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+      }
+
+      // Configure Webhooks (Separated for reliability)
+      const connectionWebhookUrl = `${supabaseUrl}/functions/v1/webhook_connection_audita_lead`;
+      const messagesWebhookUrl = `${supabaseUrl}/functions/v1/webhook_messages_audita_lead`;
+      
+      await ensureWebhook(instanceToken, connectionWebhookUrl, ["connection"], supabaseAnonKey);
+      await ensureWebhook(instanceToken, messagesWebhookUrl, ["messages"], supabaseAnonKey, ["wasSentByApi"]);
+
+      // Save to Supabase
+      const { data: instance, error: dbError } = await supabaseClient
+        .from("instances_audita_lead")
+        .insert({
+          tenant_id: tenant_id,
+          name: name,
+          uazapi_instance_id: name,
+          status: "disconnected",
+          metadata: {
+              ...initData,
+              instance_token: instanceToken
+          },
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        const errorRes = { error: "Falha ao salvar instância no banco" };
+        await logAction(action, { name, tenant_id }, errorRes, 500, null, tenant_id);
+        return new Response(
+          JSON.stringify(errorRes),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      await logAction(action, { name, tenant_id }, instance, 200, instance.id, tenant_id);
+      return new Response(
+        JSON.stringify(instance),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (["get_qrcode", "reconnect", "get_status", "disconnect", "get_webhook"].includes(action)) {
+        if (!uazapi_instance_id) {
+            const errorRes = { error: "ID da instância obrigatório" };
+            await logAction(action, { uazapi_instance_id, tenant_id }, errorRes, 400, null, tenant_id);
+            return new Response(
+                JSON.stringify(errorRes),
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        // Fetch instance with caching fields
+        const { data: instance, error: fetchError } = await supabaseClient
+            .from("instances_audita_lead")
+            .select("id, metadata, qrcode, qrcode_generated_at, tenant_id, name")
+            .eq("uazapi_instance_id", uazapi_instance_id)
+            .single();
+        
+        if (fetchError || !instance) {
+             const errorRes = { error: "Instância não encontrada" };
+             await logAction(action, { uazapi_instance_id, tenant_id }, errorRes, 404, null, tenant_id);
+             return new Response(
+                JSON.stringify(errorRes),
+                { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        // SECURITY: Verify tenant access for the found instance
+        if (!(await checkTenantAccess(instance.tenant_id))) {
+             const errorRes = { error: "Acesso negado ao tenant desta instância" };
+             await logAction(action, { uazapi_instance_id, tenant_id }, errorRes, 403, instance.id, instance.tenant_id);
+             return new Response(
+                JSON.stringify(errorRes),
+                { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        const instanceToken = instance.metadata?.instance_token || instance.metadata?.token;
+
+        if (!instanceToken) {
+             const errorRes = { error: "Token da instância não encontrado" };
+             await logAction(action, { uazapi_instance_id, tenant_id }, errorRes, 500, instance.id, tenant_id);
+             return new Response(
+                JSON.stringify(errorRes),
+                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        if (action === "disconnect") {
+            const disconnectUrl = `${uazapiBaseUrl}/instance/disconnect`;
+            console.log(`Calling Uazapi Disconnect: POST ${disconnectUrl}`);
+
+            const response = await fetch(disconnectUrl, {
+                method: "POST",
+                headers: {
+                    "token": instanceToken,
+                },
+            });
+
+            const data = await response.json();
+            console.log("Disconnect response:", data);
+
+            // Update DB status immediately
+            await supabaseClient
+                .from("instances_audita_lead")
+                .update({
+                    status: 'disconnected',
+                    qrcode: null, // Clear QR code on disconnect
+                    qrcode_generated_at: null
+                })
+                .eq("id", instance.id);
+
+            await logAction(action, { uazapi_instance_id }, data, response.status, instance.id, tenant_id);
+            return new Response(
+                JSON.stringify(data),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        // --- CACHING LOGIC FOR QR CODE ---
+        if (action === "get_qrcode" || action === "reconnect") {
+            // If action is 'reconnect', we should ensure webhooks are correctly registered
+            if (action === 'reconnect') {
+                console.log("Ensuring webhooks are registered for reconnect...");
+                
+                // Configure Webhooks (Separated for reliability)
+                const connectionWebhookUrl = `${supabaseUrl}/functions/v1/webhook_connection_audita_lead`;
+                const messagesWebhookUrl = `${supabaseUrl}/functions/v1/webhook_messages_audita_lead`;
+                
+                await ensureWebhook(instanceToken, connectionWebhookUrl, ["connection"], supabaseAnonKey);
+                await ensureWebhook(instanceToken, messagesWebhookUrl, ["messages"], supabaseAnonKey, ["wasSentByApi"]);
+            }
+
+            const now = new Date();
+            const generatedAt = instance.qrcode_generated_at ? new Date(instance.qrcode_generated_at) : null;
+            const twoMinutesAgo = new Date(now.getTime() - 2 * 60 * 1000);
+
+            // If we have a cached QR code and it's less than 2 minutes old, return it
+            if (instance.qrcode && generatedAt && generatedAt > twoMinutesAgo) {
+                console.log("Returning cached QR code");
+                const cachedRes = { 
+                    qrcode: instance.qrcode,
+                    qrcode_generated_at: instance.qrcode_generated_at,
+                    cached: true
+                };
+                await logAction(action, { uazapi_instance_id }, cachedRes, 200, instance.id, tenant_id);
+                return new Response(
+                    JSON.stringify(cachedRes),
+                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            // If action is 'reconnect', force logout first to ensure we can generate a new QR
+            if (action === 'reconnect') {
+                console.log("Forcing logout for reconnect...");
+                
+                // Try Token-based logout first (matches connect pattern)
+                const logoutUrl = `${uazapiBaseUrl}/instance/logout`;
+                console.log(`Calling Uazapi Logout: DELETE ${logoutUrl}`);
+                
+                const logoutRes = await fetch(logoutUrl, {
+                    method: "DELETE",
+                    headers: {
+                        "token": instanceToken, 
+                    },
+                });
+                console.log(`Logout status: ${logoutRes.status}`);
+                
+                // Wait for Uazapi to process the logout/reset
+                console.log("Waiting 2s for state reset...");
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+
+            console.log(`Generating new QR code for: ${uazapi_instance_id}`);
+            const connectUrl = `${uazapiBaseUrl}/instance/connect`;
+            
+            let response;
+            let data;
+            let attempts = 0;
+            const maxAttempts = 2;
+
+            while (attempts < maxAttempts) {
+                attempts++;
+                console.log(`Calling Uazapi Connect (Attempt ${attempts}): POST ${connectUrl}`);
+                
+                response = await fetch(connectUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "token": instanceToken,
+                    },
+                    body: JSON.stringify({
+                        phone: ""
+                    })
+                });
+
+                console.log(`Connect Response Status: ${response.status}`);
+
+                // Handle 409 (Conflict - Connection in progress)
+                if (response.status === 409) {
+                    console.warn("Uazapi returned 409 (Connection in progress). Waiting 3s before retry...");
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    continue; // Retry
+                }
+
+                // Handle 404 (Instance Not Found) - Existing logic
+                if (response.status === 404) {
+                     console.log("Instance not found (404). Attempting to re-initialize...");
+                    
+                    const initResponse = await fetch(`${uazapiBaseUrl}/instance/init`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "admintoken": uazapiToken,
+                        },
+                        body: JSON.stringify({
+                            name: instance.name,
+                            systemName: "audita-lead",
+                            adminField01: instance.tenant_id,
+                            adminField02: "restored_via_reconnect"
+                        }),
+                    });
+
+                    if (initResponse.ok) {
+                        const initData = await initResponse.json();
+                        console.log("Instance re-initialized successfully.");
+                        
+                        const newInstanceToken = initData.token || initData.hash?.token || initData.instance?.token;
+
+                        // Update DB with new token
+                        if (newInstanceToken) {
+                            await supabaseClient
+                                .from("instances_audita_lead")
+                                .update({
+                                    metadata: { ...instance.metadata, ...initData, instance_token: newInstanceToken }
+                                })
+                                .eq("id", instance.id);
+                            
+                            // Update local token for next loop or current usage
+                            instanceToken = newInstanceToken; // Update variable if possible, or just use new token in next fetch
+                            
+                            // Retry immediately with new token
+                             response = await fetch(connectUrl, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "token": newInstanceToken,
+                                },
+                                body: JSON.stringify({
+                                    phone: ""
+                                })
+                            });
+                        }
+                    } else {
+                        console.error("Failed to re-initialize instance:", await initResponse.text());
+                    }
+                }
+
+                // If not 409, we process the response
+                break;
+            }
+
+            data = await response.json();
+            console.log("Uazapi Connect Response:", JSON.stringify(data));
+            
+            // Extract QR Code
+            const newQrCode = data.qrcode || data.base64 || data.instance?.qrcode;
+            
+            if (newQrCode) {
+                const newGeneratedAt = new Date().toISOString();
+                // Cache it in the database
+                await supabaseClient
+                    .from("instances_audita_lead")
+                    .update({
+                        qrcode: newQrCode,
+                        qrcode_generated_at: newGeneratedAt
+                    })
+                    .eq("id", instance.id);
+                
+                // Return with new timestamp
+                const successRes = {
+                    ...data,
+                    qrcode_generated_at: newGeneratedAt
+                };
+                await logAction(action, { uazapi_instance_id }, successRes, response.status, instance.id, tenant_id);
+                return new Response(
+                    JSON.stringify(successRes),
+                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            } else {
+                console.warn("No QR code found in Uazapi response");
+                // If we get an error saying "wait", we should probably return the cached QR if we have one, 
+                // but the logic at the top already handles valid cache. 
+                // If we are here, it means cache was expired OR we forced reconnect.
+                await logAction(action, { uazapi_instance_id }, data, response.status, instance.id, tenant_id);
+                return new Response(
+                    JSON.stringify(data),
+                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+        }
+
+        if (action === "get_status") {
+            // CORRECT ENDPOINT based on user CURL: GET /instance/status with token header
+            const statusUrl = `${uazapiBaseUrl}/instance/status`;
+            console.log(`Calling Uazapi Status: GET ${statusUrl}`);
+
+            const response = await fetch(statusUrl, {
+                method: "GET",
+                headers: {
+                    "token": instanceToken,
+                },
+            });
+
+            const data = await response.json();
+            
+            // Update DB status regardless of the result
+            const currentStatus = data.instance?.status || data.status;
+            let dbStatus = 'disconnected';
+            
+            if (currentStatus === 'open' || currentStatus === 'connected') {
+                dbStatus = 'connected';
+                
+                // If requested, ensure webhooks are set up (Repair Logic)
+                if (ensure_webhooks) {
+                    console.log("Status is connected. Ensuring webhooks as requested...");
+                    const connectionWebhookUrl = `${supabaseUrl}/functions/v1/webhook_connection_audita_lead`;
+                    const messagesWebhookUrl = `${supabaseUrl}/functions/v1/webhook_messages_audita_lead`;
+                    
+                    const connResult = await ensureWebhook(instanceToken, connectionWebhookUrl, ["connection"], supabaseAnonKey);
+                    const msgResult = await ensureWebhook(instanceToken, messagesWebhookUrl, ["messages"], supabaseAnonKey, ["wasSentByApi"]);
+
+                    // Attach results to response data for logging visibility
+                    (data as any).webhook_results = {
+                        connection: connResult,
+                        messages: msgResult
+                    };
+                }
+            } else {
+                // Treat "connecting" and everything else as "disconnected" per user request
+                dbStatus = 'disconnected';
+            }
+
+            await supabaseClient
+                .from("instances_audita_lead")
+                .update({
+                    status: dbStatus,
+                    last_connected_at: dbStatus === 'connected' ? new Date().toISOString() : undefined
+                })
+                .eq("id", instance.id);
+
+            await logAction(action, { uazapi_instance_id, ensure_webhooks }, data, response.status, instance.id, tenant_id);
+            return new Response(
+                JSON.stringify(data),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+        if (action === "get_webhook") {
+            const webhookUrl = `${uazapiBaseUrl}/webhook`;
+            console.log(`Calling Uazapi Get Webhook: GET ${webhookUrl}`);
+
+            const response = await fetch(webhookUrl, {
+                method: "GET",
+                headers: {
+                    "token": instanceToken,
+                    "Content-Type": "application/json"
+                },
+            });
+
+            const data = await response.json();
+            await logAction(action, { uazapi_instance_id }, data, response.status, instance.id, tenant_id);
+            
+            return new Response(
+                JSON.stringify(data),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+    }
+
+    if (action === "send_message") {
+        const { number, text } = body;
+        
+        if (!uazapi_instance_id || !number || !text) {
+            const errorRes = { error: "Campos obrigatórios: uazapi_instance_id, number, text" };
+            await logAction(action, { uazapi_instance_id, number, text }, errorRes, 400, null, tenant_id);
+            return new Response(
+                JSON.stringify(errorRes),
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        // Fetch instance to get token
+        const { data: instance, error: fetchError } = await supabaseClient
+            .from("instances_audita_lead")
+            .select("id, metadata, tenant_id")
+            .eq("uazapi_instance_id", uazapi_instance_id)
+            .single();
+        
+        if (fetchError || !instance) {
+             const errorRes = { error: "Instância não encontrada" };
+             await logAction(action, { uazapi_instance_id }, errorRes, 404, null, tenant_id);
+             return new Response(
+                JSON.stringify(errorRes),
+                { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        // SECURITY: Verify tenant access
+        if (!(await checkTenantAccess(instance.tenant_id))) {
+             const errorRes = { error: "Acesso negado ao tenant desta instância" };
+             await logAction(action, { uazapi_instance_id }, errorRes, 403, instance.id, instance.tenant_id);
+             return new Response(
+                JSON.stringify(errorRes),
+                { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        const instanceToken = instance.metadata?.instance_token || instance.metadata?.token;
+        if (!instanceToken) {
+             const errorRes = { error: "Token da instância não encontrado" };
+             await logAction(action, { uazapi_instance_id }, errorRes, 500, instance.id, tenant_id);
+             return new Response(
+                JSON.stringify(errorRes),
+                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        const sendUrl = `${uazapiBaseUrl}/send/text`;
+        console.log(`Sending text via Uazapi: POST ${sendUrl}`);
+
+        const response = await fetch(sendUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "token": instanceToken,
+            },
+            body: JSON.stringify({
+                number,
+                text,
+                linkPreview: true // Default to true as per docs suggestion
+            })
+        });
+
+        const data = await response.json();
+        await logAction(action, { uazapi_instance_id, number, text, user_email }, data, response.status, instance.id, tenant_id);
+
+        // Store message in database immediately to capture sender info
+        const messageId = data.key?.id || data.message?.key?.id || data.messageId || data.id;
+
+        if (messageId) {
+            // Get user
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            
+            if (user) {
+                // Find contact
+                const { data: contact } = await supabaseClient
+                    .from('contacts_audita_lead')
+                    .select('id')
+                    .eq('tenant_id', tenant_id)
+                    .eq('phone', number)
+                    .single();
+                
+                if (contact) {
+                    const { error: msgError } = await supabaseClient
+                        .from('messages_audita_lead')
+                        .upsert({
+                            tenant_id,
+                            instance_id: instance.id,
+                            contact_id: contact.id,
+                            uazapi_message_id: messageId,
+                            direction: 'outbound',
+                            message_type: 'text',
+                            content: text,
+                            sent_at: new Date().toISOString(),
+                            is_read: true,
+                            sender_name: user_name,
+                            user_id: user.id
+                        }, { onConflict: 'uazapi_message_id' });
+                    
+                    if (msgError) console.error("Error storing message in proxy:", msgError);
+                    else console.log(`Message stored in DB: ${messageId}`);
+                } else {
+                     console.warn("Contact not found for phone:", number, "Skipping message insertion in proxy.");
+                }
+            }
+        } else {
+            console.warn("Could not extract message ID from Uazapi response:", JSON.stringify(data));
+        }
+
+        return new Response(
+            JSON.stringify(data),
+            { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+    }
+
+    if (action === "send_media") {
+        const { number, type, file, text, docName } = body;
+        
+        if (!uazapi_instance_id || !number || !type || !file) {
+            const errorRes = { error: "Campos obrigatórios: uazapi_instance_id, number, type, file" };
+            await logAction(action, { uazapi_instance_id, number, type }, errorRes, 400, null, tenant_id);
+            return new Response(
+                JSON.stringify(errorRes),
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        // Fetch instance to get token
+        const { data: instance, error: fetchError } = await supabaseClient
+            .from("instances_audita_lead")
+            .select("id, metadata, tenant_id")
+            .eq("uazapi_instance_id", uazapi_instance_id)
+            .single();
+        
+        if (fetchError || !instance) {
+             const errorRes = { error: "Instância não encontrada" };
+             await logAction(action, { uazapi_instance_id }, errorRes, 404, null, tenant_id);
+             return new Response(
+                JSON.stringify(errorRes),
+                { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        // SECURITY: Verify tenant access
+        if (!(await checkTenantAccess(instance.tenant_id))) {
+             const errorRes = { error: "Acesso negado ao tenant desta instância" };
+             await logAction(action, { uazapi_instance_id }, errorRes, 403, instance.id, instance.tenant_id);
+             return new Response(
+                JSON.stringify(errorRes),
+                { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        const instanceToken = instance.metadata?.instance_token || instance.metadata?.token;
+        if (!instanceToken) {
+             const errorRes = { error: "Token da instância não encontrado" };
+             await logAction(action, { uazapi_instance_id }, errorRes, 500, instance.id, tenant_id);
+             return new Response(
+                JSON.stringify(errorRes),
+                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        const sendUrl = `${uazapiBaseUrl}/send/media`;
+        console.log(`Sending media via Uazapi: POST ${sendUrl}`);
+
+        const response = await fetch(sendUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "token": instanceToken,
+            },
+            body: JSON.stringify({
+                number,
+                type,
+                file,
+                text, // Caption
+                docName
+            })
+        });
+
+        const data = await response.json();
+        await logAction(action, { uazapi_instance_id, number, type }, data, response.status, instance.id, tenant_id);
+
+        return new Response(
+            JSON.stringify(data),
+            { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+    }
+
+    return new Response(
+      JSON.stringify({ error: "Ação desconhecida" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("Erro no Proxy UAZAPI:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+```

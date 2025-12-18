@@ -16,6 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn, getTagColor } from "@/lib/utils";
 import { audienceService, Audience } from "@/services/audienceService";
 import { toast } from "sonner";
+import { supabase } from "@/services/supabaseClient";
 import { useAdminStore } from "@/store/adminStore";
 
 interface AudienceDefinitionProps {
@@ -35,7 +36,28 @@ export const AudienceDefinition = ({
   onUpload
 }: AudienceDefinitionProps) => {
   const { uploadFile, setContatos, contatos } = useDisparadorStore();
-  const tenantId = useAdminStore((state) => state.impersonatedTenantId);
+  const impersonatedId = useAdminStore((state) => state.impersonatedTenantId);
+  const [tenantId, setTenantId] = useState<string | null>(impersonatedId);
+
+  useEffect(() => {
+    const fetchTenant = async () => {
+      if (impersonatedId) {
+        setTenantId(impersonatedId);
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('users_dispara_lead_saas_02')
+          .select('tenant_id')
+          .eq('id', user.id)
+          .single();
+        if (data?.tenant_id) setTenantId(data.tenant_id);
+      }
+    };
+    fetchTenant();
+  }, [impersonatedId]);
 
   const [activeTab, setActiveTab] = useState("upload");
   const [isUploading, setIsUploading] = useState(false);
@@ -341,7 +363,7 @@ export const AudienceDefinition = ({
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0" align="start">
+                <PopoverContent className="w-[400px] p-0" align="start" side="bottom">
                   <Command>
                     <CommandInput placeholder="Buscar por nome..." />
                     <CommandList>

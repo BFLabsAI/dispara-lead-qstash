@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { supabase } from "@/services/supabaseClient";
 import { audienceService, AudienceContact } from "@/services/audienceService";
 import { useAdminStore } from "@/store/adminStore";
 import { formatBrazilPhone } from "@/lib/phoneUtils";
@@ -46,7 +47,28 @@ export const AudienceSplitUpload = ({ onSuccess }: AudienceSplitUploadProps) => 
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
 
-    const tenantId = useAdminStore((state) => state.impersonatedTenantId);
+    const impersonatedId = useAdminStore((state) => state.impersonatedTenantId);
+    const [tenantId, setTenantId] = useState<string | null>(impersonatedId);
+
+    useEffect(() => {
+        const fetchTenant = async () => {
+            if (impersonatedId) {
+                setTenantId(impersonatedId);
+                return;
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data } = await supabase
+                    .from('users_dispara_lead_saas_02')
+                    .select('tenant_id')
+                    .eq('id', user.id)
+                    .single();
+                if (data?.tenant_id) setTenantId(data.tenant_id);
+            }
+        };
+        fetchTenant();
+    }, [impersonatedId]);
 
     // --- STEP 1: FILE UPLOAD ---
     const onDrop = useCallback((acceptedFiles: File[]) => {

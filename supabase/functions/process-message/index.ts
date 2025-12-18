@@ -93,11 +93,18 @@ serve(async (req) => {
             };
 
             if (mediaUrl && mediaType) {
+                // Map Portuguese types to English for UazAPI
+                const uazapiMediaType = {
+                    'imagem': 'image',
+                    'video': 'video',
+                    'audio': 'audio'
+                }[mediaType] || mediaType;
+
                 endpoint = `${UAZAPI_BASE_URL}/send/media`; // CORRECT ENDPOINT
                 bodyData = {
                     number: phoneNumber,
-                    file: mediaUrl, // NEW SPEC
-                    type: mediaType, // NEW SPEC
+                    file: mediaUrl,
+                    type: uazapiMediaType,
                     text: messageContent
                 };
             }

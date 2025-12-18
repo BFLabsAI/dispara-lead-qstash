@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { CalendarIcon, Filter, X, Server, Tag, Megaphone, Users, Palette } from "lucide-react";
+import { CalendarIcon, Filter, X, Server, Tag, Megaphone, Users, Palette, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect, useCallback } from "react";
 import { DateRange } from "react-day-picker";
@@ -20,9 +20,9 @@ interface FiltersProps {
   criativoOptions: string[];
 }
 
-export const Filters = ({ 
-  onFilterChange, 
-  instanceOptions, 
+export const Filters = ({
+  onFilterChange,
+  instanceOptions,
   tipoOptions,
   campaignOptions,
   publicoOptions,
@@ -33,14 +33,15 @@ export const Filters = ({
   const [campaign, setCampaign] = useState("all");
   const [publico, setPublico] = useState("all");
   const [criativo, setCriativo] = useState("all");
+  const [responseStatus, setResponseStatus] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
   });
 
   const handleFilterChange = useCallback(() => {
-    onFilterChange({ instance, tipo, campaign, publico, criativo, dateRange });
-  }, [instance, tipo, campaign, publico, criativo, dateRange, onFilterChange]);
+    onFilterChange({ instance, tipo, campaign, publico, criativo, responseStatus, dateRange });
+  }, [instance, tipo, campaign, publico, criativo, responseStatus, dateRange, onFilterChange]);
 
   useEffect(() => {
     handleFilterChange();
@@ -52,6 +53,7 @@ export const Filters = ({
     setCampaign("all");
     setPublico("all");
     setCriativo("all");
+    setResponseStatus("all");
     setDateRange({ from: undefined, to: undefined });
   };
 
@@ -62,7 +64,7 @@ export const Filters = ({
           <Filter className="h-5 w-5" />
           <h3 className="font-bold text-xl">Filtros Avançados</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-end">
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <Server className="h-4 w-4" /> Instância
@@ -79,7 +81,7 @@ export const Filters = ({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
               <Tag className="h-4 w-4" /> Tipo
@@ -147,16 +149,32 @@ export const Filters = ({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center"> {/* Novo flex container para label e botão */}
+            <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+              <MessageSquare className="h-4 w-4" /> Resposta
+            </Label>
+            <Select value={responseStatus} onValueChange={setResponseStatus}>
+              <SelectTrigger className="bg-white/10 border-white/20 hover:bg-white/20 text-white">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="responded">Respondidos</SelectItem>
+                <SelectItem value="not_responded">Não Respondidos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
               <Label className="flex items-center gap-1.5 text-sm font-medium text-white/80">
                 <CalendarIcon className="h-4 w-4" /> Período
               </Label>
-              <Button 
-                variant="destructive" 
-                onClick={handleReset} 
-                className="h-8 w-8 p-0 flex-shrink-0" // Tamanho ajustado
+              <Button
+                variant="destructive"
+                onClick={handleReset}
+                className="h-8 w-8 p-0 flex-shrink-0"
                 title="Limpar Filtros"
               >
                 <X className="h-4 w-4" />
@@ -164,15 +182,15 @@ export const Filters = ({
             </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-start text-left font-normal bg-white/10 border-white/20 hover:bg-white/20 text-white"
                 >
                   {dateRange?.from ? format(dateRange.from, "LLL dd, y") : <span>Selecionar período</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange?.from} onSelect={(day) => setDateRange({from: day, to: day})} />
+                <Calendar mode="single" selected={dateRange?.from} onSelect={(day) => setDateRange({ from: day, to: day })} />
               </PopoverContent>
             </Popover>
           </div>

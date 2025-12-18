@@ -19,8 +19,12 @@ export default function ForgotPassword() {
         setLoading(true);
 
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/reset-password`,
+            const { error } = await supabase.functions.invoke('auth_manager_dispara_lead', {
+                body: {
+                    action: 'recovery',
+                    email,
+                    redirectTo: `${window.location.origin}/reset-password`,
+                }
             });
 
             if (error) throw error;
