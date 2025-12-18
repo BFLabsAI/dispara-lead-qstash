@@ -12,6 +12,16 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAdminStore } from '@/store/adminStore';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface UserProfile {
     id: string;
@@ -19,6 +29,7 @@ interface UserProfile {
     full_name: string;
     role: 'owner' | 'admin' | 'user';
     created_at: string;
+    tenant_id: string;
 }
 
 export default function UsersPage() {
@@ -28,6 +39,9 @@ export default function UsersPage() {
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteName, setInviteName] = useState('');
     const [inviteRole, setInviteRole] = useState<'admin' | 'user'>('admin');
+
+    // Delete State
+    const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
 
     const impersonatedTenantId = useAdminStore((state) => state.impersonatedTenantId);
 
@@ -76,6 +90,11 @@ export default function UsersPage() {
         mutationFn: async (payload: { email: string, name: string, role: string }) => {
             if (!currentTenantId) throw new Error("Tenant ID not found");
 
+            // We use 'manage-users' for both operations now ideally, but keeping 'auth_manager' for invite as is to minimize changes unless needed.
+            // Wait, standardizing on 'manage-users' might be cleaner if it supports invite (it does).
+            // But let's stick to existing working invite flow unless broken. 
+            // The existing code uses 'auth_manager_dispara_lead' for invites.
+
             const { data, error } = await supabase.functions.invoke('auth_manager_dispara_lead', {
                 body: {
                     action: 'invite',
@@ -87,14 +106,8 @@ export default function UsersPage() {
                 }
             });
 
-            if (error) {
-                // Parse error body if possible
-                throw error;
-            }
-
-            if (data?.error) {
-                throw new Error(data.error);
-            }
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
 
             return data;
         },
@@ -115,10 +128,46 @@ export default function UsersPage() {
         }
     });
 
+    // 4. Delete User Mutation
+    const deleteMutation = useMutation({
+        mutationFn: async (userId: string) => {
+            const { data, error } = await supabase.functions.invoke('manage-users', {
+                body: {
+                    action: 'delete',
+                    userId: userId
+                }
+            });
+
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+
+            return data;
+        },
+        onSuccess: () => {
+            toast({ title: "Usuário removido", description: "O usuário foi excluído com sucesso." });
+            setUserToDelete(null);
+            queryClient.invalidateQueries({ queryKey: ['workspaceUsers'] });
+        },
+        onError: (error: Error) => {
+            toast({
+                variant: "destructive",
+                title: "Erro ao excluir",
+                description: error.message
+            });
+            setUserToDelete(null);
+        }
+    });
+
     const handleInvite = (e: React.FormEvent) => {
         e.preventDefault();
         if (!inviteEmail) return;
         inviteMutation.mutate({ email: inviteEmail, name: inviteName, role: inviteRole });
+    };
+
+    const confirmDelete = () => {
+        if (userToDelete) {
+            deleteMutation.mutate(userToDelete.id);
+        }
     };
 
     const getRoleBadge = (role: string) => {
@@ -239,7 +288,12 @@ export default function UsersPage() {
                                     <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                                     <TableCell className="text-right">
                                         {user.role !== 'owner' && (
-                                            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                onClick={() => setUserToDelete(user)}
+                                            >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         )}
@@ -250,6 +304,30 @@ export default function UsersPage() {
                     </Table>
                 </CardContent>
             </Card>
+
+            <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. Isso excluirá permanentemente o usuário
+                            <span className="font-bold text-foreground mx-1">{userToDelete?.full_name || userToDelete?.email}</span>
+                            e removerá seu acesso ao workspace.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={confirmDelete}
+                            disabled={deleteMutation.isPending}
+                        >
+                            {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            Excluir Usuário
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

@@ -26,23 +26,59 @@ serve(async (req) => {
             throw new Error('Unauthorized')
         }
 
-        // Check if user is super admin
-        const { data: isSuperAdmin } = await supabaseClient.rpc('is_super_admin')
-
-        if (!isSuperAdmin) {
-            throw new Error('Forbidden: Only Super Admins can perform this action')
-        }
-
-        const { action, tenant_id, email, full_name, role } = await req.json()
-
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
+        // 1. Determine User Role & Tenant
+        // We first check if they are a super admin via RPC
+        const { data: isSuperAdmin } = await supabaseClient.rpc('is_super_admin')
+
+        // We also fetch their profile to check for tenant admin status
+        const { data: requesterProfile } = await supabaseAdmin
+            .from('users_dispara_lead_saas_02')
+            .select('role, tenant_id')
+            .eq('id', user.id)
+            .single()
+
+        const requesterRole = requesterProfile?.role
+        const requesterTenantId = requesterProfile?.tenant_id
+
+        // Parse Request
+        const { action, tenant_id, email, full_name, role, userId } = await req.json()
+
+        // --- AUTHORIZATION CHECK ---
+        // Basic rule: Must be Super Admin OR (Tenant Owner/Admin acting on SAME tenant)
+        let isAuthorized = false
+
+        if (isSuperAdmin) {
+            isAuthorized = true
+        } else if (requesterRole === 'owner' || requesterRole === 'admin') {
+            // Must define which tenant they are acting on
+            // For 'invite': we check the payload's tenant_id
+            // For 'delete': we check the target user's tenant_id (fetched later)
+
+            // Initial check: if payload has tenant_id, it must match requester's
+            if (tenant_id && tenant_id !== requesterTenantId) {
+                throw new Error('Forbidden: You can only manage your own tenant')
+            }
+            isAuthorized = true
+        }
+
+        if (!isAuthorized) {
+            throw new Error(`Forbidden: Insufficient permissions. Role: ${requesterRole}, Tenant: ${requesterTenantId}, IsSuperAdmin: ${isSuperAdmin}`)
+        }
+
+        // --- ACTION: INVITE ---
         if (action === 'invite') {
             if (!email || !tenant_id) {
                 throw new Error('Email and Tenant ID are required')
+            }
+
+            // Double check for non-super-admins
+            if (!isSuperAdmin && tenant_id !== requesterTenantId) {
+                throw new Error('Forbidden: Tenant mismatch')
             }
 
             // 1. Invite user via Supabase Auth
@@ -66,8 +102,6 @@ serve(async (req) => {
                 })
 
             if (dbError) {
-                // If DB insert fails, we might want to delete the auth user to keep consistency, 
-                // but for now let's just throw error.
                 console.error('Error creating user record:', dbError)
                 throw new Error(`User invited but failed to create record: ${dbError.message}`)
             }
@@ -81,14 +115,63 @@ serve(async (req) => {
             )
         }
 
+        // --- ACTION: DELETE ---
+        if (action === 'delete') {
+            if (!userId) {
+                throw new Error('User ID is required for deletion')
+            }
+
+            // 1. Fetch target user to verify tenant ownership
+            const { data: targetUser, error: fetchError } = await supabaseAdmin
+                .from('users_dispara_lead_saas_02')
+                .select('tenant_id')
+                .eq('id', userId)
+                .single()
+
+            if (fetchError || !targetUser) {
+                throw new Error('User not found')
+            }
+
+            // 2. Security Check for Deletion
+            if (!isSuperAdmin) {
+                if (targetUser.tenant_id !== requesterTenantId) {
+                    throw new Error(`Forbidden: You cannot delete users from other tenants. MyTenant: ${requesterTenantId}, TargetTenant: ${targetUser.tenant_id}`)
+                }
+                // Prevent self-deletion via this API if desired, or allow it. 
+                // Usually preventing deleting yourself is good practice to avoid lockouts.
+                if (userId === user.id) {
+                    throw new Error('Forbidden: You cannot delete your own account')
+                }
+            }
+
+            // 3. Delete from Auth (this usually cascades if configured, but we do it explicitly)
+            const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+            if (deleteAuthError) throw deleteAuthError
+
+            // 4. Delete from Public Table (if not cascaded by FK)
+            // We'll attempt it just in case, ignoring error if it was already cascaded
+            await supabaseAdmin
+                .from('users_dispara_lead_saas_02')
+                .delete()
+                .eq('id', userId)
+
+            return new Response(
+                JSON.stringify({ message: 'User deleted successfully' }),
+                {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 200,
+                }
+            )
+        }
+
         throw new Error('Invalid action')
 
     } catch (error) {
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: `Manage Users Error: ${error.message}` }),
             {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 400,
+                status: 200,
             }
         )
     }
