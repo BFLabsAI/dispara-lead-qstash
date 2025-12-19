@@ -59,3 +59,8 @@ CREATE TRIGGER on_auth_user_created
 -- Drop legacy unrelated trigger if exists
 DROP TRIGGER IF EXISTS on_auth_user_created_mktopps_hub_r7 ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user_mktopps_hub_r7();
+
+-- Drop duplicate harmful trigger
+DROP TRIGGER IF EXISTS on_auth_user_created_dispara_lead ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_new_user_dispara_lead();
+
