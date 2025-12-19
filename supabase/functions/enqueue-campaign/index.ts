@@ -59,7 +59,22 @@ serve(async (req) => {
 
         // 5. Enqueue
         const batch = messages.map(msg => {
-            const destinationUrl = msg.destinationUrl || `${Deno.env.get('SUPABASE_URL')}/functions/v1/process-message`;
+            let destinationUrl = msg.destinationUrl;
+
+            // Fallback to default if not provided
+            if (!destinationUrl) {
+                const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+                const baseUrl = supabaseUrl.startsWith('http') ? supabaseUrl : `https://${supabaseUrl}`;
+                destinationUrl = `${baseUrl}/functions/v1/process-message`;
+            }
+
+            // Ensure schema
+            if (!destinationUrl.startsWith('http://') && !destinationUrl.startsWith('https://')) {
+                destinationUrl = `https://${destinationUrl}`;
+            }
+
+            console.log(`[Enqueue] Destination URL: ${destinationUrl}`);
+
             return {
                 url: destinationUrl,
                 body: JSON.stringify(msg),

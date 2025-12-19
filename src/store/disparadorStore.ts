@@ -10,7 +10,7 @@ import {
   type UazapiInstance
 } from '../services/uazapiClient';
 import { uploadFileToSupabase } from '../services/supabaseStorage';
-import { supabase } from '../services/supabaseClient';
+import { supabase, SUPABASE_URL } from '../services/supabaseClient';
 import { useAdminStore } from './adminStore';
 // import { qstashClient } from '../services/qstashClient';
 
@@ -445,7 +445,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             notBefore: Math.floor(deliveryTime / 1000), // Always use absolute timestamp for precision
             // Use AI endpoint if selected
             destinationUrl: usarIA
-              ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-message-ai`
+              ? `${SUPABASE_URL}/functions/v1/process-message-ai`
               : undefined
           };
 
