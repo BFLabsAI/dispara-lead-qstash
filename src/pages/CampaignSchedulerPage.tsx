@@ -186,7 +186,7 @@ const CampaignSchedulerPage = () => {
             <CardContent className="p-4">
               <Label>Variáveis Disponíveis:</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {variables.map(v => <Badge key={v}>{`{${v}}`}</Badge>)}
+                {variables.map(v => <Badge key={v}>{`@${v}`}</Badge>)}
               </div>
             </CardContent>
           </Card>

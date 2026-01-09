@@ -1,5 +1,12 @@
 "use client";
 
+import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
@@ -93,10 +100,10 @@ export const Dashboard = () => {
       }
     }
     if (filters.dateRange?.from) {
-      filtered = filtered.filter(item => item.date >= filters.dateRange.from);
+      filtered = filtered.filter(item => item.date.isSameOrAfter(dayjs(filters.dateRange.from), 'day'));
     }
     if (filters.dateRange?.to) {
-      filtered = filtered.filter(item => item.date <= filters.dateRange.to);
+      filtered = filtered.filter(item => item.date.isSameOrBefore(dayjs(filters.dateRange.to), 'day'));
     }
 
     return filtered;

@@ -14,6 +14,7 @@ export const QrDialog = () => {
     instances,
     loadInstances,
     syncInstances,
+    checkQrInstanceStatus,
     closeQrDialog
   } = useDisparadorStore();
 
@@ -23,15 +24,14 @@ export const QrDialog = () => {
   // Poll for connection status (Simulating Webhook/Realtime)
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
-    if (isQrDialogOpen && !isExpired) {
+    if (isQrDialogOpen && !isExpired && qrInstance) {
       pollInterval = setInterval(() => {
-        // Just reload from DB to see if webhook updated it
-        // Pass true (silent) to avoid triggering global loading state
-        loadInstances(true);
-      }, 1000);
+        // Poll the specific instance status from API -> DB -> UI
+        checkQrInstanceStatus(qrInstance);
+      }, 2000); // Check every 2 seconds to avoid rate limits
     }
     return () => clearInterval(pollInterval);
-  }, [isQrDialogOpen, isExpired, loadInstances]);
+  }, [isQrDialogOpen, isExpired, qrInstance, checkQrInstanceStatus]);
 
   // Handle closing manually
   const handleOpenChange = useCallback((isOpen: boolean) => {
@@ -102,7 +102,10 @@ export const QrDialog = () => {
                 className={`w-full h-full object-cover transition-opacity duration-300 ${isExpired ? 'opacity-10 blur-sm' : 'opacity-100'}`}
               />
             ) : (
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                <span className="text-xs text-muted-foreground">Aguardando QR Code ou Conexão...</span>
+              </div>
             )}
 
             {isExpired && (

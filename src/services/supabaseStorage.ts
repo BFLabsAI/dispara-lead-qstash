@@ -1,10 +1,6 @@
-// Supabase Storage service for file uploads
-// Replaces legacy file upload with direct Supabase integration
+import { supabase, SUPABASE_URL } from './supabaseClient';
 
-const SUPABASE_URL = 'https://iixeygzkgfwetchjvpvo.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpeGV5Z3prZ2Z3ZXRjaGp2cHZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNzk2MywiZXhwIjoyMDcxMTgzOTYzfQ.bD-BNU1r3UYLHpRLvHQ4gn3jplRdYq8TZRHa54UCmbc';
-
-const BUCKET_NAME = 'media_dispara_lead_saas';
+const BUCKET_NAME = 'campaign_media';
 
 export interface UploadResult {
   fileUrl: string;
@@ -25,35 +21,25 @@ export async function uploadFileToSupabase(file: File): Promise<UploadResult> {
   try {
     const sanitizedName = sanitizeFileName(file.name);
     const timestamp = Date.now();
-    const fileName = `${sanitizedName}-${timestamp}`;
+    const fileName = `${timestamp}-${sanitizedName}`;
 
-    // Create form data for the upload
-    const formData = new FormData();
-    formData.append('file', file);
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
-    // Upload to Supabase Storage
-    const response = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/${BUCKET_NAME}/${fileName}`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': file.type,
-        },
-        body: file,
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Supabase upload error: ${response.status} - ${errorText}`);
+    if (error) {
+      throw new Error(`Supabase upload error: ${error.message}`);
     }
 
-    // Get the public URL
-    const fileUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${fileName}`;
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(fileName);
 
     return {
-      fileUrl,
+      fileUrl: publicUrl,
       fileName,
       size: file.size,
       contentType: file.type,
@@ -68,19 +54,12 @@ export async function uploadFileToSupabase(file: File): Promise<UploadResult> {
 // Delete file from Supabase Storage
 export async function deleteFileFromSupabase(fileName: string): Promise<void> {
   try {
-    const response = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/${BUCKET_NAME}/${fileName}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      }
-    );
+    const { error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([fileName]);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Supabase delete error: ${response.status} - ${errorText}`);
+    if (error) {
+      throw new Error(`Supabase delete error: ${error.message}`);
     }
 
   } catch (error) {
@@ -91,5 +70,8 @@ export async function deleteFileFromSupabase(fileName: string): Promise<void> {
 
 // Get public URL for a file
 export function getPublicFileUrl(fileName: string): string {
-  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${fileName}`;
+  const { data: { publicUrl } } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(fileName);
+  return publicUrl;
 }

@@ -23,6 +23,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 interface Tenant {
     id: string;
@@ -44,9 +51,18 @@ export default function TenantList() {
     const [newCompanyName, setNewCompanyName] = useState("");
     const [createLoading, setCreateLoading] = useState(false);
 
+    const [plans, setPlans] = useState<any[]>([]);
+    const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+
     useEffect(() => {
         loadTenants();
+        loadPlans();
     }, []);
+
+    const loadPlans = async () => {
+        const { data } = await supabase.from('plans_dispara_lead_saas_02').select('*');
+        setPlans(data || []);
+    };
 
     const loadTenants = async () => {
         setLoading(true);
@@ -78,23 +94,14 @@ export default function TenantList() {
                 .toLowerCase()
                 .replace(/[^a-z0-9]/g, '') + '-' + Math.floor(Math.random() * 1000);
 
-            // Get default plan (try basic first, then any)
-            let planId = null;
-            const { data: basicPlan } = await supabase
-                .from('plans_dispara_lead_saas_02')
-                .select('id')
-                .eq('slug', 'basic')
-                .single();
-
-            if (basicPlan) {
-                planId = basicPlan.id;
-            } else {
-                const { data: anyPlan } = await supabase
-                    .from('plans_dispara_lead_saas_02')
-                    .select('id')
-                    .limit(1)
-                    .single();
-                if (anyPlan) planId = anyPlan.id;
+            if (!selectedPlanId) {
+                toast({
+                    variant: "destructive",
+                    title: "Selecione um plano",
+                    description: "É necessário selecionar um plano para criar a empresa."
+                });
+                setCreateLoading(false);
+                return;
             }
 
             const { data, error } = await supabase
@@ -103,7 +110,7 @@ export default function TenantList() {
                     name: newCompanyName,
                     slug: slug,
                     status: 'active',
-                    plan_id: planId
+                    plan_id: selectedPlanId
                     // Note: owner_id is NOT set here. If it's mandatory, this might fail.
                     // The trigger usually handles creation from user signup.
                 })
@@ -160,6 +167,23 @@ export default function TenantList() {
                                     placeholder="Ex: Minha Empresa Ltda"
                                     className="col-span-3"
                                 />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="plan" className="text-right">
+                                    Plano
+                                </Label>
+                                <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="Selecione um plano" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {plans.map((plan) => (
+                                            <SelectItem key={plan.id} value={plan.id}>
+                                                {plan.name} - R$ {plan.price}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                         <DialogFooter>

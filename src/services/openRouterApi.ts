@@ -1,3 +1,6 @@
+import { supabase } from '@/services/supabaseClient';
+
+// Checking file content, interfaces are likely exported from here.
 
 export interface OpenRouterMessage {
     role: 'user' | 'assistant' | 'system';
@@ -16,14 +19,13 @@ export interface OpenRouterResponse {
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-// Placeholder key - should be replaced by user or env var
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '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';
+// Key is now managed by Supabase Edge Function
+
 
 export const AVAILABLE_MODELS = [
-    { id: 'google/gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', userSlug: 'google/gemini-2.5-flash-lite' },
-    { id: 'x-ai/grok-4-fast', name: 'Grok 4 Fast', userSlug: 'x-ai/grok-4-fast' },
-    { id: 'openrouter/sherlock-think-alpha', name: 'Sherlock Think Alpha', userSlug: 'openrouter/sherlock-think-alpha' },
-    { id: 'deepseek/deepseek-chat-v3-0324', name: 'DeepSeek Chat V3', userSlug: 'deepseek/deepseek-chat-v3-0324' },
+    { id: 'x-ai/grok-4.1-fast', name: 'Grok 4.1 Fast', userSlug: 'x-ai/grok-4.1-fast' },
+    { id: 'google/gemini-2.5-flash-lite-preview-09-2025', name: 'Gemini 2.5 Flash Lite', userSlug: 'google/gemini-2.5-flash-lite' },
+    { id: 'openai/gpt-4.1-nano', name: 'GPT 4.1 Nano', userSlug: 'openai/gpt-4.1-nano' },
 ];
 
 // Helper to get the actual API slug from the user's requested ID
@@ -46,26 +48,25 @@ export async function sendMessageToOpenRouter(
     siteName: string = 'DisparaLead'
 ): Promise<string> {
     try {
-        const response = await fetch(OPENROUTER_API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-                'HTTP-Referer': siteUrl,
-                'X-Title': siteName,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+        const session = await supabase.auth.getSession();
+        console.log("Client Auth Session:", session.data.session ? "Active" : "None");
+
+        const { data, error } = await supabase.functions.invoke('copy-agent-chat', {
+            body: {
                 model: model,
                 messages: messages,
-            }),
+            },
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`OpenRouter API Error: ${response.status} - ${JSON.stringify(errorData)}`);
+        if (error) {
+            console.error('Edge Function Invoke Error Object:', error);
+            // Check if it's a FunctionsHttpError to extract body
+            if (error instanceof Error && 'context' in error) {
+                // @ts-ignore - Supabase error wrapper might have context
+                console.error('Function Error Context:', error.context);
+            }
+            throw new Error(`Edge Function Error: ${error.message} (Status: ${error.code || 'Unknown'})`);
         }
-
-        const data: OpenRouterResponse = await response.json();
 
         if (!data.choices || data.choices.length === 0) {
             throw new Error('No response choices returned from OpenRouter');

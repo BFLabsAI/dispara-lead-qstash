@@ -110,7 +110,7 @@ export const DispatchBlock = ({
         <div className="space-y-2">
           <Label>Variáveis Disponíveis:</Label>
           <div className="flex flex-wrap gap-2">
-            {variables.map(v => <Badge key={v}>{`{${v}}`}</Badge>)}
+            {variables.map(v => <Badge key={v}>{`@${v}`}</Badge>)}
           </div>
         </div>
       )}

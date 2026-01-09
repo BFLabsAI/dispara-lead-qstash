@@ -64,17 +64,17 @@ ALTER TABLE audience_contacts_dispara_lead_saas_02 ENABLE ROW LEVEL SECURITY;
 
 -- Policies for TAGS
 CREATE POLICY "Tenant read access tags" ON tags_dispara_lead_saas_02
-    FOR SELECT USING (tenant_id = get_current_tenant_id()::text OR is_user_super_admin());
+    FOR SELECT USING (tenant_id = get_current_tenant_id()::uuid OR is_user_super_admin());
 
 CREATE POLICY "Tenant write access tags" ON tags_dispara_lead_saas_02
-    FOR ALL USING (tenant_id = get_current_tenant_id()::text OR is_user_super_admin());
+    FOR ALL USING (tenant_id = get_current_tenant_id()::uuid OR is_user_super_admin());
 
 -- Policies for AUDIENCES
 CREATE POLICY "Tenant read access audiences" ON audiences_dispara_lead_saas_02
-    FOR SELECT USING (tenant_id = get_current_tenant_id()::text OR is_user_super_admin());
+    FOR SELECT USING (tenant_id = get_current_tenant_id()::uuid OR is_user_super_admin());
 
 CREATE POLICY "Tenant write access audiences" ON audiences_dispara_lead_saas_02
-    FOR ALL USING (tenant_id = get_current_tenant_id()::text OR is_user_super_admin());
+    FOR ALL USING (tenant_id = get_current_tenant_id()::uuid OR is_user_super_admin());
 
 -- Policies for AUDIENCE TAGS
 -- We rely on the parent Audience's access check via join, or simply assume if you can see the audience/tag you can see the link.
@@ -84,7 +84,7 @@ CREATE POLICY "Tenant access audience tags" ON audience_tags_dispara_lead_saas_0
         EXISTS (
             SELECT 1 FROM audiences_dispara_lead_saas_02 a
             WHERE a.id = audience_tags_dispara_lead_saas_02.audience_id
-            AND (a.tenant_id = get_current_tenant_id()::text OR is_user_super_admin())
+            AND (a.tenant_id = get_current_tenant_id()::uuid OR is_user_super_admin())
         )
     );
 
@@ -94,7 +94,7 @@ CREATE POLICY "Tenant access audience contacts" ON audience_contacts_dispara_lea
         EXISTS (
             SELECT 1 FROM audiences_dispara_lead_saas_02 a
             WHERE a.id = audience_contacts_dispara_lead_saas_02.audience_id
-            AND (a.tenant_id = get_current_tenant_id()::text OR is_user_super_admin())
+            AND (a.tenant_id = get_current_tenant_id()::uuid OR is_user_super_admin())
         )
     );
 

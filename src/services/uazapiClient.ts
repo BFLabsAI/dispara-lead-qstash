@@ -31,8 +31,11 @@ export const disconnectInstanceClient = async (instanceName: string) => {
 
 export const generateQrCode = async (instanceName: string) => {
   const data = await invokeProxy('get_qrcode', { instanceName });
-  // Proxy returns { qrcode: 'base64...' }
-  return { qrCode: data.qrcode };
+  // Proxy returns { qrcode: 'base64...' } OR the full UazAPI response object
+  return {
+    ...data,
+    qrCode: data.qrcode || data.base64 || data.qr || data.instance?.qrcode
+  };
 };
 
 

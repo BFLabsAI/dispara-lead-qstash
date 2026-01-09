@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { showError, showSuccess } from '@/utils/toast';
 import { supabase } from '@/services/supabaseClient';
 import { sendMessageToOpenRouter, OpenRouterMessage, AVAILABLE_MODELS } from '@/services/openRouterApi';
+import { AGENT_TEMPLATES } from '@/constants/agentTemplates';
 
 // --- Interfaces de Dados ---
 export interface Message {
@@ -37,6 +38,7 @@ export interface CompanySettings {
   brandPersonality: string;
   preferredLanguage: string;
   mainProducts: string;
+  valueProposition: string;
   averageTicket: string;
   salesCycle: string;
   seasonality: string;
@@ -87,41 +89,101 @@ interface CopyAgentState {
 // --- Funções Auxiliares ---
 const USER_ID = 'default-user'; // Conforme o PRD
 
+
 // Helper to construct system prompt
-const buildSystemPrompt = (settings: CompanySettings | null): string => {
+const buildSystemPrompt = (settings: CompanySettings | null, templateId?: string): string => {
+  const basePrompt = `
+  # PERSONA E OBJETIVO
+  Você é um Consultor Especialista em WhatsApp Marketing da empresa Dispara.ai.
+  Sua comunicação é estratégica, educada e focada em resultados.
+  Você não apenas escreve textos, você desenha estratégias completas.
+  
+  # FLUXO DE INTERAÇÃO OBRIGATÓRIO (CRÍTICO)
+  Siga este roteiro rigorosamente antes de entregar qualquer copy final:
+
+  1. **Verificação de Contexto**: Se faltarem dados da empresa (Produto, Persona), peça-os primeiro.
+  
+  2. **Definição do Tipo de Envio**:
+     - PERGUNTE ao usuário: "Você deseja criar um **Disparo Pontual** (Broadcast único) ou **Agendar uma Campanha** (Sequência de mensagens)?"
+     - AGUARDE a resposta.
+  
+  3. **Detalhamento da Demanda**:
+     - **Se Disparo Pontual**: Pergunte quantas opções de copy ele deseja.
+     - **Se Campanha Agendada**: Pergunte quantas mensagens e quantos dias de duração.
+       - *Sugestão Padrão*: Se o usuário pedir recomendação, sugira sempre **3 mensagens com intervalos de 2 dias**.
+       - *Regra de Geração*: Para campanhas, gere sempre **2 opções diferentes** para cada mensagem da sequência.
+
+  4. **Geração do Conteúdo**: Somente após ter essas definições, gere as copies seguindo o formato abaixo.
+
+  # DIRETRIZES DE FORMATAÇÃO (CRÍTICO)
+  - **Identidade Visual**: Use Markdown para diferenciar seções (h1, h2, bold).
+  - **Blocos de Código**: Cada opção de mensagem (Título + Conteúdo) DEVES estar dentro de um bloco de código markdown (três crases).
+  - **Estrutura da Resposta**:
+    1. Explicação ou Contexto (Texto normal)
+    2. Bloco de Código com a Mensagem (Copy)
+       - Ex: \`\`\`
+             Mensagem 1
+             Texto...
+             \`\`\`
+    3. Explicação ou Contexto da próxima opção (Texto normal)
+    4. Bloco de Código com a Mensagem (Copy)
+  - **Espaçamento**: Garanta quebra de linha clara entre parágrafos.
+  - **Clareza**: Nunca retorne blocos de texto maciços.
+  
+  # METODOLOGIA (PLAYBOOK)
+  1. **Estratégia de Relacionamento**: Foco em personalização via histórico. Use datas especiais e feedback.
+  2. **Programa de Fidelidade**: Gamificação (níveis Prata, Ouro) e recompensas claras.
+  3. **Upsell/Cross-sell**: Sugestões complementares baseadas em compras anteriores.
+  4. **Comunicação VIP**: Tratamento exclusivo para melhores clientes.
+  `;
+
   if (!settings) {
-    return `Você é um especialista em Copywriting para WhatsApp Marketing.
+    return `${basePrompt}
     
-    DIRETRIZES DE WHATSAPP:
-    - Use emojis moderadamente.
-    - Mantenha mensagens curtas e diretas (ideais para leitura rápida).
-    - Use quebras de linha para facilitar a leitura.
-    - Evite linguagem muito formal, prefira um tom conversacional e próximo.
-    - Foco em conversão e engajamento.
+    # STATUS: SEM CONTEXTO DA EMPRESA
+    O usuário ainda não configurou os dados da empresa.
     
-    Sua tarefa é ajudar o usuário a criar textos (copies) persuasivos para campanhas de WhatsApp, responder dúvidas sobre estratégia de marketing e sugerir melhorias.`;
+     SUA TAREFA:
+    1. Aja como um consultor proativo.
+    2. Explique que para criar campanhas de alta conversão, você precisa de alguns dados.
+    3. Peça educadamente: Nome da empresa, Segmento, Produto Principal e Pessoa Alvo.
+    4. NÃO gere copies genéricas antes de ter esse contexto.`;
   }
 
-  return `Você é um especialista em Copywriting para WhatsApp Marketing, trabalhando para a empresa ${settings.companyName}.
+  const template = templateId && AGENT_TEMPLATES[templateId as keyof typeof AGENT_TEMPLATES];
+  const agentContext = template ? `
+  # MODO DE AGENTE ATIVO: ${template.name}
   
-  CONTEXTO DA EMPRESA:
+  ## CONTEXTO ESPECÍFICO
+  ${template.context}
+  
+  ## OBJETIVO DA CAMPANHA
+  ${template.objective}
+  
+  ## ESTRATÉGIA RECOMENDADA
+  ${template.strategy}
+  ` : `
+  # MODO DE AGENTE: CONSULTOR GERAL
+  Você está atuando como um consultor geral de marketing. Analise o pedido do usuário e sugira a melhor estratégia.
+  `;
+
+  return `${basePrompt}
+
+  # CONTEXTO DA EMPRESA
+  - Empresa: ${settings.companyName}
   - Segmento: ${settings.marketSegment}
-  - Tamanho: ${settings.companySize}
-  - Produtos Principais: ${settings.mainProducts}
-  - Ticket Médio: ${settings.averageTicket}
-  - Público Alvo: ${settings.mainPersona} (Idade: ${settings.ageRange}, Classe: ${settings.socialClass})
+  - Produto/Oferta: ${settings.mainProducts}
+  - Proposta de Valor: ${settings.valueProposition}
+  - Persona Alvo: ${settings.mainPersona}
   - Voz da Marca: ${settings.brandVoice}
-  - Personalidade: ${settings.brandPersonality}
-  - Objetivo Principal: ${settings.primaryGoal}
   
-  DIRETRIZES DE WHATSAPP:
-  - Use emojis moderadamente.
-  - Mantenha mensagens curtas e diretas (ideais para leitura rápida).
-  - Use quebras de linha para facilitar a leitura.
-  - Evite linguagem muito formal, prefira um tom conversacional e próximo.
-  - Foco em conversão e engajamento.
-  
-  Sua tarefa é ajudar o usuário a criar textos (copies) persuasivos para campanhas de WhatsApp, responder dúvidas sobre estratégia de marketing e sugerir melhorias.
+  ${agentContext}
+
+  # DIRETRIZ DE VERIFICAÇÃO DE CONTEXTO (IMPORTANTE)
+  Antes de iniciar o Fluxo de Interação, valide se o contexto acima é suficiente.
+  - Se campos cruciais estiverem vazios, PARE e peça os dados.
+  - Se estiverem ok, inicie perguntando sobre **Disparo Pontual ou Campanha**.
+  Mantenha o tom ${settings.brandPersonality}.
   `;
 };
 
@@ -178,7 +240,8 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
 
   startNewChat: async (templateUsed?: string, initialMessageContent?: string) => {
     const newChatId = uuidv4();
-    const newChatName = templateUsed ? templateUsed.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) : `Novo Chat ${newChatId.substring(0, 4)}`;
+    const templateName = templateUsed && AGENT_TEMPLATES[templateUsed as keyof typeof AGENT_TEMPLATES]?.name;
+    const newChatName = templateName || `Novo Chat ${newChatId.substring(0, 4)}`;
     const now = new Date().toISOString();
 
     // Create session in DB immediately
@@ -340,7 +403,8 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       const chatHistory = currentChat?.messages.map(msg => ({ role: msg.role, content: msg.content })) || [];
 
       // Construct messages array for OpenRouter
-      const systemPrompt = buildSystemPrompt(companySettings);
+      const effectiveTemplate = templateUsed || currentChat?.templateUsed;
+      const systemPrompt = buildSystemPrompt(companySettings, effectiveTemplate);
       const messages: OpenRouterMessage[] = [
         { role: 'system', content: systemPrompt },
         ...chatHistory.map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content })),
@@ -463,6 +527,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
         brandPersonality: data.brand_personality || "",
         preferredLanguage: data.preferred_language || "",
         mainProducts: data.main_products || "",
+        valueProposition: data.value_proposition || "",
         averageTicket: data.average_ticket || "",
         salesCycle: data.sales_cycle || "",
         seasonality: data.seasonality || "",
@@ -505,6 +570,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
         brand_personality: settings.brandPersonality,
         preferred_language: settings.preferredLanguage,
         main_products: settings.mainProducts,
+        value_proposition: settings.valueProposition,
         average_ticket: settings.averageTicket,
         sales_cycle: settings.salesCycle,
         seasonality: settings.seasonality,

@@ -4,8 +4,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-export const SUPABASE_URL = 'https://iixeygzkgfwetchjvpvo.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpeGV5Z3prZ2Z3ZXRjaGp2cHZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNzk2MywiZXhwIjoyMDcxMTgzOTYzfQ.bD-BNU1r3UYLHpRLvHQ4gn3jplRdYq8TZRHa54UCmbc';
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Create optimized Supabase client with custom settings
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -44,6 +44,7 @@ export interface DisparadorData {
   id?: number | string; // Changed to allow UUID
   scheduled_for?: string;
   responded_at?: string;
+  message_type?: string;
 }
 
 interface SaaSLog {
@@ -57,12 +58,14 @@ interface SaaSLog {
   created_at: string;
   scheduled_for?: string;
   responded_at?: string;
+  message_type?: string;
   provider_message_id?: string;
   provider_response?: any;
   metadata?: {
     usaria?: boolean;
     publico?: string;
     criativo?: string;
+    ai_rewritten?: boolean;
   };
 }
 
@@ -72,8 +75,8 @@ const mapSaaSLogToDisparadorData = (log: SaaSLog): DisparadorData => {
     id: log.id,
     numero: log.phone_number,
     tipo_envio: log.status === 'sent' ? 'sucesso' : (log.status === 'queued' ? 'fila' : 'falha'),
-    usaria: log.metadata?.usaria || false,
-    usarIA: log.metadata?.usaria || false,
+    usaria: log.metadata?.usaria || log.metadata?.ai_rewritten || false,
+    usarIA: log.metadata?.usaria || log.metadata?.ai_rewritten || false,
     instancia: log.instance_name,
     texto: log.message_content,
     nome_campanha: log.campaign_name,
@@ -82,7 +85,8 @@ const mapSaaSLogToDisparadorData = (log: SaaSLog): DisparadorData => {
     tipo_campanha: log.campaign_type,
     created_at: log.created_at,
     scheduled_for: log.scheduled_for,
-    responded_at: log.responded_at
+    responded_at: log.responded_at,
+    message_type: log.message_type || 'texto'
   };
 };
 

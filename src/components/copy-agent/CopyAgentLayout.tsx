@@ -10,14 +10,14 @@ export const CopyAgentLayout = () => {
   const { currentChatId } = useCopyAgentStore();
 
   return (
-    <div className="flex h-full rounded-xl overflow-hidden border border-border bg-card shadow-lg">
+    <div className="flex h-[calc(100vh-6rem)] rounded-xl overflow-hidden border border-border bg-card shadow-lg">
       {/* Sidebar */}
       <div className="w-[300px] flex-shrink-0 border-r border-border bg-sidebar dark:bg-gray-900">
         <ChatSidebar />
       </div>
 
       {/* Main Chat Area */}
-      <div className={cn("flex-1 flex flex-col", !currentChatId && "items-center justify-center text-muted-foreground")}>
+      <div className={cn("flex-1 flex flex-col min-w-0", !currentChatId && "items-center justify-center text-muted-foreground")}>
         {currentChatId ? (
           <ChatArea />
         ) : (

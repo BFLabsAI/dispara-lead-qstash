@@ -6,8 +6,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const QSTASH_CURRENT_SIGNING_KEY = Deno.env.get('QSTASH_CURRENT_SIGNING_KEY') ?? '';
 const QSTASH_NEXT_SIGNING_KEY = Deno.env.get('QSTASH_NEXT_SIGNING_KEY') ?? '';
-const UAZAPI_BASE_URL = Deno.env.get('UAZAPI_BASE_URL') ?? '';
-// Note: We don't use UAZAPI_TOKEN (Global) here, we use the Instance Token from DB.
+const UAZAPI_BASE_URL = Deno.env.get('UAZAPI_BASE_URL') ?? 'https://bflabs.uazapi.com';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -17,7 +16,6 @@ const receiver = new Receiver({
 });
 
 serve(async (req) => {
-    // 1. Validate QStash Signature
     const signature = req.headers.get("Upstash-Signature");
     if (!signature) {
         return new Response("Missing signature", { status: 401 });
@@ -25,162 +23,272 @@ serve(async (req) => {
 
     try {
         const body = await req.text();
-        // Verify signature (skip locally if needed, but important for prod)
-        // For local dev without QStash triggering, this might fail unless manually mocked.
-        // Assuming this runs in production or with ngrok.
-        const isValid = await receiver.verify({
-            signature,
-            body,
-        });
+        const isValid = await receiver.verify({ signature, body });
 
         if (!isValid) {
             return new Response("Invalid signature", { status: 401 });
         }
 
         const payload = JSON.parse(body);
-        const {
-            messageId,
-            phoneNumber,
-            messageContent,
-            instanceName,
-            campaignId,
-            tenantId,
-            mediaUrl,
-            mediaType
-        } = payload;
+        const { messageId, phoneNumber, messageContent, instanceName, campaignId, tenantId, mediaUrl, mediaType } = payload;
 
         if (!messageId || !phoneNumber || !instanceName || !campaignId) {
             return new Response("Missing required fields", { status: 400 });
         }
 
-        // 2. Fetch Instance Token
+        let isSuccess = false;
+        let uazapiMessageId: string | null = null;
+        let uazapiResponse: any = null;
+        let errorMessage: string | null = null;
+        let alreadySent = false;
+        let instanceToken: string | null = null;
+
+        // --- Fetch Instance Data ---
         const { data: instanceData, error: instanceError } = await supabase
             .from('instances_dispara_lead_saas_02')
-            .select('token, uazapi_instance_id') // Use token
+            .select('uazapi_instance_id, metadata')
             .eq('instance_name', instanceName)
+            .eq('tenant_id', tenantId)
             .single();
 
-        if (instanceError || !instanceData?.token) {
-            console.error(`Instance not found or no API key: ${instanceName}`);
-            // Mark as failed in DB
-            await supabase
-                .from('message_logs_dispara_lead_saas_03')
-                .update({
-                    status: 'failed',
-                    error_message: 'Instance not found or invalid API key'
-                })
-                .eq('id', messageId);
-
-            // Return 200 to stop QStash from retrying forever on permanent config error
-            return new Response("Instance configuration error", { status: 200 });
+        if (instanceError || !instanceData) {
+            console.error(`Instance not found: ${instanceName} for tenant ${tenantId}`);
+            // Only update log if it's the first attempt
+            await supabase.from('message_logs_dispara_lead_saas_03').update({
+                status: 'failed',
+                error_message: 'Instance not found or not owned by tenant'
+            }).eq('id', messageId);
+            return new Response("Instance not found", { status: 404 });
         }
 
-        const instanceToken = instanceData.token;
-
-        // 3. Send to UazAPI
-        let uazapiResponse;
-        let isSuccess = false;
-        let errorMessage = '';
-        let uazapiMessageId = null;
-
-        try {
-            let endpoint = `${UAZAPI_BASE_URL}/send/text`; // CORRECT ENDPOINT
-            let bodyData: any = {
-                number: phoneNumber,
-                text: messageContent,
-                delay: 1200,
-                linkPreview: true
-            };
-
-            if (mediaUrl && mediaType) {
-                // Map Portuguese types to English for UazAPI
-                const uazapiMediaType = {
-                    'imagem': 'image',
-                    'video': 'video',
-                    'audio': 'audio'
-                }[mediaType] || mediaType;
-
-                endpoint = `${UAZAPI_BASE_URL}/send/media`; // CORRECT ENDPOINT
-                bodyData = {
-                    number: phoneNumber,
-                    file: mediaUrl,
-                    type: uazapiMediaType,
-                    text: messageContent
-                };
-            }
-
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'token': instanceToken // CORRECT HEADER
-                },
-                body: JSON.stringify(bodyData)
-            });
-
-            uazapiResponse = await response.json();
-
-            if (response.ok) {
-                isSuccess = true;
-                uazapiMessageId = uazapiResponse?.key?.id; // Capture ID if available
-            } else {
-                errorMessage = uazapiResponse?.message || response.statusText;
-            }
-        } catch (error) {
-            errorMessage = (error as Error).message;
+        instanceToken = instanceData.metadata?.token || instanceData.metadata?.apikey;
+        if (!instanceToken) {
+            await supabase.from('message_logs_dispara_lead_saas_03').update({
+                status: 'failed',
+                error_message: 'Instance token missing in metadata'
+            }).eq('id', messageId);
+            return new Response("Instance token missing", { status: 500 });
         }
 
-        // 4. Update Supabase
-        const now = new Date().toISOString();
-
-        // Update message log
-        await supabase
+        // --- Idempotency Check ---
+        const { data: existingLog } = await supabase
             .from('message_logs_dispara_lead_saas_03')
-            .update({
+            .select('status, provider_message_id')
+            .eq('id', messageId)
+            .single();
+
+        if (existingLog && existingLog.status === 'sent') {
+            console.log(`[Idempotency] Message ${messageId} already sent. Skipping send logic.`);
+            alreadySent = true;
+            uazapiMessageId = existingLog.provider_message_id;
+            isSuccess = true;
+        }
+        // -------------------------
+
+        if (!alreadySent) {
+            try {
+                let endpoint = '';
+                let bodyData: any = {};
+
+                if (mediaUrl) {
+                    endpoint = `${UAZAPI_BASE_URL}/send/media`;
+                    const uazapiMediaType = {
+                        'imagem': 'image',
+                        'video': 'video',
+                        'audio': 'audio'
+                    }[mediaType] || mediaType;
+
+                    bodyData = {
+                        number: phoneNumber,
+                        file: mediaUrl,
+                        type: uazapiMediaType,
+                        text: messageContent
+                    };
+                } else {
+                    endpoint = `${UAZAPI_BASE_URL}/send/text`;
+                    bodyData = {
+                        number: phoneNumber,
+                        text: messageContent,
+                        delay: 1200,
+                        linkPreview: true
+                    };
+                }
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'token': instanceToken
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+
+                uazapiResponse = await response.json();
+                if (response.ok) {
+                    isSuccess = true;
+                    uazapiMessageId = uazapiResponse?.key?.id;
+                } else {
+                    errorMessage = uazapiResponse?.message || response.statusText;
+                }
+            } catch (error) {
+                errorMessage = (error as Error).message;
+            }
+
+            const now = new Date().toISOString();
+            const updateData: any = {
                 status: isSuccess ? 'sent' : 'failed',
                 sent_at: now,
                 provider_message_id: uazapiMessageId,
                 provider_response: uazapiResponse,
                 error_message: errorMessage
-            })
-            .eq('id', messageId);
+            };
 
-        // Update campaign counters via RPC (ensure this RPC exists or update campaign manually)
-        // Assuming rpc 'increment_campaign_sent_count' works with campaign_id
-        // NOTE: The RPC might target the old logs table? 
-        // If the RPC executes logic on 'message_logs', we might need to update the RPC too.
-        // For now, let's keep calling it. If it fails, it logs error but msg is sent.
-        // Ideally we should check the RPC definition.
-        if (isSuccess) {
-            await supabase.rpc('increment_campaign_sent_count', { campaign_id: campaignId });
-        } else {
-            await supabase.rpc('increment_campaign_failed_count', { campaign_id: campaignId });
+            if (mediaUrl) {
+                updateData.media_url = mediaUrl;
+            }
+
+            await supabase.from('message_logs_dispara_lead_saas_03').update(updateData).eq('id', messageId);
         }
 
-        if (isSuccess) {
-            return new Response(JSON.stringify({ success: true, id: uazapiMessageId }), {
-                headers: { "Content-Type": "application/json" },
-                status: 200
-            });
-        } else {
-            // Smart Retry Logic for UazAPI
-            const status = uazapiResponse?.status || 500;
+        // --- Campaign Completion Notification ---
+        if (campaignId) {
+            console.log(`[CompletionCheck] Checking for campaign ${campaignId} (Current message: ${messageId})`);
 
-            if (status >= 500 || status === 429) {
-                return new Response(JSON.stringify({ success: false, error: errorMessage }), {
-                    headers: { "Content-Type": "application/json" },
-                    status: 500 // Triggers QStash retry
-                });
-            } else {
-                return new Response(JSON.stringify({ success: false, error: errorMessage }), {
-                    headers: { "Content-Type": "application/json" },
-                    status: 200 // Stops QStash retry (Permanent Failure)
-                });
+            // We exclude the current message from the pending count.
+            // Why? Because we just processed it (either now or in a previous attempt).
+            // This prevents race conditions where DB lag might still see this message as 'pending'
+            // even after the update call.
+            const { count, error: countError } = await supabase
+                .from('message_logs_dispara_lead_saas_03')
+                .select('id', { count: 'exact', head: true })
+                .eq('campaign_id', campaignId)
+                .neq('id', messageId)
+                .in('status', ['queued', 'pending']);
+
+            const pendingCount = count || 0;
+            console.log(`[CompletionCheck] Other messages pending: ${pendingCount}`);
+
+            if (pendingCount === 0) {
+                const { data: campaign, error: campError } = await supabase
+                    .from('campaigns_dispara_lead_saas_02')
+                    .select('*')
+                    .eq('id', campaignId)
+                    .single();
+
+                if (campaign) {
+                    console.log(`[CompletionCheck] Campaign ${campaign.name} loaded. CompletedAt: ${campaign.completed_at}`);
+                } else {
+                    console.error(`[CompletionCheck] Campaign ${campaignId} not found. Error: ${campError?.message}`);
+                }
+
+                if (campaign && !campaign.completed_at) {
+                    // Mark as completed to prevent duplicate notifications (optimistic lock)
+                    const { error: updateError } = await supabase
+                        .from('campaigns_dispara_lead_saas_02')
+                        .update({ completed_at: new Date().toISOString(), status: 'completed' })
+                        .eq('id', campaignId)
+                        .is('completed_at', null); // Safety check
+
+                    if (!updateError) {
+                        console.log(`[CompletionCheck] Campaign marked as completed. Gathering stats...`);
+                        // Gather Stats
+                        const { data: stats } = await supabase
+                            .from('message_logs_dispara_lead_saas_03')
+                            .select('sent_at, instance_name, campaign_type')
+                            .eq('campaign_id', campaignId);
+
+                        if (stats && stats.length > 0) {
+                            const totalMessages = stats.length;
+                            const uniqueInstances = [...new Set(stats.map(s => s.instance_name).filter(Boolean))];
+
+                            const sortedDates = stats
+                                .map(s => s.sent_at ? new Date(s.sent_at).getTime() : 0)
+                                .filter(t => t > 0)
+                                .sort((a, b) => a - b);
+
+                            const startTime = sortedDates.length > 0 ? new Date(sortedDates[0]).toLocaleString('pt-BR') : 'N/A';
+                            const endTime = new Date().toLocaleString('pt-BR');
+
+                            const isAI = stats.some(s => s.campaign_type === 'ai' || s.campaign_type === 'ai_agent');
+                            const modeIcon = isAI ? '🤖' : '💬';
+                            const modeText = isAI ? 'Com IA' : 'Sem IA (Estático)';
+
+                            // Get Notification Phones
+                            const { data: settings } = await supabase
+                                .from('company_settings_dispara_lead_saas_02')
+                                .select('report_notification_phones')
+                                .eq('tenant_id', tenantId)
+                                .single();
+
+                            console.log(`[CompletionCheck] Settings found for tenant ${tenantId}: ${!!settings}`);
+                            if (settings?.report_notification_phones) {
+                                console.log(`[CompletionCheck] Phones: ${JSON.stringify(settings.report_notification_phones)}`);
+                            }
+
+                            if (settings?.report_notification_phones?.length) {
+                                const notificationText = `🎉 *Ótimas notícias, finalizamos mais uma campanha!*
+
+📊 *Dados da Ação:*
+*Campanha:* ${campaign.name}
+*Público:* ${campaign.target_audience || 'N/A'}
+*Criativo:* ${campaign.creative ? (campaign.creative.substring(0, 30) + (campaign.creative.length > 30 ? '...' : '')) : 'N/A'}
+
+📈 *KPI's da Ação:*
+*Modo:* ${modeIcon} ${modeText}
+*Disparos Realizados:* ${totalMessages}
+*Instâncias Utilizadas:*
+${uniqueInstances.map(i => `- ${i}`).join('\n')}
+
+🕒 *Cronograma:*
+Início: ${startTime}
+Fim: ${endTime}`;
+
+                                // Send to each admin
+                                const notifEndpoint = `${UAZAPI_BASE_URL}/send/text`;
+                                console.log(`[CompletionCheck] Sending to endpoint: ${notifEndpoint}`);
+
+                                await Promise.all(settings.report_notification_phones.map(async (phone: string) => {
+                                    try {
+                                        const resp = await fetch(notifEndpoint, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'token': instanceToken
+                                            },
+                                            body: JSON.stringify({
+                                                number: phone.replace(/\D/g, ""),
+                                                text: notificationText
+                                            })
+                                        });
+                                        const respText = await resp.text();
+                                        console.log(`[CompletionCheck] Notification to ${phone}: Status ${resp.status} - Body: ${respText}`);
+                                    } catch (e) {
+                                        console.error(`Failed to notify ${phone}`, e);
+                                    }
+                                }));
+                            } else {
+                                console.log(`[CompletionCheck] No notification phones configured.`);
+                            }
+                        }
+                    } else {
+                        console.error(`[CompletionCheck] Failed to mark completed (Optimistic lock?): ${updateError?.message}`);
+                    }
+                } else {
+                    console.log(`[CompletionCheck] Campaign already completed or not found.`);
+                }
             }
         }
 
+        if (isSuccess) {
+            if (!alreadySent) {
+                await supabase.rpc('increment_campaign_sent_count', { campaign_id: campaignId });
+            }
+            return new Response(JSON.stringify({ success: true, id: uazapiMessageId, skipped: alreadySent }), { headers: { "Content-Type": "application/json" }, status: 200 });
+        } else {
+            return new Response(JSON.stringify({ success: false, error: errorMessage }), { status: 500 });
+        }
     } catch (error) {
         console.error(error);
-        return new Response(error.message, { status: 500 });
+        return new Response((error as Error).message, { status: 500 });
     }
 });

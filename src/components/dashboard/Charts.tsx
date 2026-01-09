@@ -68,7 +68,7 @@ export const Charts = ({ filteredData }: ChartsProps) => {
   const hasData = filteredData.length > 0;
 
   const tipoData = filteredData.reduce((acc: Record<string, number>, item) => {
-    const key = item.tipo_envio || 'Desconhecido';
+    const key = item.message_type || 'texto'; // Now holds media type (text, image, etc.)
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -152,13 +152,19 @@ export const Charts = ({ filteredData }: ChartsProps) => {
 
   // Novo cálculo para Disparos por Modo
   const disparosPorModoData = filteredData.reduce((acc: Record<string, number>, item) => {
-    const rawMode = (item.tipo_campanha || '').toLowerCase(); // Garante que é string e minúscula
-    let mode: string;
-    if (rawMode.includes('agendada')) { // Verifica se a string contém 'agendada'
-      mode = 'Campanha Agendada';
-    } else {
-      mode = 'Disparo Pontual';
+    // Logic to determine mode based on schedule time vs creation time
+    let mode = 'Disparo Pontual';
+    if (item.scheduled_for && item.created_at) {
+      const scheduledTime = new Date(item.scheduled_for).getTime();
+      const createdTime = new Date(item.created_at).getTime();
+      const diffMinutes = (scheduledTime - createdTime) / 1000 / 60;
+
+      // If scheduled more than 5 minutes in future, consider it 'Agendada'
+      if (diffMinutes > 5) {
+        mode = 'Campanha Agendada';
+      }
     }
+
     acc[mode] = (acc[mode] || 0) + 1;
     return acc;
   }, {});

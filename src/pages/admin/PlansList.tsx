@@ -80,7 +80,6 @@ export default function PlansList() {
                 description: formData.description,
                 price: isNaN(price) ? 0 : price,
                 slug: generatedSlug,
-                features: formData.features ? JSON.parse(formData.features) : {},
                 limits: formData.limits ? JSON.parse(formData.limits) : {}
             };
 

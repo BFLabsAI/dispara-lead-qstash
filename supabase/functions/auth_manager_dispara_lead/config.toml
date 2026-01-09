@@ -1,0 +1,2 @@
+[functions.auth_manager_dispara_lead]
+verify_jwt = false

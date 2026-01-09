@@ -12,7 +12,9 @@ import Instancias from "./pages/Instancias";
 import Disparo from "./pages/Disparo";
 import Audiences from "./pages/Audiences";
 import CampaignSchedulerPage from "./pages/CampaignSchedulerPage";
+import ChatsPage from "./pages/ChatsPage";
 import CopyAgentPage from "./pages/CopyAgentPage";
+import SettingsPage from "./pages/settings/SettingsPage";
 import UsersPage from "./pages/settings/UsersPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -78,6 +80,8 @@ const App = () => (
                   <Route path="/audiences" element={<Audiences />} />
                   <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} />
                   <Route path="/copy-agent" element={<CopyAgentPage />} />
+                  <Route path="/chats" element={<ChatsPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/settings/users" element={<UsersPage />} />
                 </Route>
               </Route>

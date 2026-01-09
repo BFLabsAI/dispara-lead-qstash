@@ -8,6 +8,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -15,20 +16,54 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+    console.log("FUNCTION_STARTED: Request received");
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
+
+    // Manual JWT Verification (Bypassing Gatekeeper)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+        console.error("Missing Authorization header");
+        return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    // Log partial token for debugging
+    console.log(`Verifying token: ${token.substring(0, 10)}...`);
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+        console.error('Manual Auth Failed:', authError);
+        console.error('User is null?', !user);
+        return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+    console.log("Auth success, user:", user.id);
+
+    // console.log("DEBUG MODE: Bypass Auth Check. Proceeding...");
+    // console.log("Env Check: URL:", !!SUPABASE_URL, "Key:", !!SUPABASE_SERVICE_ROLE_KEY);
 
     try {
         const { action, ...params } = await req.json();
         let result = null;
 
         // Log the incoming request
-        await supabase.from('uazapi_logs_dispara_lead_saas_02').insert({
+        const { error: logError } = await supabase.from('uazapi_logs_dispara_lead_saas_02').insert({
             action,
             request_payload: params,
             created_at: new Date().toISOString()
         });
+
+        if (logError) {
+            console.error('Failed to insert log:', logError);
+        }
 
         switch (action) {
             case 'create_instance':
@@ -43,36 +78,6 @@ serve(async (req) => {
             case 'delete_instance':
                 result = await deleteInstance(params);
                 break;
-                // ...
-                // ... in Helper Functions
-                async function disconnectInstance({ instanceName }) {
-                    const { data } = await supabase.from('instances_dispara_lead_saas_02').select('token').eq('instance_name', instanceName).single();
-
-                    // User requested endpoint
-                    const endpoint = `${UAZAPI_BASE_URL}/instance/disconnect`;
-
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'token': data?.token
-                        },
-                        body: JSON.stringify({ reason: "user_requested" }) // Optional
-                    });
-
-                    if (response.ok || response.status === 404) { // 404 means already restricted/gone
-                        await supabase
-                            .from('instances_dispara_lead_saas_02')
-                            .update({ status: 'disconnected', qrcode: null })
-                            .eq('instance_name', instanceName);
-                        return { success: true };
-                    }
-
-                    // If not OK, log error but maybe we should still mark disconnected locally?
-                    // Let's rely on status sync or webhook to confirm.
-                    const errorBody = await response.text();
-                    throw new Error(`Disconnect failed: ${response.status} - ${errorBody}`);
-                }
             case 'logout_instance':
                 result = await logoutInstance(params);
                 break;
@@ -152,7 +157,7 @@ async function createInstance({ instanceName, tenant_id }) {
         const instanceToken = data.token || data.hash?.apikey;
 
         // Save with status 'disconnected' initially
-        await supabase.from('instances_dispara_lead_saas_02').insert({
+        const { error: insertError } = await supabase.from('instances_dispara_lead_saas_02').insert({
             tenant_id,
             instance_name: instanceName,
             uazapi_instance_id: data.instance?.instanceId || instanceName,
@@ -160,6 +165,11 @@ async function createInstance({ instanceName, tenant_id }) {
             status: 'disconnected', // Initial status must be disconnected
             metadata: data
         });
+
+        if (insertError) {
+            console.error('Failed to insert instance into DB:', insertError);
+            throw new Error(`DB Insert Failed: ${insertError.message}`);
+        }
 
         // Attempt webhook registration immediately (best effort)
         if (instanceToken) {
@@ -207,11 +217,17 @@ async function registerWebhook(token, url, events) {
     if (getResponse.ok) {
         const existingHooks = await getResponse.json();
         // existingHooks is likely an array. Check if our URL matches.
+        // Check if our URL matches and it's enabled
         const found = Array.isArray(existingHooks) && existingHooks.find(h => h.url === url && h.enabled);
-        if (found) {
-            console.log(`Webhook for ${url} already exists.`);
+
+        // If found, also check if it has the exclusion we want to remove
+        const hasExclusion = found && Array.isArray(found.excludeMessages) && found.excludeMessages.includes("wasSentByApi");
+
+        if (found && !hasExclusion) {
+            console.log(`Webhook for ${url} already correctly configured.`);
             return;
         }
+        console.log(`Webhook for ${url} needs update (Found: ${!!found}, HasExclusion: ${hasExclusion})`);
     }
 
     // 2. Register if not found
@@ -220,8 +236,7 @@ async function registerWebhook(token, url, events) {
         action: "add",
         enabled: true,
         url: url,
-        events: events,
-        excludeMessages: ["wasSentByApi"] // Best practice
+        events: events
     };
 
     console.log(`Registering webhook: ${url} events: ${events}`);
@@ -291,15 +306,46 @@ async function getQrCode({ instanceName }) {
         // Check for common fields including nested instance.qrcode
         const qrContent = data.base64 || data.qrcode || data.qr || data.instance?.qrcode;
 
+        // DB Update Object
+        const updatePayload: any = {};
+
+        // Extract status if available to keep DB in sync
+        // Extract status if available to keep DB in sync
+        const rawStatus = data.instance?.status || data.instance?.state || data.state;
+        const instanceStatus = rawStatus?.toLowerCase(); // Normalize to lowercase
+        const isConnectedBool = data.status?.connected === true;
+        let realStatus = null;
+
+        console.log(`(QC) Status Check - Raw: ${rawStatus}, Bool: ${isConnectedBool}`);
+
+        if (instanceStatus === 'connecting' || instanceStatus === 'initializing' || instanceStatus === 'opening') {
+            realStatus = 'connecting';
+        } else if (instanceStatus === 'open' || instanceStatus === 'connected' || instanceStatus === 'paired' || isConnectedBool) {
+            realStatus = 'connected';
+        }
+
+        if (realStatus) {
+            updatePayload.status = realStatus;
+            if (realStatus === 'connected') {
+                updatePayload.last_connected_at = new Date().toISOString();
+            }
+        }
+
         if (qrContent) {
+            updatePayload.qrcode = qrContent;
+            updatePayload.qrcode_generated_at = new Date().toISOString();
+        }
+
+        // Perform Update if we have anything to update
+        if (Object.keys(updatePayload).length > 0) {
             await supabase
                 .from('instances_dispara_lead_saas_02')
-                .update({
-                    qrcode: qrContent,
-                    qrcode_generated_at: new Date().toISOString()
-                })
+                .update(updatePayload)
                 .eq('instance_name', instanceName);
-            return { qrcode: qrContent };
+        }
+
+        if (qrContent) {
+            return { ...data, qrcode: qrContent };
         }
         return data;
     }
@@ -374,12 +420,28 @@ async function getConnectionStatus({ instanceName, ensure_webhooks }) {
         console.log("Upstream Data:", JSON.stringify(data));
 
         // Check multiple possible status fields based on different UazAPI versions
-        const instanceStatus = data.instance?.status || data.instance?.state || data.state;
-        const isConnectedBool = data.status?.connected === true;
+        let rawStatus = data.instance?.status || data.instance?.state || data.state;
 
-        // Normalize
-        if (instanceStatus === 'open' || instanceStatus === 'connected' || instanceStatus === 'PAIRED' || isConnectedBool) {
+        // Handle case where data.status is a string (not an object)
+        if (!rawStatus && typeof data.status === 'string') {
+            rawStatus = data.status;
+        }
+
+        const instanceStatus = rawStatus?.toLowerCase(); // Normalize to lowercase
+
+        // Safety check: Only check .connected if status is an object
+        const isConnectedBool = (typeof data.status === 'object' && data.status !== null) ? data.status.connected === true : false;
+
+        console.log(`Status Check - Raw: ${rawStatus}, Bool: ${isConnectedBool}`);
+
+        // Normalize - Prioritize 'connecting' state logic to avoid false positives
+        if (instanceStatus === 'connecting' || instanceStatus === 'initializing' || instanceStatus === 'opening') {
+            realStatus = 'connecting';
+        } else if (instanceStatus === 'open' || instanceStatus === 'connected' || instanceStatus === 'paired' || isConnectedBool) {
+            // Only trust isConnectedBool if we don't have a conflicting status
             realStatus = 'connected';
+        } else if (instanceStatus === 'close' || instanceStatus === 'closed') {
+            realStatus = 'disconnected';
         }
     } else {
         console.error(`Upstream Error: ${response.status}`);
@@ -457,4 +519,39 @@ async function sendMedia({ instanceName, number, mediaUrl, mediaType, caption })
         })
     });
     return await response.json();
+}
+
+async function disconnectInstance({ instanceName }) {
+    // 1. Get Token
+    const { data } = await supabase
+        .from('instances_dispara_lead_saas_02')
+        .select('token')
+        .eq('instance_name', instanceName)
+        .single();
+
+    if (!data?.token) throw new Error("Instance token not found");
+
+    // 2. Call API - Using POST /instance/disconnect as explicitly requested by user
+    // This endpoint likely relies on the 'token' header to identify the instance.
+    const url = `${UAZAPI_BASE_URL}/instance/disconnect`;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'token': data.token
+        },
+        body: JSON.stringify({ reason: "user_requested" }) // Optional
+    });
+
+    if (response.ok || response.status === 404) { // 404 means already restricted/gone
+        await supabase
+            .from('instances_dispara_lead_saas_02')
+            .update({ status: 'disconnected', qrcode: null })
+            .eq('instance_name', instanceName);
+        return { success: true };
+    }
+
+    const errorBody = await response.text();
+    throw new Error(`Disconnect failed: ${response.status} - ${errorBody}`);
 }

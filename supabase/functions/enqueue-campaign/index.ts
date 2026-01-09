@@ -41,7 +41,7 @@ serve(async (req) => {
         try {
             client = new Client({ token: QSTASH_TOKEN });
         } catch (e) {
-            return debugResponse({ success: false, stage: 'Client Init', error: e.message, tokenStatus });
+            return debugResponse({ success: false, stage: 'Client Init', error: e.message });
         }
 
         // 4. Parse Body
@@ -52,7 +52,7 @@ serve(async (req) => {
             return debugResponse({ success: false, stage: 'Body Parse', error: e.message });
         }
 
-        const { messages } = body;
+        const messages = body.messages;
         if (!messages || !Array.isArray(messages) || messages.length === 0) {
             return debugResponse({ success: false, stage: 'Validation', error: 'Invalid or empty "messages" array', receivedBody: body });
         }

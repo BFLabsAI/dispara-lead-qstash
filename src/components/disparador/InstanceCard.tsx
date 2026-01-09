@@ -28,26 +28,36 @@ interface InstanceCardProps {
 }
 
 export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: InstanceCardProps) => {
-  const { fetchQrCode, disconnectInstance, disconnectingInstance } = useDisparadorStore();
+  const { fetchQrCode, disconnectInstance, disconnectingInstance, syncInstances } = useDisparadorStore();
   const isConnected = instance.connectionStatus === "open" || instance.connectionStatus === "connected";
 
-  const statusConfig: StatusConfig = isConnected
-    ? {
+  let statusConfig: StatusConfig;
+
+  if (isConnected) {
+    statusConfig = {
       text: "Ativa e Operacional",
-      badgeClass:
-        "bg-green-500/10 text-green-700 dark:text-green-300 border border-green-500/20",
+      badgeClass: "bg-green-500/10 text-green-700 dark:text-green-300 border border-green-500/20",
       dotClass: "bg-green-500",
       textClass: "text-green-700 dark:text-green-300",
       Icon: CheckCircle,
-    }
-    : {
+    };
+  } else if (instance.connectionStatus === 'connecting') {
+    statusConfig = {
+      text: "Conectando...",
+      badgeClass: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border border-yellow-500/20",
+      dotClass: "bg-yellow-500 animate-pulse",
+      textClass: "text-yellow-700 dark:text-yellow-300",
+      Icon: React.forwardRef((props, ref) => <i className="fas fa-circle-notch fa-spin text-xs" />), // Simple spin icon
+    };
+  } else {
+    statusConfig = {
       text: "Desconectada",
-      badgeClass:
-        "bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20",
+      badgeClass: "bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20",
       dotClass: "bg-red-500",
       textClass: "text-red-700 dark:text-red-300",
       Icon: XCircle,
     };
+  }
 
   const formattedName = instance.name
     .toLowerCase()
@@ -80,9 +90,9 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
         <Button
           variant="ghost"
           size="icon"
-          onClick={loadInstances}
+          onClick={() => syncInstances()}
           className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          title="Atualizar"
+          title="Sincronizar Status Real"
         >
           <i className="fas fa-sync-alt text-sm" />
         </Button>
@@ -115,6 +125,32 @@ export const InstanceCard = ({ instance, index, loadInstances, openWebhook }: In
             )}
             {disconnectingInstance === instance.name ? "Desconectando..." : "Desconectar"}
           </Button>
+        ) : instance.connectionStatus === 'connecting' ? (
+          <div className="flex gap-2">
+            <Button
+              onClick={() => fetchQrCode(instance.name)}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            >
+              <i className="fas fa-qrcode mr-2" />
+              Ver QR
+            </Button>
+            <Button
+              onClick={() => {
+                if (confirm("Forçar desconexão dessa instância?")) {
+                  disconnectInstance(instance.name);
+                }
+              }}
+              disabled={disconnectingInstance === instance.name}
+              className="flex-1 bg-red-600/90 hover:bg-red-700 text-white disabled:opacity-50 border border-red-200 dark:border-red-900 px-2"
+              title="Forçar Desconexão"
+            >
+              {disconnectingInstance === instance.name ? (
+                <i className="fas fa-spinner fa-spin" />
+              ) : (
+                <i className="fas fa-bolt" />
+              )}
+            </Button>
+          </div>
         ) : (
           <Button
             onClick={() => fetchQrCode(instance.name)}

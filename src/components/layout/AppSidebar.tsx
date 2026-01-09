@@ -139,6 +139,8 @@ export const AppSidebar = () => {
   const navItems = [
     { name: 'Home', href: '/welcome', icon: Home, type: 'link' },
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, type: 'link' },
+    { name: 'Atendimento', href: '/chats', icon: MessageSquare, type: 'link' },
+    ...(isSuperAdmin ? [{ name: 'Manager Portal', href: '/admin', icon: Server, type: 'link' }] : []),
     { name: 'Públicos', href: '/audiences', icon: Users, type: 'link' },
     { name: 'Logs', href: '/logs', icon: HardDrive, type: 'link' },
     {
@@ -157,6 +159,7 @@ export const AppSidebar = () => {
       type: 'accordion',
       subItems: [
         { name: 'Instâncias', href: '/instancias', icon: Server },
+        { name: 'Notificações', href: '/settings', icon: Settings },
         ...((userRole === 'admin' || userRole === 'owner') ? [{ name: 'Equipe', href: '/settings/users', icon: Users }] : []),
       ],
     },

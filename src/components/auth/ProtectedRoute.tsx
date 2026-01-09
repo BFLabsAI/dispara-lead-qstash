@@ -9,6 +9,14 @@ export const ProtectedRoute = () => {
     useEffect(() => {
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
+
+            // If no session but we have a hash with access_token (Magic Link catch), 
+            // we wait for onAuthStateChange to fire instead of failing immediately.
+            if (!session && location.hash.includes('access_token')) {
+                console.log("Detected auth hash, waiting for session...");
+                return;
+            }
+
             setIsAuthenticated(!!session);
         };
 
@@ -19,7 +27,7 @@ export const ProtectedRoute = () => {
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [location]);
 
     if (isAuthenticated === null) {
         // Loading state

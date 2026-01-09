@@ -25,10 +25,10 @@ const HighlightTextarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttr
 
   const renderHighlights = (text: string) => {
     if (!text) return null;
-    return text.split(/(\{.*?\})/g).map((part, i) => {
-      if (part.startsWith('{') && part.endsWith('}')) {
+    return text.split(/(@[\wÀ-ÿ]+)/g).map((part, i) => {
+      if (part.startsWith('@')) {
         return (
-          <span key={i} className="text-green-600 font-bold bg-green-500/10 rounded-[2px]">
+          <span key={i} className="text-green-600 font-bold bg-green-500/10 rounded-[2px] inline-block">
             {part}
           </span>
         );
@@ -98,14 +98,15 @@ export const MessageCreator = ({ templates, setTemplates, variables }: MessageCr
   };
 
   const previewText = (text: string) => {
-    return text.replace(/\{(\w+)\}/g, (match) => `<span class="bg-blue-200 text-blue-800 px-1 rounded">${match}</span>`);
+    return text.replace(/(@[\wÀ-ÿ]+)/g, (match) => `<span class="bg-blue-200 text-blue-800 px-1 rounded">${match}</span>`);
   };
 
   const insertVariable = (variable: string, index: number) => {
     const currentText = templates[index].text;
-    const before = currentText.slice(0, cursorPos - 1); // remove the '{'
+    const before = currentText.slice(0, cursorPos - 1); // remove the '@'
     const after = currentText.slice(cursorPos);
-    const newText = `${before}{${variable}}${after}`;
+    // Use format @variable without brackets
+    const newText = `${before}@${variable}${after}`;
 
     updateTemplate(index, { ...templates[index], text: newText });
     setMenuOpenIndex(null);
@@ -138,14 +139,14 @@ export const MessageCreator = ({ templates, setTemplates, variables }: MessageCr
                 <Popover open={menuOpenIndex === index} onOpenChange={(open) => !open && setMenuOpenIndex(null)}>
                   <PopoverAnchor asChild>
                     <HighlightTextarea
-                      placeholder={template.type === 'texto' ? "Digite sua mensagem..." : "Digite a legenda (opcional)..."}
+                      placeholder={template.type === 'texto' ? "Digite sua mensagem... (Use @ para variáveis)" : "Digite a legenda (opcional)... (Use @ para variáveis)"}
                       value={template.text}
                       onChange={(e) => {
                         const val = e.target.value;
                         const pos = e.target.selectionStart;
                         updateTemplate(index, { ...template, text: val });
                         setCursorPos(pos);
-                        if (val.charAt(pos - 1) === '{') {
+                        if (val.charAt(pos - 1) === '@') {
                           setMenuOpenIndex(index);
                         }
                       }}

@@ -190,7 +190,12 @@ export const Filters = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateRange?.from} onSelect={(day) => setDateRange({ from: day, to: day })} />
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  initialFocus
+                />
               </PopoverContent>
             </Popover>
           </div>

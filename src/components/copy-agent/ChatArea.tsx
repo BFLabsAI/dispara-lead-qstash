@@ -30,30 +30,32 @@ export const ChatArea = () => {
     <div className="flex flex-col h-full">
       <ChatHeader chat={currentChat} />
 
-      <ScrollArea className="flex-1 p-4 space-y-4">
-        {isChatLoading ? (
-          <div className="flex justify-center items-center h-full">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          currentChat?.messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              onFeedback={(feedback) => updateMessageMetadata(currentChat.id, message.id, { feedback })}
-              onToggleExpand={(isExpanded) => updateMessageMetadata(currentChat.id, message.id, { isExpanded })}
-            />
-          ))
-        )}
-        {isSendingMessage && (
-          <div className="flex justify-start">
-            <div className="bg-muted p-3 rounded-lg max-w-[70%] flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">IA está digitando...</span>
+      <ScrollArea className="flex-1">
+        <div className="flex flex-col gap-16 p-4">
+          {isChatLoading ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
+          ) : (
+            currentChat?.messages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                onFeedback={(feedback) => updateMessageMetadata(currentChat.id, message.id, { feedback })}
+                onToggleExpand={(isExpanded) => updateMessageMetadata(currentChat.id, message.id, { isExpanded })}
+              />
+            ))
+          )}
+          {isSendingMessage && (
+            <div className="flex justify-start">
+              <div className="bg-muted p-3 rounded-lg max-w-[70%] flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">IA está digitando...</span>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </ScrollArea>
 
       <ChatInput />
