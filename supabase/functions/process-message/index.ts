@@ -70,10 +70,30 @@ serve(async (req) => {
             return new Response("Instance token missing", { status: 500 });
         }
 
-        // --- Idempotency Check ---
+        // --- Campaign Status Check ---
+        if (campaignId) {
+            const { data: campaign } = await supabase
+                .from('campaigns_dispara_lead_saas_02')
+                .select('status')
+                .eq('id', campaignId)
+                .single();
+
+            if (campaign && (campaign.status === 'paused' || campaign.status === 'cancelled')) {
+                console.log(`[Process] Campaign ${campaign.status}. Skipping message.`);
+                // Update log to reflect status (unless already final)
+                await supabase.from('message_logs_dispara_lead_saas_03')
+                    .update({ status: campaign.status, error_message: `Campaign ${campaign.status}` })
+                    .eq('id', messageId)
+                    .neq('status', 'sent'); // Don't overwrite sent
+
+                return new Response(`Campaign ${campaign.status}`, { status: 200 });
+            }
+        }
+
+        // --- Fetch Log & Idempotency Check ---
         const { data: existingLog } = await supabase
             .from('message_logs_dispara_lead_saas_03')
-            .select('status, provider_message_id')
+            .select('status, provider_message_id, message_content, media_url, message_type') // Fixed column name
             .eq('id', messageId)
             .single();
 
@@ -83,6 +103,11 @@ serve(async (req) => {
             uazapiMessageId = existingLog.provider_message_id;
             isSuccess = true;
         }
+
+        // Use DB content as Source of Truth (allows Editing)
+        const finalMessageContent = existingLog?.message_content || messageContent;
+        const finalMediaUrl = existingLog?.media_url || mediaUrl;
+        const finalMediaType = existingLog?.message_type || mediaType; // Fixed usage
         // -------------------------
 
         if (!alreadySent) {
@@ -90,25 +115,25 @@ serve(async (req) => {
                 let endpoint = '';
                 let bodyData: any = {};
 
-                if (mediaUrl) {
+                if (finalMediaUrl) {
                     endpoint = `${UAZAPI_BASE_URL}/send/media`;
                     const uazapiMediaType = {
                         'imagem': 'image',
                         'video': 'video',
                         'audio': 'audio'
-                    }[mediaType] || mediaType;
+                    }[finalMediaType] || finalMediaType;
 
                     bodyData = {
                         number: phoneNumber,
-                        file: mediaUrl,
+                        file: finalMediaUrl,
                         type: uazapiMediaType,
-                        text: messageContent
+                        text: finalMessageContent
                     };
                 } else {
                     endpoint = `${UAZAPI_BASE_URL}/send/text`;
                     bodyData = {
                         number: phoneNumber,
-                        text: messageContent,
+                        text: finalMessageContent,
                         delay: 1200,
                         linkPreview: true
                     };
@@ -143,9 +168,7 @@ serve(async (req) => {
                 error_message: errorMessage
             };
 
-            if (mediaUrl) {
-                updateData.media_url = mediaUrl;
-            }
+            // No need to update media_url as we read it from DB
 
             await supabase.from('message_logs_dispara_lead_saas_03').update(updateData).eq('id', messageId);
         }
@@ -194,7 +217,7 @@ serve(async (req) => {
                         // Gather Stats
                         const { data: stats } = await supabase
                             .from('message_logs_dispara_lead_saas_03')
-                            .select('sent_at, instance_name, campaign_type')
+                            .select('sent_at, instance_name, campaign_type, metadata')
                             .eq('campaign_id', campaignId);
 
                         if (stats && stats.length > 0) {
@@ -209,7 +232,9 @@ serve(async (req) => {
                             const startTime = sortedDates.length > 0 ? new Date(sortedDates[0]).toLocaleString('pt-BR') : 'N/A';
                             const endTime = new Date().toLocaleString('pt-BR');
 
-                            const isAI = stats.some(s => s.campaign_type === 'ai' || s.campaign_type === 'ai_agent');
+                            const isAI = (campaign.content_configuration?.use_ai) ||
+                                (campaign.use_ai) ||
+                                stats.some(s => s.campaign_type === 'ai' || s.campaign_type === 'ai_agent' || s.metadata?.ai_rewritten);
                             const modeIcon = isAI ? '🤖' : '💬';
                             const modeText = isAI ? 'Com IA' : 'Sem IA (Estático)';
 

@@ -84,6 +84,10 @@ interface DisparadorState {
     usarIA: boolean;
     horaAgendamento: string;
   }) => Promise<void>;
+  reprocessCampaign: (campaignId: string, newConfig: {
+    use_ai: boolean;
+    messages: MessageTemplate[];
+  }) => Promise<void>;
 }
 
 export const useDisparadorStore = create<DisparadorState>((set, get) => ({
@@ -184,7 +188,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       const { getConnectionStatus } = await import('../services/uazapiClient');
       const syncPromises = get().instances.map(async (inst) => {
         try {
-          await getConnectionStatus(inst.name, true);
+          await getConnectionStatus(inst.name, false);
         } catch (e) {
           console.error(`Failed to sync ${inst.name}:`, e);
         }
@@ -204,7 +208,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   checkQrInstanceStatus: async (instanceName: string) => {
     try {
       const { getConnectionStatus } = await import('../services/uazapiClient');
-      await getConnectionStatus(instanceName, true);
+      await getConnectionStatus(instanceName, false);
 
       const { data } = await supabase
         .from('instances_dispara_lead_saas_02')
@@ -383,14 +387,24 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
           user_id: user.id,
           name: finalCampaignName,
           target_audience: publicTarget || "Lista Manual",
-          creative: content || "Conteúdo Variável",
+          creative: content || (templates[0]?.text || "Conteúdo Variável"),
           status: 'pending',
           total_messages: contatos.length * templates.length,
           instances: instances,
           delay_min: tempoMin,
           delay_max: tempoMax,
           is_scheduled: !!scheduledFor,
-          scheduled_for: scheduledFor || null
+          scheduled_for: scheduledFor || null,
+          media_url: templates[0]?.mediaUrl || null,
+          media_type: (templates[0]?.type && templates[0]?.type !== 'texto') ? templates[0]?.type : null,
+          content_configuration: {
+            use_ai: usarIA || false,
+            messages: templates.map((t: any) => ({
+              type: t.type,
+              content: t.text, // Persist original including variables like {name}
+              mediaUrl: t.mediaUrl
+            }))
+          }
         })
         .select()
         .single();
@@ -421,6 +435,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
           const deliveryTime = baseTime + accumulatedDelay;
           const deliveryDate = new Date(deliveryTime).toISOString();
 
+          const hasText = personalizedText && personalizedText.trim().length > 0;
+          const shouldUseAI = usarIA && hasText;
+
           logsToInsert.push({
             id: messageId,
             tenant_id: targetTenantId,
@@ -436,7 +453,8 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             message_type: template.type || 'texto',
             metadata: {
               publico: publicTarget,
-              criativo: content
+              criativo: content,
+              contact_data: contact // Snapshot for reprocessing
             },
             media_url: template.mediaUrl || null
           });
@@ -452,7 +470,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             mediaUrl: template.mediaUrl,
             mediaType: template.type !== 'texto' ? template.type : undefined,
             notBefore: Math.floor(deliveryTime / 1000),
-            destinationUrl: usarIA
+            destinationUrl: shouldUseAI
               ? `${SUPABASE_URL}/functions/v1/process-message-ai`
               : undefined
           };
@@ -467,8 +485,12 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
 
       if (logsError) throw logsError;
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const { data: enqueueData, error: enqueueError } = await supabase.functions.invoke('enqueue-campaign', {
-        body: { messages: messagesToEnqueue }
+        body: { messages: messagesToEnqueue },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
       });
 
       if (enqueueError) {
@@ -513,5 +535,185 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       ...rest,
       scheduledFor: horaAgendamento
     });
+  },
+
+  reprocessCampaign: async (campaignId, newConfig) => {
+    set({ isLoading: true });
+    try {
+      // 1. Cancel existing QStash messages to prevent duplicates
+      const QSTASH_TOKEN = import.meta.env.VITE_QSTASH_TOKEN;
+      await fetch(`https://qstash.upstash.io/v2/messages?label=${campaignId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${QSTASH_TOKEN}` }
+      });
+
+      // 2. Fetch existing potential contacts (from logs that are not sent/failed)
+      const { data: logs, error: fetchError } = await supabase
+        .from('message_logs_dispara_lead_saas_03')
+        .select('metadata, phone_number, instance_name, tenant_id')
+        .eq('campaign_id', campaignId)
+        .in('status', ['queued', 'paused', 'pending']);
+
+      if (fetchError) throw fetchError;
+      if (!logs || logs.length === 0) {
+        showError("Não há mensagens pendentes para reprocessar.");
+        return;
+      }
+
+      // Distinct contacts
+      const contactsMap = new Map();
+      logs.forEach(log => {
+        if (!contactsMap.has(log.phone_number)) {
+          contactsMap.set(log.phone_number, {
+            ...log.metadata?.contact_data,
+            telefone: log.phone_number, // Ensure phone is present
+            instance_name: log.instance_name,
+            tenant_id: log.tenant_id
+          });
+        }
+      });
+      const contacts = Array.from(contactsMap.values());
+
+      // 3. Update Campaign Config
+      const { error: updateError } = await supabase
+        .from('campaigns_dispara_lead_saas_02')
+        .update({
+          content_configuration: newConfig,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', campaignId);
+
+      if (updateError) throw updateError;
+
+      // 4. Delete old logs
+      const { error: deleteError } = await supabase
+        .from('message_logs_dispara_lead_saas_03')
+        .delete()
+        .eq('campaign_id', campaignId)
+        .in('status', ['queued', 'paused', 'pending']);
+
+      if (deleteError) throw deleteError;
+
+      // 5. Generate New Messages
+      const templates = newConfig.messages;
+      const messagesToEnqueue: any[] = [];
+      const logsToInsert: any[] = [];
+
+      // Use campaign ID as label
+      const campaignLabel = campaignId;
+
+      // Fetch Campaign to get generic details like name?
+      // We can reuse names/etc from logs/context, but fetching is safer.
+      const { data: campaign } = await supabase.from('campaigns_dispara_lead_saas_02').select('name, is_scheduled, scheduled_for').eq('id', campaignId).single();
+      const scheduledFor = campaign?.is_scheduled ? campaign?.scheduled_for : null;
+      const baseTime = scheduledFor ? new Date(scheduledFor).getTime() : Date.now();
+      let accumulatedDelay = 0;
+
+      const tenantId = contacts[0]?.tenant_id; // Assume same tenant
+      const instanceName = contacts[0]?.instance_name;
+
+      // Reuse Min/Max delay from ... we don't have it here. 
+      // We really should store delay_min/max in campaign table (we DO).
+      // Let's fetch delay_min/max from campaign.
+      const { data: campSettings } = await supabase
+        .from('campaigns_dispara_lead_saas_02')
+        .select('delay_min, delay_max, target_audience, creative')
+        .eq('id', campaignId)
+        .single();
+
+      const tempoMin = campSettings?.delay_min || 2;
+      const tempoMax = campSettings?.delay_max || 5;
+
+      for (const contact of contacts) {
+        for (const template of templates) {
+          let personalizedText = (template as any).content || template.text || ""; // content in newConfig structure
+          personalizedText = personalizedText.replace(/@(\w+)/g, (_: string, key: string) => {
+            const fullValue = contact[key] || "";
+            return fullValue;
+          });
+
+          const messageId = crypto.randomUUID();
+          const randomDelay = Math.floor(Math.random() * (tempoMax - tempoMin + 1) + tempoMin) * 1000;
+          accumulatedDelay += randomDelay;
+          const deliveryTime = baseTime + accumulatedDelay;
+          const deliveryDate = new Date(deliveryTime).toISOString();
+
+          const hasText = personalizedText && personalizedText.trim().length > 0;
+          const shouldUseAI = newConfig.use_ai && hasText;
+
+          logsToInsert.push({
+            id: messageId,
+            tenant_id: tenantId,
+            campaign_id: campaignId,
+            instance_name: instanceName,
+            phone_number: contact.telefone,
+            message_content: personalizedText,
+            status: 'queued',
+            scheduled_for: deliveryDate,
+            created_at: new Date().toISOString(),
+            campaign_name: campaign?.name,
+            campaign_type: scheduledFor ? 'Agendada' : 'Imediata',
+            message_type: template.type || 'texto',
+            metadata: {
+              publico: campSettings?.target_audience,
+              criativo: campSettings?.creative,
+              contact_data: contact,
+              ai_rewritten: shouldUseAI // Mark as AI candidate
+            },
+            media_url: template.mediaUrl || null
+          });
+
+          const qstashPayload: any = {
+            messageId,
+            phoneNumber: contact.telefone,
+            messageContent: personalizedText,
+            instanceName,
+            campaignId: campaignId,
+            tenantId: tenantId,
+            mediaUrl: template.mediaUrl,
+            mediaType: template.type !== 'texto' ? template.type : undefined,
+            notBefore: Math.floor(deliveryTime / 1000),
+            destinationUrl: shouldUseAI
+              ? `${SUPABASE_URL}/functions/v1/process-message-ai` // Point to AI function
+              : undefined,
+            label: campaignLabel
+          };
+
+          messagesToEnqueue.push(qstashPayload);
+        }
+      }
+
+      // 6. Insert Logs
+      const { error: insertError } = await supabase
+        .from('message_logs_dispara_lead_saas_03')
+        .insert(logsToInsert);
+
+      if (insertError) throw insertError;
+
+      // 7. Enqueue
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const { data: enqueueData, error: enqueueError } = await supabase.functions.invoke('enqueue-campaign', {
+        body: { messages: messagesToEnqueue },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      });
+
+      if (enqueueError) throw enqueueError;
+
+      // 8. Update Status to processing
+      await supabase
+        .from('campaigns_dispara_lead_saas_02')
+        .update({ status: 'processing', started_at: new Date().toISOString() })
+        .eq('id', campaignId);
+
+      showSuccess(`Campanha reprocessada! ${messagesToEnqueue.length} novas mensagens geradas.`);
+
+    } catch (error) {
+      console.error("Reprocess error:", error);
+      showError("Erro ao reprocessar: " + (error as Error).message);
+    } finally {
+      set({ isLoading: false });
+    }
   },
 }));

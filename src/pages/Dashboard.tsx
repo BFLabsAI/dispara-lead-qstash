@@ -189,10 +189,24 @@ export const Dashboard = () => {
   // Use scheduledMessagesCount (from Stats) for 'Agendadas' as it is the plan size.
   // Use activeQueuedCount (from Logs) for 'Fila' as it represents actionable items now.
 
-  // Total Envios should strictly be processed messages (Success + Failed), excluding Queue
-  const totalEnvios = filteredData.length - totalQueued;
-  const totalIA = filteredData.filter((d) => (d.usaria || d.usarIA) && d.tipo_envio !== 'fila').length;
-  const totalSemIA = totalEnvios - totalIA;
+  // Calculate distinct statuses
+  const totalFailed = filteredData.filter((d) => d.tipo_envio === 'falha').length;
+  const totalSuccess = filteredData.filter((d) => d.tipo_envio === 'sucesso').length;
+
+  // totalEnvios now represents STRICTLY SUCCESSFUL sends (Entregues)
+  const totalEnvios = totalSuccess;
+
+  const totalIA = filteredData.filter((d) => (d.usaria || d.usarIA) && d.tipo_envio === 'sucesso').length; // Count AI only for successful sends? Or attempts? Let's stick to success/attempts consistency. Usually "Com IA" implies usage.
+  // If we change totalEnvios to success, totalIA should probably follow suit or be clearly labeled.
+  // For now, let's keep totalIA/totalSemIA logic but filter out queue/failures if possible, or just keep as is?
+  // Previous logic: filteredData.filter((d) => ... && d.tipo_envio !== 'fila').length;
+  // This included failures. Let's filter for SUCCESS only to match "Total Envios" (Sucesso).
+
+  const totalIA_Success = filteredData.filter((d) => (d.usaria || d.usarIA) && d.tipo_envio === 'sucesso').length;
+  const totalSemIA_Success = totalSuccess - totalIA_Success;
+
+  // If user wants to see "Attempts that used AI", that's different. But usually Dashboard shows "What happened".
+  // Let's use SUCCESS metrics for consistency with the first card.
 
   return (
     <div>
@@ -236,15 +250,16 @@ export const Dashboard = () => {
         criativoOptions={criativoOptions}
       />
       <KPIs
-        totalEnvios={totalEnvios}
-        totalIA={totalIA}
-        totalSemIA={totalSemIA}
+        totalEnvios={totalSuccess} // Passing SUCCESS ONLY
+        totalIA={totalIA_Success}
+        totalSemIA={totalSemIA_Success}
         agendadasCount={scheduledMessagesCount}
         filaCount={activeQueuedCount}
+        failedCount={totalFailed}
         totalResponded={filteredData.filter((d) => d.responded_at).length}
         responseRate={
-          totalEnvios > 0
-            ? (filteredData.filter((d) => d.responded_at).length / totalEnvios) * 100
+          totalSuccess > 0
+            ? (filteredData.filter((d) => d.responded_at).length / totalSuccess) * 100
             : 0
         }
       />

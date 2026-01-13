@@ -8,7 +8,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Home, LayoutDashboard, Server, Send, Settings, CalendarDays,
   MessageSquare, HardDrive, Link as LinkIcon, Bot,
-  ChevronLeft, ChevronRight, Sun, Moon, Building, Users, LogOut
+  ChevronLeft, ChevronRight, Sun, Moon, Building, Users, LogOut, List
 } from 'lucide-react';
 import {
   Accordion,
@@ -150,6 +150,7 @@ export const AppSidebar = () => {
       subItems: [
         { name: 'Disparo Pontual', href: '/disparo', icon: MessageSquare },
         { name: 'Agendar Campanha', href: '/agendar-campanha', icon: CalendarDays },
+        { name: 'Gerenciar Campanhas', href: '/campaigns', icon: List },
       ],
     },
     { name: 'Copy Agent', href: '/copy-agent', icon: Bot, type: 'link' },
@@ -336,27 +337,31 @@ export const AppSidebar = () => {
         </nav>
 
         {/* Logout */}
-        <div className={cn("p-4 border-t border-border flex items-center", isSidebarOpen ? "justify-between" : "justify-center")}>
-          {isSidebarOpen && <span className="text-sm text-sidebar-foreground">Sair</span>}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={async () => {
-              // Clear admin store to prevent stale impersonation
-              useAdminStore.getState().setImpersonatedTenantId(null);
-              useAdminStore.getState().setAdminTenantId(null);
+        {/* Logout */}
+        <div className={cn("p-4 border-t border-border flex", isSidebarOpen ? "flex-col gap-1" : "items-center justify-center")}>
+          {isSidebarOpen && <div className="w-full text-center text-[10px] text-muted-foreground/50 tracking-widest font-light mb-1">v3.0</div>}
+          <div className={cn("flex items-center w-full", isSidebarOpen ? "justify-between" : "justify-center")}>
+            {isSidebarOpen && <span className="text-sm text-sidebar-foreground">Sair</span>}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={async () => {
+                // Clear admin store to prevent stale impersonation
+                useAdminStore.getState().setImpersonatedTenantId(null);
+                useAdminStore.getState().setAdminTenantId(null);
 
-              await supabase.auth.signOut();
-              window.location.href = '/login';
-            }}
-            className={cn(
-              "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              !isSidebarOpen && "w-full"
-            )}
-          >
-            <LogOut className="h-5 w-5" />
-            <span className="sr-only">Sair</span>
-          </Button>
+                await supabase.auth.signOut();
+                window.location.href = '/login';
+              }}
+              className={cn(
+                "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                !isSidebarOpen && "w-full"
+              )}
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="sr-only">Sair</span>
+            </Button>
+          </div>
         </div>
 
         {/* Alternador de Tema */}

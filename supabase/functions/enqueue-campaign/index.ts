@@ -75,10 +75,17 @@ serve(async (req) => {
 
             console.log(`[Enqueue] Destination URL: ${destinationUrl}`);
 
+            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            if (msg.campaignId) {
+                headers["Upstash-Label"] = msg.campaignId;
+            } else if (msg.label) {
+                headers["Upstash-Label"] = msg.label;
+            }
+
             return {
                 url: destinationUrl,
                 body: JSON.stringify(msg),
-                headers: { "Content-Type": "application/json" },
+                headers: headers,
                 delay: msg.delay,
                 notBefore: msg.notBefore,
                 retries: 2,

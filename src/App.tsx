@@ -21,6 +21,8 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import FinishProfilePage from "./pages/FinishProfilePage";
+import CampaignManagement from "./pages/CampaignManagement";
+import CampaignList from "./pages/CampaignList";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { AdminLayout } from "./components/layout/AdminLayout";
@@ -83,6 +85,9 @@ const App = () => (
                   <Route path="/chats" element={<ChatsPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/settings/users" element={<UsersPage />} />
+                  <Route path="/campanhas/:id" element={<CampaignManagement />} />
+                  <Route path="/campanhas" element={<CampaignList />} />
+                  <Route path="/campaigns" element={<CampaignList />} /> {/* Legacy/Fallback */}
                 </Route>
               </Route>
 

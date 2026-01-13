@@ -20,6 +20,7 @@ interface EnqueueParams {
     mediaUrl?: string;
     mediaType?: 'image' | 'video' | 'audio';
     destinationUrl?: string; // Optional: Override default destination
+    label?: string; // Campaign ID for bulk cancellation
 }
 
 export const qstashClient = {
@@ -36,6 +37,7 @@ export const qstashClient = {
                 delay: params.delay,
                 notBefore: params.notBefore,
                 retries: 2, // Retry up to 2 times on failure
+                headers: params.label ? { "Upstash-Label": params.label } : undefined
             });
             return result;
         } catch (error) {
@@ -54,7 +56,10 @@ export const qstashClient = {
         const batch = messages.map(msg => ({
             url: msg.destinationUrl || `${SUPABASE_URL}/functions/v1/process-message`,
             body: JSON.stringify(msg),
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...(msg.label ? { "Upstash-Label": msg.label } : {})
+            },
             delay: msg.delay,
             notBefore: msg.notBefore,
             retries: 2,

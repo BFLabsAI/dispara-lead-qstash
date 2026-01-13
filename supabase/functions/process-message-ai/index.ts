@@ -277,7 +277,7 @@ Responda SOMENTE com a mensagem reescrita.`;
                     if (!updateError) {
                         const { data: stats } = await supabase
                             .from('message_logs_dispara_lead_saas_03')
-                            .select('sent_at, instance_name, campaign_type')
+                            .select('sent_at, instance_name, campaign_type, metadata')
                             .eq('campaign_id', campaignId);
 
                         if (stats && stats.length > 0) {
