@@ -1,4 +1,10 @@
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 import {
   fetchAllDisparadorData,
   fetchDisparadorDataPaginated,
@@ -17,7 +23,7 @@ export const getDashboardData = async () => {
     return data
       .map((item: DisparadorData) => ({
         ...item,
-        date: dayjs(item.created_at),
+        date: dayjs.utc(item.created_at).local(),
       }))
       .sort((a: any, b: any) => b.date.diff(a.date));
   } catch (error) {
@@ -32,7 +38,7 @@ export const subscribeToDashboardData = (callback: (data: any[]) => void) => {
     const formattedData = data
       .map((item: DisparadorData) => ({
         ...item,
-        date: dayjs(item.created_at),
+        date: dayjs.utc(item.created_at).local(),
       }))
       .sort((a: any, b: any) => b.date.diff(a.date));
 
@@ -58,7 +64,7 @@ export const getDashboardDataPaginated = async (
     const formattedData = result.data
       .map((item: DisparadorData) => ({
         ...item,
-        date: dayjs(item.created_at),
+        date: dayjs.utc(item.created_at).local(),
       }));
 
     const totalPages = Math.ceil((result.count || 0) / pageSize);
@@ -115,7 +121,7 @@ export const getDashboardDataAll = async (filters?: {
 
     const formattedData = filteredData.map((item: DisparadorData) => ({
       ...item,
-      date: dayjs(item.created_at),
+      date: dayjs.utc(item.created_at).local(),
     }));
 
     return {

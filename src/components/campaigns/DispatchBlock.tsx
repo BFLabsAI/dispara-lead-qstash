@@ -21,6 +21,7 @@ interface DispatchBlockProps {
   templates: any[];
   setTemplates: (templates: any[]) => void;
   onRemove: (id: string) => void;
+  onMultipleDates?: (dates: Date[]) => void;
   variables: string[]; // Variáveis disponíveis do AudienceDefinition
 }
 
@@ -32,18 +33,38 @@ export const DispatchBlock = ({
   templates,
   setTemplates,
   onRemove,
+  onMultipleDates,
   variables
 }: DispatchBlockProps) => {
 
-  const handleDateSelect = (date: Date | undefined) => {
-    let newDateTime = date;
+  const handleDateSelect = (dates: Date[] | undefined) => {
+    if (!dates || dates.length === 0) {
+      setDatetime(undefined);
+      return;
+    }
+
+    // Se tivermos múltiplas datas e o handler estiver definido
+    if (dates.length > 1 && onMultipleDates) {
+      onMultipleDates(dates);
+      // Manter a data atual selecionada (ou a primeira se não tinha data)
+      const currentOrFirst = datetime || dates[0];
+      // Garantir que a hora seja preservada
+      if (datetime && currentOrFirst !== datetime) {
+        currentOrFirst.setHours(datetime.getHours(), datetime.getMinutes(), 0, 0);
+      }
+      return;
+    }
+
+    // Caso de seleção simples (uma data)
+    let newDateTime = dates[0];
+
     if (newDateTime && datetime) {
       // Preserve time if date changes
       newDateTime.setHours(datetime.getHours(), datetime.getMinutes(), 0, 0);
     } else if (newDateTime && !datetime) {
       // If only date is set, default to current time
       const now = new Date();
-      newDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0, 0);
+      newDateTime = new Date(newDateTime.getFullYear(), newDateTime.getMonth(), newDateTime.getDate(), now.getHours(), now.getMinutes(), 0, 0);
     }
     setDatetime(newDateTime);
   };
@@ -86,8 +107,8 @@ export const DispatchBlock = ({
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
-                mode="single"
-                selected={datetime}
+                mode="multiple"
+                selected={datetime ? [datetime] : []}
                 onSelect={handleDateSelect}
                 initialFocus
               />
