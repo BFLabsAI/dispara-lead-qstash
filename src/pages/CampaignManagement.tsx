@@ -384,18 +384,39 @@ export default function CampaignManagement() {
                                                 )}
 
                                                 {isEditable && (
-                                                    <div className="flex items-center gap-2 mt-2">
-                                                        <Input
-                                                            id={`media-upload-${index}`}
-                                                            type="file"
-                                                            accept="image/*,video/*,audio/*"
-                                                            onChange={(e) => handleFileUploadForMessage(index, e)}
-                                                            className="hidden"
-                                                        />
-                                                        <Button variant="outline" size="sm" onClick={() => document.getElementById(`media-upload-${index}`)?.click()}>
-                                                            <ImageIcon className="h-4 w-4 mr-2" />
-                                                            Trocar Arquivo
-                                                        </Button>
+                                                    <div className="space-y-3 mt-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Input
+                                                                id={`media-upload-${index}`}
+                                                                type="file"
+                                                                accept="image/*,video/*,audio/*"
+                                                                onChange={(e) => handleFileUploadForMessage(index, e)}
+                                                                className="hidden"
+                                                            />
+                                                            <Button variant="outline" size="sm" onClick={() => document.getElementById(`media-upload-${index}`)?.click()}>
+                                                                <ImageIcon className="h-4 w-4 mr-2" />
+                                                                Trocar Arquivo
+                                                            </Button>
+                                                        </div>
+
+                                                        <div className="relative">
+                                                            <div className="absolute inset-0 flex items-center">
+                                                                <span className="w-full border-t" />
+                                                            </div>
+                                                            <div className="relative flex justify-center text-xs uppercase">
+                                                                <span className="bg-background px-2 text-muted-foreground">ou URL direta</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs text-muted-foreground">Link da Mídia (URL)</Label>
+                                                            <Input
+                                                                type="text"
+                                                                placeholder="https://exemplo.com/midia.mp4"
+                                                                value={msg.mediaUrl || ''}
+                                                                onChange={(e) => handleUpdateMessage(index, 'mediaUrl', e.target.value)}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>

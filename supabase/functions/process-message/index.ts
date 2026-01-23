@@ -160,7 +160,57 @@ serve(async (req) => {
                     isSuccess = true;
                     uazapiMessageId = uazapiResponse?.key?.id;
                 } else {
-                    errorMessage = uazapiResponse?.message || response.statusText;
+                    // Capture the exact error from API
+                    if (uazapiResponse) {
+                        errorMessage = typeof uazapiResponse === 'object'
+                            ? JSON.stringify(uazapiResponse)
+                            : String(uazapiResponse);
+                    } else {
+                        errorMessage = response.statusText;
+                    }
+
+                    // --- SMART ERROR HANDLING ---
+                    // Check if the error suggests a disconnection
+                    const errorStr = (errorMessage || '').toLowerCase();
+                    const isDisconnectError = errorStr.includes('disconnect') ||
+                        errorStr.includes('closed') ||
+                        errorStr.includes('not connected') ||
+                        errorStr.includes('session void');
+
+                    if (isDisconnectError) {
+                        console.warn(`[Process-Message] Disconnect error detected for ${instanceName}: ${errorMessage}`);
+
+                        // Verify actual status with API
+                        try {
+                            const statusResp = await fetch(`${UAZAPI_BASE_URL}/instance/${instanceName}/status`, {
+                                headers: { 'token': instanceToken }
+                            });
+                            const statusData = await statusResp.json();
+                            const actualStatus = statusData?.instance?.status || statusData?.status;
+
+                            console.log(`[Process-Message] Verification status for ${instanceName}: ${actualStatus}`);
+
+                            if (actualStatus === 'connected' || actualStatus === 'open') {
+                                errorMessage += " [SYSTEM NOTE: Instance appears connected. Retrying...]";
+                                // It's a false positive or transient. Return 500 to Force Retry.
+                                return new Response(JSON.stringify({ error: errorMessage, type: 'TRANSIENT_DISCONNECT' }), { status: 500 });
+                            } else {
+                                errorMessage += " [SYSTEM NOTE: Disconnection Confirmed. Stopping retries.]";
+                                // Valid disconnection. Return 200 to Stop QStash Retries.
+                                await supabase.from('message_logs_dispara_lead_saas_03').update({
+                                    status: 'failed',
+                                    sent_at: new Date().toISOString(),
+                                    error_message: errorMessage,
+                                    provider_response: uazapiResponse
+                                }).eq('id', messageId);
+
+                                return new Response(JSON.stringify({ success: false, error: errorMessage, type: 'FATAL_DISCONNECT' }), { status: 200 });
+                            }
+                        } catch (verificationError) {
+                            console.error("Failed to verify status:", verificationError);
+                            // If we can't verify, we default to retrying (500)
+                        }
+                    }
                 }
             } catch (error) {
                 errorMessage = (error as Error).message;

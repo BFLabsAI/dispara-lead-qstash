@@ -4,9 +4,11 @@ import { Card } from "@/components/ui/card"; // Importar Card
 import { Button } from "@/components/ui/button"; // Importar Button
 import { Input } from "@/components/ui/input"; // Importar Input
 import { Label } from "@/components/ui/label"; // Importar Label
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch"; // Importar Switch
 import { Users, Server, MessageSquare, ChevronsDown, ChevronsUp, Bot, Play, AlertTriangle, FileText, Clock, Calendar as CalendarIcon } from "lucide-react";
 import React from "react";
+import { TimeDelaySelector } from "./TimeDelaySelector";
 
 interface CampaignFinalReviewAndScheduleProps {
   tempoMin: number;
@@ -125,14 +127,13 @@ export const CampaignFinalReviewAndSchedule = ({
             <h4 className="text-lg font-bold mb-4">Ajustes de Envio</h4>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><ChevronsDown className="h-4 w-4" /> Tempo mínimo (s)</Label>
-                <Input type="number" min={safeLimits.min} value={tempoMin} onChange={e => handleMinChange(Number(e.target.value))} />
-                <p className="text-xs text-muted-foreground">Mínimo seguro: {safeLimits.min}s</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><ChevronsUp className="h-4 w-4" /> Tempo máximo (s)</Label>
-                <Input type="number" min={safeLimits.max} value={tempoMax} onChange={e => handleMaxChange(Number(e.target.value))} />
-                <p className="text-xs text-muted-foreground">Mínimo seguro: {safeLimits.max}s</p>
+                <TimeDelaySelector
+                  tempoMin={tempoMin}
+                  setTempoMin={setTempoMin}
+                  tempoMax={tempoMax}
+                  setTempoMax={setTempoMax}
+                  minLimit={30}
+                />
               </div>
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-4">

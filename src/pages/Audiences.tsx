@@ -77,7 +77,7 @@ export const Audiences = () => {
                                 <Plus className="h-4 w-4" /> Nova Audiência
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle>Importar Contatos</DialogTitle>
                                 <DialogDescription>

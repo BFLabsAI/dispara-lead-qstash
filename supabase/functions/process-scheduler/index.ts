@@ -79,7 +79,11 @@ Deno.serve(async (req) => {
                     text = text.replace(/{telefone}/g, contact.telefone || '');
                     // Also support @variable syntax if used
                     text = text.replace(/@(\w+)/g, (_: string, key: string) => {
-                        return contact[key] || "";
+                        // Try exact match first
+                        if (contact[key] !== undefined) return contact[key];
+                        // Try case-insensitive match
+                        const foundKey = Object.keys(contact).find(k => k.toLowerCase() === key.toLowerCase());
+                        return foundKey ? contact[foundKey] : "";
                     });
 
                     const messageId = crypto.randomUUID();

@@ -88,6 +88,7 @@ interface DisparadorState {
     use_ai: boolean;
     messages: MessageTemplate[];
   }) => Promise<void>;
+  previewFile: (file: File) => Promise<{ headers: string[]; rows: any[][] }>;
 }
 
 export const useDisparadorStore = create<DisparadorState>((set, get) => ({
@@ -423,10 +424,11 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
         for (const template of templates) {
           let personalizedText = template.text;
           personalizedText = personalizedText.replace(/@(\w+)/g, (_: string, key: string) => {
-            const fullValue = contact[key] || "";
-            if (key === 'nome' || key === 'name') {
-            }
-            return fullValue;
+            // Try exact match first
+            if (contact[key] !== undefined) return contact[key];
+            // Try case-insensitive match
+            const foundKey = Object.keys(contact).find(k => k.toLowerCase() === key.toLowerCase());
+            return foundKey ? contact[foundKey] : "";
           });
 
           const messageId = crypto.randomUUID();
@@ -537,6 +539,26 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
     });
   },
 
+  previewFile: async (file: File) => {
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const arr = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+
+      if (!arr || arr.length === 0) throw new Error("Arquivo vazio");
+
+      // Extract headers and rows
+      const headers = (arr[0] as string[]).map((h: string) => String(h).trim());
+      const rows = arr.slice(1) as any[][];
+
+      return { headers, rows };
+    } catch (error) {
+      showError("Erro ao ler arquivo: " + (error as Error).message);
+      throw error;
+    }
+  },
+
   reprocessCampaign: async (campaignId, newConfig) => {
     set({ isLoading: true });
     try {
@@ -628,8 +650,11 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
         for (const template of templates) {
           let personalizedText = (template as any).content || template.text || ""; // content in newConfig structure
           personalizedText = personalizedText.replace(/@(\w+)/g, (_: string, key: string) => {
-            const fullValue = contact[key] || "";
-            return fullValue;
+            // Try exact match first
+            if (contact[key] !== undefined) return contact[key];
+            // Try case-insensitive match
+            const foundKey = Object.keys(contact).find(k => k.toLowerCase() === key.toLowerCase());
+            return foundKey ? contact[foundKey] : "";
           });
 
           const messageId = crypto.randomUUID();

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Trash2, Plus, Image as ImageIcon, Paperclip, Mic } from "lucide-react";
 import { useDisparadorStore } from "../../store/disparadorStore";
 import { useState, useRef, forwardRef, useImperativeHandle } from "react";
@@ -133,6 +134,7 @@ export const MessageCreator = ({ templates, setTemplates, variables }: MessageCr
                   <SelectContent>
                     <SelectItem value="texto">Texto</SelectItem>
                     <SelectItem value="imagem">Imagem</SelectItem>
+                    <SelectItem value="video">Vídeo</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -171,8 +173,37 @@ export const MessageCreator = ({ templates, setTemplates, variables }: MessageCr
                     </Command>
                   </PopoverContent>
                 </Popover>
-                {template.type === 'imagem' && (
-                  <Input type="file" accept="image/*" onChange={(e) => handleFileChange(e, index)} className="mt-2" />
+                {(template.type === 'imagem' || template.type === 'video') && (
+                  <div className="space-y-3 mt-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Upload de Arquivo</Label>
+                      <Input
+                        type="file"
+                        accept={template.type === 'imagem' ? "image/*" : "video/*"}
+                        onChange={(e) => handleFileChange(e, index)}
+                        className="cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">ou URL direta</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Link da Mídia (URL)</Label>
+                      <Input
+                        type="text"
+                        placeholder="https://exemplo.com/midia.mp4"
+                        value={template.mediaUrl || ''}
+                        onChange={(e) => updateTemplate(index, { ...templates[index], mediaUrl: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -195,6 +226,11 @@ export const MessageCreator = ({ templates, setTemplates, variables }: MessageCr
                     <div key={i} className="flex justify-end">
                       <div className="bg-[#dcf8c6] dark:bg-[#054740] text-black dark:text-white rounded-lg p-2 max-w-[80%]">
                         {template.type === 'imagem' && <ImageIcon className="w-full h-auto rounded-md mb-1" />}
+                        {template.type === 'video' && (
+                          <div className="w-full h-40 bg-black/10 rounded-md mb-1 flex items-center justify-center">
+                            <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        )}
                         <p dangerouslySetInnerHTML={{ __html: previewText(template.text) }} />
                       </div>
                     </div>
@@ -210,6 +246,6 @@ export const MessageCreator = ({ templates, setTemplates, variables }: MessageCr
           </div>
         </div>
       </div>
-    </Card>
+    </Card >
   );
 };

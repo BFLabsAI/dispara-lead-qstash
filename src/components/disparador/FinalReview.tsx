@@ -4,9 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Users, Server, MessageSquare, ChevronsDown, ChevronsUp, Bot, Play, AlertTriangle, FileText, Clock } from "lucide-react";
 import React from "react";
+import { TimeDelaySelector } from "../campaigns/TimeDelaySelector";
 
 interface FinalReviewProps {
   tempoMin: number;
@@ -69,14 +71,13 @@ export const FinalReview = ({
           <div>
             <h4 className="text-lg font-bold mb-4">Ajustes de Envio</h4>
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><ChevronsDown className="h-4 w-4" /> Tempo mínimo (s)</Label>
-                <Input type="number" value={tempoMin} onChange={e => setTempoMin(Number(e.target.value))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><ChevronsUp className="h-4 w-4" /> Tempo máximo (s)</Label>
-                <Input type="number" value={tempoMax} onChange={e => setTempoMax(Number(e.target.value))} />
-              </div>
+              <TimeDelaySelector
+                tempoMin={tempoMin}
+                setTempoMin={setTempoMin}
+                tempoMax={tempoMax}
+                setTempoMax={setTempoMax}
+                minLimit={30}
+              />
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-4">
                   <Switch id="ai-switch" checked={usarIA} onCheckedChange={setUsarIA} />

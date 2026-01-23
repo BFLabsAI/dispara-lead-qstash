@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { UploadCloud, FileText, Users, Keyboard, CheckCircle, Search, Tag as TagIcon, Save } from "lucide-react";
+import { UploadCloud, FileText, Users, Keyboard, CheckCircle, Search, Tag as TagIcon, Save, Settings } from "lucide-react";
 import { useDisparadorStore } from "../../store/disparadorStore";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -35,7 +35,7 @@ export const AudienceDefinition = ({
   content, setContent,
   onUpload
 }: AudienceDefinitionProps) => {
-  const { uploadFile, setContatos, contatos } = useDisparadorStore();
+  const { uploadFile, setContatos, contatos, previewFile } = useDisparadorStore();
   const impersonatedId = useAdminStore((state) => state.impersonatedTenantId);
   const [tenantId, setTenantId] = useState<string | null>(impersonatedId);
 
@@ -63,6 +63,32 @@ export const AudienceDefinition = ({
   const [isUploading, setIsUploading] = useState(false);
   const [manualContacts, setManualContacts] = useState('');
 
+  // Import Wizard State
+  const [importConfig, setImportConfig] = useState<{
+    isMapping: boolean;
+    file: File | null;
+    headers: string[];
+    rows: any[][];
+    nameCol: string;
+    phoneCol: string;
+    nameFormat: 'full' | 'first';
+  }>({
+    isMapping: false,
+    file: null,
+    headers: [],
+    rows: [],
+    nameCol: '',
+    phoneCol: '',
+    nameFormat: 'full'
+  });
+
+  const toTitleCase = (str: string) => {
+    if (!str) return "";
+    return str.toLowerCase().replace(/(?:^|\s)\w/g, function (match) {
+      return match.toUpperCase();
+    });
+  };
+
   // Autocomplete State
   const [variableMenuOpen, setVariableMenuOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState(0);
@@ -89,36 +115,81 @@ export const AudienceDefinition = ({
 
     setIsUploading(true);
     try {
-      const { variables, contatos: uploadedContacts } = await uploadFile(file);
-      onUpload(variables);
+      const { headers, rows } = await previewFile(file);
 
-      // Auto-set campaign name from file if empty
-      const fileName = file.name.split('.')[0];
-      if (!campaignName) setCampaignName(fileName);
-      if (!publicTarget) setPublicTarget(fileName);
+      // Auto-detect phone and name columns
+      const phoneCol = headers.find(h => h.toLowerCase().includes("telefone") || h.toLowerCase().includes("celular") || h.toLowerCase().includes("whatsapp")) || headers[0];
+      const nameCol = headers.find(h => h.toLowerCase().includes("nome") || h.toLowerCase().includes("cliente")) || "";
 
-      // Handle Save Audience Logic
-      if (shouldSaveAudience && tenantId) {
-        const finalName = saveName || fileName;
-        await audienceService.createAudience({
-          name: finalName,
-          description: `Importado na campanha: ${campaignName || 'Untitled'}`,
-          tags: saveTags,
-          contacts: uploadedContacts.map(c => ({ phone_number: c.telefone, name: c.nome, metadata: c })),
-          tenantId: tenantId
-        });
-        toast.success(`Público "${finalName}" salvo!`);
-        // Refresh list
-        audienceService.getAudiences().then(setAvailableAudiences);
-      }
+      setImportConfig({
+        isMapping: true,
+        file,
+        headers,
+        rows,
+        phoneCol,
+        nameCol,
+        nameFormat: 'full'
+      });
 
     } catch (error) {
       console.error(error);
+      toast.error("Erro ao ler arquivo.");
     } finally {
       setIsUploading(false);
       e.target.value = '';
     }
-  }, [uploadFile, onUpload, shouldSaveAudience, saveName, saveTags, campaignName, tenantId, setCampaignName, setPublicTarget, publicTarget]);
+  }, [previewFile]);
+
+  const processImportMapping = async () => {
+    const { rows, headers, phoneCol, nameCol, nameFormat } = importConfig;
+
+    const phoneIdx = headers.indexOf(phoneCol);
+    const nameIdx = nameCol ? headers.indexOf(nameCol) : -1;
+
+    const processedContacts: any[] = [];
+    const extractPhones = (raw: string) =>
+      String(raw || "")
+        .split(",")
+        .map((p) => p.replace(/\D/g, ""))
+        .filter((n) => n.length >= 10)
+        .map((n) => (n.length <= 11 ? "55" + n : n.length === 12 && !n.startsWith("55") ? "55" + n : n));
+
+    rows.forEach(row => {
+      const rawPhone = row[phoneIdx];
+      const rawName = nameIdx >= 0 ? row[nameIdx] : "";
+
+      let finalName = toTitleCase(String(rawName || ""));
+      if (nameFormat === 'first') {
+        finalName = finalName.split(' ')[0];
+      }
+
+      const phones = extractPhones(rawPhone);
+      const metadata: any = {};
+      headers.forEach((h, i) => metadata[h] = row[i]);
+
+      phones.forEach(phone => {
+        processedContacts.push({
+          ...metadata,
+          telefone: phone,
+          nome: finalName || metadata['nome'] || '' // Priority to formatted name
+        });
+      });
+    });
+
+    const variables = headers.filter(h => h !== phoneCol);
+    setContatos(processedContacts);
+    onUpload(variables);
+
+    // Auto-set campaign/target name if empty
+    if (importConfig.file) {
+      const fileName = importConfig.file.name.split('.')[0];
+      if (!campaignName) setCampaignName(fileName);
+      if (!publicTarget) setPublicTarget(fileName);
+    }
+
+    setImportConfig(prev => ({ ...prev, isMapping: false }));
+    toast.success(`${processedContacts.length} contatos processados com sucesso!`);
+  };
 
   // Sync manual contacts to store
   useEffect(() => {
@@ -257,29 +328,129 @@ export const AudienceDefinition = ({
 
           {/* TAB 1: UPLOAD */}
           <TabsContent value="upload" className="space-y-6 pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/80 transition-colors">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                    <UploadCloud className="w-10 h-10 mb-4 text-primary" />
-                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold text-primary">Clique para escolher</span> ou arraste o arquivo</p>
-                    <p className="text-xs text-muted-foreground">Suporte para arquivos .xlsx ou .xls</p>
+            {/* Upload Area or Mapping Wizard */}
+            {!importConfig.isMapping ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/80 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                      <UploadCloud className="w-10 h-10 mb-4 text-primary" />
+                      <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold text-primary">Clique para escolher</span> ou arraste o arquivo</p>
+                      <p className="text-xs text-muted-foreground">Suporte para arquivos .xlsx ou .xls</p>
+                    </div>
+                    <Input id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept=".xlsx, .xls" disabled={isUploading} />
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex flex-col w-full h-48 border-2 border-dashed rounded-lg bg-muted p-4">
+                    <Label className="flex items-center gap-1.5 mb-2"><Keyboard className="h-4 w-4" /> Ou digite os números</Label>
+                    <Textarea
+                      placeholder="5511999998888&#10;5521988887777"
+                      className="flex-grow resize-none"
+                      value={manualContacts}
+                      onChange={e => setManualContacts(e.target.value)}
+                    />
                   </div>
-                  <Input id="file-upload" type="file" className="hidden" onChange={handleFileChange} accept=".xlsx, .xls" disabled={isUploading} />
-                </label>
-              </div>
-              <div className="space-y-2">
-                <div className="flex flex-col w-full h-48 border-2 border-dashed rounded-lg bg-muted p-4">
-                  <Label className="flex items-center gap-1.5 mb-2"><Keyboard className="h-4 w-4" /> Ou digite os números</Label>
-                  <Textarea
-                    placeholder="5511999998888&#10;5521988887777"
-                    className="flex-grow resize-none"
-                    value={manualContacts}
-                    onChange={e => setManualContacts(e.target.value)}
-                  />
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-6 animate-in slide-in-from-right-4">
+                <div className="bg-muted/30 p-6 rounded-lg border space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Settings className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-lg">Configurar Importação</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Phone Column */}
+                    <div className="space-y-2">
+                      <Label>Coluna de Telefone</Label>
+                      <select
+                        className="w-full p-2 border rounded-md bg-background"
+                        value={importConfig.phoneCol}
+                        onChange={(e) => setImportConfig(prev => ({ ...prev, phoneCol: e.target.value }))}
+                      >
+                        {importConfig.headers.map(h => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-muted-foreground">Coluna contendo os números de WhatsApp.</p>
+                    </div>
+
+                    {/* Name Column */}
+                    <div className="space-y-2">
+                      <Label>Coluna de Nome (Opcional)</Label>
+                      <select
+                        className="w-full p-2 border rounded-md bg-background"
+                        value={importConfig.nameCol}
+                        onChange={(e) => setImportConfig(prev => ({ ...prev, nameCol: e.target.value }))}
+                      >
+                        <option value="">-- Ignorar Nome --</option>
+                        {importConfig.headers.map(h => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {importConfig.nameCol && (
+                    <div className="space-y-4 pt-4 border-t">
+                      <Label className="block">Formatação de Nome</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                            importConfig.nameFormat === 'full' ? "bg-primary/10 border-primary" : "bg-card hover:bg-muted"
+                          )}
+                          onClick={() => setImportConfig(prev => ({ ...prev, nameFormat: 'full' }))}
+                        >
+                          <div className={cn("w-4 h-4 rounded-full border flex items-center justify-center", importConfig.nameFormat === 'full' ? "border-primary" : "border-muted-foreground")}>
+                            {importConfig.nameFormat === 'full' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">Nome Completo</p>
+                            <p className="text-xs text-muted-foreground">"Bruno Guerra Falcao"</p>
+                          </div>
+                        </div>
+
+                        <div
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                            importConfig.nameFormat === 'first' ? "bg-primary/10 border-primary" : "bg-card hover:bg-muted"
+                          )}
+                          onClick={() => setImportConfig(prev => ({ ...prev, nameFormat: 'first' }))}
+                        >
+                          <div className={cn("w-4 h-4 rounded-full border flex items-center justify-center", importConfig.nameFormat === 'first' ? "border-primary" : "border-muted-foreground")}>
+                            {importConfig.nameFormat === 'first' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">Apenas Primeiro Nome</p>
+                            <p className="text-xs text-muted-foreground">"Bruno"</p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        * Todos os nomes serão formatados automaticamente (Ex: "BRUNO" → "Bruno").
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button variant="outline" onClick={() => {
+                      setImportConfig(prev => ({ ...prev, isMapping: false, file: null, rows: [] }));
+                      if (document.getElementById('file-upload') as HTMLInputElement) {
+                        (document.getElementById('file-upload') as HTMLInputElement).value = '';
+                      }
+                    }}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={processImportMapping}>
+                      Confirmar Importação
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Save Audience Option */}
             <div className="bg-muted/30 p-4 rounded-lg border space-y-4">

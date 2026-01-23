@@ -3,7 +3,13 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Table as TableIcon, Inbox } from "lucide-react";
+import { CheckCircle, XCircle, Table as TableIcon, Inbox, AlertCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TableProps {
   data: any[];
@@ -24,6 +30,62 @@ export const DashboardTable = ({ data }: TableProps) => {
     }
   };
 
+  const getStatusBadge = (item: any) => {
+    const status = item.tipo_envio?.toLowerCase();
+
+    if (status === 'sucesso' || status === 'sent') {
+      return (
+        <Badge className="bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30 hover:bg-green-500/30">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Enviado
+        </Badge>
+      );
+    }
+
+    if (status === 'fila' || status === 'queued' || status === 'pending' || status === 'processing') {
+      return (
+        <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/20">
+          <Inbox className="w-3 h-3 mr-1" />
+          Fila
+        </Badge>
+      );
+    }
+
+    if (status === 'falha' || status === 'failed') {
+      let errorText = item.error_message || "Erro desconhecido";
+
+      // Try to parse JSON error if it looks like JSON
+      if (errorText.startsWith('{') || errorText.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(errorText);
+          // Extract meaningful message if possible
+          errorText = parsed.message || parsed.error || JSON.stringify(parsed, null, 2);
+        } catch (e) {
+          // Keep original text if parse fails
+        }
+      }
+
+      return (
+        <TooltipProvider>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger>
+              <Badge variant="destructive" className="cursor-help hover:bg-red-600">
+                <AlertCircle className="w-3 h-3 mr-1" />
+                Falha
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[300px] break-words bg-red-950 text-white border-red-800">
+              <p className="font-semibold mb-1">Detalhes do Erro:</p>
+              <pre className="text-xs whitespace-pre-wrap font-mono">{errorText}</pre>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return <span className="capitalize">{item.tipo_envio}</span>;
+  };
+
   return (
     <Card className="glass-card rounded-2xl card-premium animate-slide-in-up mb-12">
       <CardContent className="p-8">
@@ -42,8 +104,9 @@ export const DashboardTable = ({ data }: TableProps) => {
                   <TableHead>Data/Hora</TableHead>
                   <TableHead>Instância</TableHead>
                   <TableHead>Número</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Campanha</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead>Modo de Disparo</TableHead>
                   <TableHead>Usou IA?</TableHead>
                   <TableHead>Respondeu?</TableHead>
                   <TableHead>Mensagem</TableHead>
@@ -58,17 +121,22 @@ export const DashboardTable = ({ data }: TableProps) => {
                         {item.instancia}
                       </Badge>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate" title={item.numero}>
+                    <TableCell className="max-w-xs truncate font-mono text-xs" title={item.numero}>
                       {item.numero}
                     </TableCell>
-                    <TableCell className="capitalize">{item.tipo_envio}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(item)}
+                    </TableCell>
+                    <TableCell className="max-w-[150px] truncate" title={item.nome_campanha}>
+                      {item.nome_campanha || '-'}
+                    </TableCell>
                     <TableCell className="capitalize">
                       {(item.tipo_campanha || '').toLowerCase().includes('agendada') ? (
                         <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-300 border border-transparent hover:bg-blue-200">
                           Agendada
                         </Badge>
                       ) : (
-                        <Badge variant="secondary">
+                        <Badge variant="secondary" className="text-xs">
                           Pontual
                         </Badge>
                       )}
@@ -79,8 +147,8 @@ export const DashboardTable = ({ data }: TableProps) => {
                           <CheckCircle className="h-3 w-3 mr-1" /> Sim
                         </Badge>
                       ) : (
-                        <Badge variant="destructive">
-                          <XCircle className="h-3 w-3 mr-1" /> Não
+                        <Badge variant="outline" className="text-gray-500 dark:text-gray-400">
+                          Não
                         </Badge>
                       )}
                     </TableCell>
@@ -93,7 +161,7 @@ export const DashboardTable = ({ data }: TableProps) => {
                         <span className="text-gray-400 text-xs">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-lg truncate" title={item.texto}>
+                    <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground" title={item.texto}>
                       {item.texto?.substring(0, 60)}...
                     </TableCell>
                   </TableRow>

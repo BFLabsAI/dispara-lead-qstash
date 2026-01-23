@@ -28,8 +28,8 @@ const CampaignSchedulerPage = () => {
   const [content, setContent] = useState("");
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [variables, setVariables] = useState<string[]>([]);
-  const [tempoMin, setTempoMin] = useState(2);
-  const [tempoMax, setTempoMax] = useState(5);
+  const [tempoMin, setTempoMin] = useState(30);
+  const [tempoMax, setTempoMax] = useState(60);
   const [usarIA, setUsarIA] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
 

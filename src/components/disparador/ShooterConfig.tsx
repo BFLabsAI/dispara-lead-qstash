@@ -23,8 +23,8 @@ export const ShooterConfig = () => {
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
   const [variables, setVariables] = useState<string[]>([]);
   const [templates, setTemplates] = useState<any[]>([{ type: 'texto', text: '', mediaUrl: '' }]);
-  const [tempoMin, setTempoMin] = useState(15);
-  const [tempoMax, setTempoMax] = useState(25);
+  const [tempoMin, setTempoMin] = useState(30);
+  const [tempoMax, setTempoMax] = useState(60);
   const [usarIA, setUsarIA] = useState(false);
   const [isSending, setIsSending] = useState(false);
 

@@ -35,6 +35,8 @@ export const AudienceSplitUpload = ({ onSuccess }: AudienceSplitUploadProps) => 
 
     // Mapping State
     const [selectedPhoneCol, setSelectedPhoneCol] = useState<string>("");
+    const [selectedNameCol, setSelectedNameCol] = useState<string>("");
+    const [nameFormat, setNameFormat] = useState<'full' | 'first'>('full');
     const [selectedVarCols, setSelectedVarCols] = useState<string[]>([]);
 
     // Config State
@@ -129,6 +131,12 @@ export const AudienceSplitUpload = ({ onSuccess }: AudienceSplitUploadProps) => 
                 setSelectedPhoneCol(headerRow[0]);
             }
 
+            // Auto-detect name column (look for 'nome', 'name', 'cliente')
+            const nameIdx = headerRow.findIndex(h => /^nome$|^name$|cliente/i.test(h));
+            if (nameIdx !== -1) {
+                setSelectedNameCol(headerRow[nameIdx]);
+            }
+
             setCurrentStep(1); // Move to mapping
         } catch (error) {
             console.error(error);
@@ -146,22 +154,41 @@ export const AudienceSplitUpload = ({ onSuccess }: AudienceSplitUploadProps) => 
         }
     };
 
+    // Title Case Helper
+    const toTitleCase = (str: string) => {
+        if (!str) return "";
+        return str.toLowerCase().replace(/(?:^|\s)\w/g, match => match.toUpperCase());
+    };
+
     const previewFormatted = useMemo(() => {
         const phoneIndex = headers.indexOf(selectedPhoneCol);
         if (phoneIndex === -1) return [];
 
+        const nameIndex = selectedNameCol ? headers.indexOf(selectedNameCol) : -1;
+
         return previewRows.map(row => {
             const rawPhone = row[phoneIndex];
             const formatted = formatBrazilPhone(rawPhone);
+
+            // Format name if selected
+            let formattedName: string | undefined;
+            if (nameIndex !== -1) {
+                const rawName = String(row[nameIndex] || "");
+                formattedName = toTitleCase(rawName);
+                if (nameFormat === 'first') {
+                    formattedName = formattedName.split(' ')[0];
+                }
+            }
+
             const vars = selectedVarCols.reduce((acc, col) => {
                 const idx = headers.indexOf(col);
                 if (idx !== -1) acc[col] = row[idx];
                 return acc;
             }, {} as Record<string, any>);
 
-            return { raw: rawPhone, formatted, ...vars };
+            return { raw: rawPhone, formatted, formattedName, ...vars };
         });
-    }, [headers, previewRows, selectedPhoneCol, selectedVarCols]);
+    }, [headers, previewRows, selectedPhoneCol, selectedNameCol, nameFormat, selectedVarCols]);
 
     // --- STEP 3: CONFIG ---
     const handleAddTag = (e: React.KeyboardEvent) => {
@@ -196,17 +223,23 @@ export const AudienceSplitUpload = ({ onSuccess }: AudienceSplitUploadProps) => 
 
                     if (!formatted) return null;
 
-                    if (!formatted) return null;
+                    // Format name using the selected column and format option
+                    let name: string | undefined;
+                    if (selectedNameCol) {
+                        const nameIdx = headers.indexOf(selectedNameCol);
+                        if (nameIdx !== -1) {
+                            const rawName = String(row[nameIdx] || "");
+                            name = toTitleCase(rawName);
+                            if (nameFormat === 'first') {
+                                name = name.split(' ')[0];
+                            }
+                        }
+                    }
 
-                    // Try to find a name if not explicit (optional)
-                    // If one variable is 'nome' or 'name', use it as main name too
-                    const nameCol = selectedVarCols.find(c => /nome|name/i.test(c));
-                    const name = nameCol ? String(row[headers.indexOf(nameCol)] || "") : undefined;
-
-                    // Extract Metadata
+                    // Extract Metadata (excluding phone and name columns)
                     const metadata = selectedVarCols.reduce((acc, col) => {
-                        // Skip if this column is the name column (avoid duplication)
-                        if (col === nameCol) return acc;
+                        // Skip if this is the name column (it's already in the name field)
+                        if (col === selectedNameCol) return acc;
 
                         const idx = headers.indexOf(col);
                         if (idx !== -1) acc[col] = String(row[idx] || "");
@@ -322,11 +355,55 @@ export const AudienceSplitUpload = ({ onSuccess }: AudienceSplitUploadProps) => 
                                     </Select>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>Variáveis (Opcional)</Label>
-                                    <p className="text-xs text-muted-foreground mb-2">Selecione as colunas que deseja usar na mensagem (ex: Nome, Pedido).</p>
-                                    <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
-                                        {headers.filter(h => h !== selectedPhoneCol).map(h => (
+                                {/* Name Column Selector */}
+                                <div className="space-y-2 pt-4 border-t">
+                                    <Label>Coluna de Nome (Opcional)</Label>
+                                    <p className="text-xs text-muted-foreground mb-2">Selecione a coluna com os nomes. Formatação automática será aplicada.</p>
+                                    <Select value={selectedNameCol || "__none__"} onValueChange={v => setSelectedNameCol(v === "__none__" ? "" : v)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="-- Não usar nome --" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__none__">-- Não usar nome --</SelectItem>
+                                            {headers.filter(h => h !== selectedPhoneCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {selectedNameCol && (
+                                    <div className="space-y-3 pt-3 animate-in slide-in-from-top-2">
+                                        <Label className="text-xs">Formatação do Nome</Label>
+                                        <div className="flex gap-3">
+                                            <div
+                                                className={cn(
+                                                    "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer text-sm",
+                                                    nameFormat === 'full' ? "border-primary bg-primary/10" : "hover:bg-muted"
+                                                )}
+                                                onClick={() => setNameFormat('full')}
+                                            >
+                                                <div className={cn("w-3 h-3 rounded-full border", nameFormat === 'full' ? "bg-primary border-primary" : "border-muted-foreground")} />
+                                                Nome Completo
+                                            </div>
+                                            <div
+                                                className={cn(
+                                                    "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer text-sm",
+                                                    nameFormat === 'first' ? "border-primary bg-primary/10" : "hover:bg-muted"
+                                                )}
+                                                onClick={() => setNameFormat('first')}
+                                            >
+                                                <div className={cn("w-3 h-3 rounded-full border", nameFormat === 'first' ? "bg-primary border-primary" : "border-muted-foreground")} />
+                                                Primeiro Nome
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">* Nomes serão convertidos para Capitalizado (Ex: "BRUNO" → "Bruno").</p>
+                                    </div>
+                                )}
+
+                                <div className="space-y-2 pt-4 border-t">
+                                    <Label>Variáveis Adicionais (Opcional)</Label>
+                                    <p className="text-xs text-muted-foreground mb-2">Selecione outras colunas para salvar como metadados (ex: Email, Empresa).</p>
+                                    <div className="border rounded-md p-3 max-h-32 overflow-y-auto space-y-2">
+                                        {headers.filter(h => h !== selectedPhoneCol && h !== selectedNameCol).map(h => (
                                             <div key={h} className="flex items-center space-x-2">
                                                 <Checkbox id={h} checked={selectedVarCols.includes(h)} onCheckedChange={() => toggleVarCol(h)} />
                                                 <label htmlFor={h} className="text-sm cursor-pointer select-none font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -345,7 +422,8 @@ export const AudienceSplitUpload = ({ onSuccess }: AudienceSplitUploadProps) => 
                                         <TableRow>
                                             <TableHead className="w-[100px]">Original</TableHead>
                                             <TableHead className="w-[120px]">Formatado</TableHead>
-                                            {selectedVarCols.slice(0, 2).map(v => <TableHead key={v}>{v}</TableHead>)}
+                                            {selectedNameCol && <TableHead className="w-[100px]">Nome</TableHead>}
+                                            {selectedVarCols.slice(0, 1).map(v => <TableHead key={v}>{v}</TableHead>)}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -353,7 +431,8 @@ export const AudienceSplitUpload = ({ onSuccess }: AudienceSplitUploadProps) => 
                                             <TableRow key={i}>
                                                 <TableCell className="text-xs truncate max-w-[100px]">{row.raw}</TableCell>
                                                 <TableCell className="text-xs font-medium text-green-600 truncate">{row.formatted || 'Inválido'}</TableCell>
-                                                {selectedVarCols.slice(0, 2).map(v => (
+                                                {selectedNameCol && <TableCell className="text-xs font-medium text-blue-600 truncate">{row.formattedName}</TableCell>}
+                                                {selectedVarCols.slice(0, 1).map(v => (
                                                     <TableCell key={v} className="text-xs truncate max-w-[80px]">{row[v]}</TableCell>
                                                 ))}
                                             </TableRow>

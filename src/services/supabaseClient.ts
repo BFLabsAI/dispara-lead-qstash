@@ -45,6 +45,8 @@ export interface DisparadorData {
   scheduled_for?: string;
   responded_at?: string;
   message_type?: string;
+  error_message?: string;
+  provider_response?: any;
 }
 
 interface SaaSLog {
@@ -61,6 +63,7 @@ interface SaaSLog {
   message_type?: string;
   provider_message_id?: string;
   provider_response?: any;
+  error_message?: string; // Added field to interface
   metadata?: {
     usaria?: boolean;
     publico?: string;
@@ -86,7 +89,9 @@ const mapSaaSLogToDisparadorData = (log: SaaSLog): DisparadorData => {
     created_at: log.created_at,
     scheduled_for: log.scheduled_for,
     responded_at: log.responded_at,
-    message_type: log.message_type || 'texto'
+    message_type: log.message_type || 'texto',
+    error_message: log.error_message, // Map error message
+    provider_response: log.provider_response // Map provider response
   };
 };
 

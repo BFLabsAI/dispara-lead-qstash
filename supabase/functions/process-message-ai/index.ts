@@ -95,23 +95,18 @@ serve(async (req) => {
             console.log(`[AI Debug] Params: HasKey=${!!OPENROUTER_API_KEY}, KeyLen=${OPENROUTER_API_KEY?.length}, ContentLen=${messageContent?.length}`);
 
             if (OPENROUTER_API_KEY) {
-                const systemPrompt = `REGRAS OBRIGATÓRIAS:
-1. Mantenha APENAS os elementos presentes no original (se tem saudação/emoji/despedida mantém, se não tem não adiciona)
-2. NÃO invente informações, contextos ou suposições que não existem no original
-3. Respeite o NÍVEL DE FORMALIDADE da mensagem original - não force informalidade excessiva
-4. Cada frase precisa fazer sentido lógico completo
+                const systemPrompt = `REGRAS OBRIGATÓRIAS (SEGURANÇA E FIDELIDADE):
+1. **PRESERVE TODAS AS ENTIDADES:** Nomes próprios (ex: Bruno, Maria), valores numéricos, datas, códigos e telefones DEVEM ser mantidos EXATAMENTE como no original.
+2. **NÃO REMOVA VARIÁVEIS:** Se a mensagem original tem um nome ou dado específico (que já foi substituído), ele deve aparecer na versão reescrita.
+3. Mantenha APENAS os elementos presentes no original (se tem saudação/emoji/despedida mantém, se não tem não adiciona).
+4. NÃO invente informações, contextos ou suposições que não existem no original.
+5. Respeite o NÍVEL DE FORMALIDADE da mensagem original.
+6. Cada frase precisa fazer sentido lógico completo.
 
 TAREFA:
-Reescreva essa mensagem criando uma versão diferente em estrutura e vocabulário, mantendo o mesmo propósito, informações e tom.
+Reescreva essa mensagem mantendo o propósito, tom e INFORMAÇÕES ORIGINAIS intactos. Varie apenas a estrutura das frases e sinônimos de palavras comuns, NUNCA os dados do contato.
 
-VARIE:
-- Estrutura das frases (ordem, tamanho)
-- Vocabulário (sinônimos naturais)
-- Forma de fazer perguntas
-
-Use português brasileiro natural, mas sem exageros de gírias ou informalidade. A mensagem deve soar como alguém conversando normalmente, não como quem está tentando forçar ser descolado.
-
-Responda SOMENTE com a mensagem reescrita.`;
+Use português brasileiro natural. Responda SOMENTE com a mensagem reescrita.`;
                 const models = [
                     "google/gemini-2.5-flash-lite-preview-09-2025",
                     "nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -208,7 +203,14 @@ Responda SOMENTE com a mensagem reescrita.`;
                     isSuccess = true;
                     uazapiMessageId = uazapiResponse?.key?.id;
                 } else {
-                    errorMessage = uazapiResponse?.message || response.statusText;
+                    // Capture the exact error from API
+                    if (uazapiResponse) {
+                        errorMessage = typeof uazapiResponse === 'object'
+                            ? JSON.stringify(uazapiResponse)
+                            : String(uazapiResponse);
+                    } else {
+                        errorMessage = response.statusText;
+                    }
                 }
             } catch (error) {
                 errorMessage = (error as Error).message;
@@ -339,10 +341,21 @@ Fim: ${endTime}`;
             }
             return new Response(JSON.stringify({ success: true, id: uazapiMessageId }), { headers: { "Content-Type": "application/json" }, status: 200 });
         } else {
-            return new Response(JSON.stringify({ success: false, error: errorMessage }), { status: 500 });
+            // IMPORTANT: Return 200 OK even if delivery failed (e.g. invalid number) to stop QStash from retrying forever.
+            // Consider 500 only for transient network errors, but for logic errors (invalid number, auth error), return 200.
+            return new Response(JSON.stringify({ success: false, error: errorMessage }), {
+                headers: { "Content-Type": "application/json" },
+                status: 200 // Return 200 to acknowledge receipt and prevent QStash retries
+            });
         }
     } catch (error) {
-        console.error("Global Error:", error);
-        return new Response((error as Error).message, { status: 500 });
+        console.error("Global Error in process-message-ai:", error);
+        return new Response(JSON.stringify({
+            error: (error as Error).message,
+            stack: (error as Error).stack
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 });
