@@ -31,9 +31,10 @@ interface ChatWindowProps {
     selectedInstance: string | null;
     selectedContact: any | null;
     onToggleDetails?: () => void;
+    onBack?: () => void;
 }
 
-export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails }: ChatWindowProps) {
+export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails, onBack }: ChatWindowProps) {
     const [messages, setMessages] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState("");
     const [sending, setSending] = useState(false);
@@ -365,6 +366,11 @@ export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails 
         <div className={cn("flex flex-1 flex-col overflow-hidden", COLORS.light.bg, COLORS.dark.bg)}>
             {/* Header - Compact */}
             <div className="flex items-center gap-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 shadow-sm z-10 dark:border-gray-800">
+                {onBack && (
+                    <Button variant="ghost" size="icon" className="md:hidden shrink-0 -ml-2" onClick={onBack}>
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                )}
                 <Avatar className="h-9 w-9">
                     <AvatarImage src={selectedContact.profile_pic_url} />
                     <AvatarFallback className="text-xs">{selectedContact.name?.charAt(0) || <Bot className="h-4 w-4" />}</AvatarFallback>

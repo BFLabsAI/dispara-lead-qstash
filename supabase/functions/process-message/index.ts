@@ -22,17 +22,24 @@ serve(async (req) => {
     }
 
     try {
+
         const body = await req.text();
+        console.log(`[Process-Message] Received body: ${body.substring(0, 500)}...`); // Log first 500 chars
+
         const isValid = await receiver.verify({ signature, body });
 
         if (!isValid) {
+            console.error("[Process-Message] Invalid signature");
             return new Response("Invalid signature", { status: 401 });
         }
 
         const payload = JSON.parse(body);
         const { messageId, phoneNumber, messageContent, instanceName, campaignId, tenantId, mediaUrl, mediaType } = payload;
 
+        console.log(`[Process-Message] Processing messageId: ${messageId}, campaignId: ${campaignId}, instance: ${instanceName}`);
+
         if (!messageId || !phoneNumber || !instanceName || !campaignId) {
+            console.error(`[Process-Message] Missing required fields: ${JSON.stringify(payload)}`);
             return new Response("Missing required fields", { status: 400 });
         }
 
@@ -313,7 +320,13 @@ Fim: ${endTime}`;
             return new Response(JSON.stringify({ success: false, error: errorMessage }), { status: 500 });
         }
     } catch (error) {
-        console.error(error);
-        return new Response((error as Error).message, { status: 500 });
+        console.error("[Process-Message] Unhandled Error:", error);
+        return new Response(JSON.stringify({
+            error: (error as Error).message,
+            stack: (error as Error).stack
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 });

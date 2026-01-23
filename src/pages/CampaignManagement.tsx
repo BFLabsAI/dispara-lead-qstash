@@ -223,13 +223,13 @@ export default function CampaignManagement() {
     const isEditable = campaign.status !== 'cancelled' && campaign.status !== 'completed';
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-center gap-4 mb-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <div className="p-4 sm:p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+                <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div className="flex-1">
-                    <h1 className="text-2xl font-bold flex items-center gap-3">
+                    <h1 className="text-xl sm:text-2xl font-bold flex flex-wrap items-center gap-3">
                         {campaign.name}
                         {(() => {
                             const isFuture = campaign.scheduled_for && new Date(campaign.scheduled_for) > new Date();
@@ -256,21 +256,21 @@ export default function CampaignManagement() {
                     <p className="text-muted-foreground text-sm">Criado em {new Date(campaign.created_at).toLocaleString()}</p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
                     {campaign.status === 'processing' && (
-                        <Button variant="secondary" onClick={handlePause} disabled={loading}>
+                        <Button variant="secondary" onClick={handlePause} disabled={loading} className="whitespace-nowrap">
                             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Pause className="h-4 w-4 mr-2" />}
                             Pausar
                         </Button>
                     )}
                     {campaign.status === 'paused' && (
-                        <Button variant="default" onClick={handleResume} disabled={loading}>
+                        <Button variant="default" onClick={handleResume} disabled={loading} className="whitespace-nowrap">
                             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
                             Retomar
                         </Button>
                     )}
                     {(campaign.status === 'processing' || campaign.status === 'paused' || campaign.status === 'pending') && (
-                        <Button variant="destructive" onClick={handleCancel} disabled={loading}>
+                        <Button variant="destructive" onClick={handleCancel} disabled={loading} className="whitespace-nowrap">
                             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <XCircle className="h-4 w-4 mr-2" />}
                             Cancelar
                         </Button>
@@ -279,45 +279,45 @@ export default function CampaignManagement() {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <Card>
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">Total</p>
-                            <h2 className="text-2xl font-bold">{stats.total}</h2>
+                            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total</p>
+                            <h2 className="text-xl sm:text-2xl font-bold">{stats.total}</h2>
                         </div>
-                        <MessageSquare className="h-8 w-8 text-blue-500/20" />
+                        <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500/20" />
                     </CardContent>
                 </Card>
                 <Card>
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">Enviadas</p>
-                            <h2 className="text-2xl font-bold text-green-600">{stats.sent}</h2>
+                            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Enviadas</p>
+                            <h2 className="text-xl sm:text-2xl font-bold text-green-600">{stats.sent}</h2>
                         </div>
-                        <CheckCircle className="h-8 w-8 text-green-500/20" />
+                        <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-500/20" />
                     </CardContent>
                 </Card>
                 <Card>
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">Falhas</p>
-                            <h2 className="text-2xl font-bold text-red-600">{stats.failed}</h2>
+                            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Falhas</p>
+                            <h2 className="text-xl sm:text-2xl font-bold text-red-600">{stats.failed}</h2>
                         </div>
-                        <AlertCircle className="h-8 w-8 text-red-500/20" />
+                        <AlertCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500/20" />
                     </CardContent>
                 </Card>
                 <Card>
                     <CardContent className="p-4 flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">
+                            <p className="text-xs sm:text-sm font-medium text-muted-foreground">
                                 {stats.paused > 0 ? 'Pausadas' : 'Na Fila'}
                             </p>
-                            <h2 className="text-2xl font-bold text-orange-600">
+                            <h2 className="text-xl sm:text-2xl font-bold text-orange-600">
                                 {stats.paused > 0 ? stats.paused : stats.queued}
                             </h2>
                         </div>
-                        <Clock className="h-8 w-8 text-orange-500/20" />
+                        <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500/20" />
                     </CardContent>
                 </Card>
             </div>
@@ -345,7 +345,7 @@ export default function CampaignManagement() {
                                                 value={msg.content}
                                                 onChange={(e) => handleUpdateMessage(index, 'content', e.target.value)}
                                                 disabled={!isEditable}
-                                                className="min-h-[300px] bg-background text-foreground"
+                                                className="min-h-[200px] sm:min-h-[300px] bg-background text-foreground"
                                                 placeholder={msg.type !== 'texto' ? 'Legenda (opcional)' : 'Conteúdo da mensagem'}
                                             />
                                             {msg.type === 'texto' && (
@@ -360,7 +360,7 @@ export default function CampaignManagement() {
                                             <div className="space-y-2">
                                                 <Label>Arquivo de Mídia</Label>
                                                 {msg.mediaUrl ? (
-                                                    <div className="relative w-48 rounded-lg overflow-hidden border bg-background">
+                                                    <div className="relative w-full sm:w-48 rounded-lg overflow-hidden border bg-background">
                                                         {msg.type === 'video' ? (
                                                             <video src={msg.mediaUrl} controls className="w-full h-auto" />
                                                         ) : msg.type === 'audio' ? (
@@ -378,7 +378,7 @@ export default function CampaignManagement() {
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <div className="h-32 w-48 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/20 text-muted-foreground text-sm">
+                                                    <div className="h-32 w-full sm:w-48 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/20 text-muted-foreground text-sm">
                                                         Sem mídia
                                                     </div>
                                                 )}
@@ -429,7 +429,7 @@ export default function CampaignManagement() {
                         <CardContent className="space-y-4 text-sm">
                             <div>
                                 <span className="font-semibold block">Público Alvo</span>
-                                <span className="text-muted-foreground">{campaign.target_audience}</span>
+                                <span className="text-muted-foreground break-all">{campaign.target_audience}</span>
                             </div>
                             <div>
                                 <span className="font-semibold block">Instâncias</span>

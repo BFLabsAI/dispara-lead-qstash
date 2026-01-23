@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { ChatDetails } from "@/components/chat/ChatDetails";
-
+import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 export default function ChatsPage() {
@@ -26,18 +26,31 @@ export default function ChatsPage() {
 
     return (
         <div className="flex h-[calc(100vh-6rem)] overflow-hidden rounded-lg border bg-background shadow-sm">
+            {/* Sidebar: Show if NO contact selected (mobile) OR always on Desktop */}
             <ChatSidebar
+                className={cn(
+                    "flex-shrink-0",
+                    selectedContact ? "hidden md:flex" : "flex w-full md:w-80"
+                )}
                 selectedInstance={selectedInstance}
                 onSelectInstance={handleSelectInstance}
                 selectedContact={selectedContact}
                 onSelectContact={setSelectedContact}
                 refreshTrigger={refreshTrigger}
             />
-            <ChatWindow
-                selectedInstance={selectedInstance}
-                selectedContact={selectedContact}
-                onToggleDetails={() => setIsDetailsOpen(true)}
-            />
+
+            {/* Chat Window: Show if contact selected (mobile) OR always on Desktop */}
+            <div className={cn(
+                "flex-1 flex-col",
+                !selectedContact ? "hidden md:flex" : "flex"
+            )}>
+                <ChatWindow
+                    selectedInstance={selectedInstance}
+                    selectedContact={selectedContact}
+                    onToggleDetails={() => setIsDetailsOpen(true)}
+                    onBack={() => setSelectedContact(null)}
+                />
+            </div>
 
             {/* Desktop Details */}
             {selectedContact && (

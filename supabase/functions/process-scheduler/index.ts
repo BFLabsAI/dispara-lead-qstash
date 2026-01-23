@@ -11,6 +11,8 @@ const PROCESS_MESSAGE_URL = Deno.env.get('PROCESS_MESSAGE_URL') ?? ''; // URL of
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const qstash = new Client({ token: QSTASH_TOKEN });
 
+const PROCESS_MESSAGE_URL_AI = `${SUPABASE_URL}/functions/v1/process-message-ai`;
+
 Deno.serve(async (req) => {
     try {
         // 1. Fetch pending schedules that are due
@@ -53,44 +55,14 @@ Deno.serve(async (req) => {
 
             // 3. Fan-out to QStash
             // We create one job per contact per template
-            const promises = [];
 
-            for (let i = 0; i < contacts.length; i++) {
-                const contact = contacts[i];
-                const instanceName = instances[i % instances.length]; // Round-robin
+            const delayMin = campaign.delay_min || 3;
+            const delayMax = campaign.delay_max || 8;
+            let accumulatedDelay = 0;
+            const baseTime = Date.now();
 
-                for (const template of templates) {
-                    let text = template.text;
-                    // Simple variable replacement
-                    text = text.replace(/{nome}/g, contact.nome || '');
-                    text = text.replace(/{telefone}/g, contact.telefone || '');
+            const useAI = campaign.content_configuration?.use_ai || campaign.use_ai || false;
 
-                    // Prepare payload for process-message
-                    const payload = {
-                        messageId: crypto.randomUUID(), // Generate ID here or let process-message do it? Better here to track.
-                        // Actually, process-message expects to UPDATE a log. 
-                        // We should probably INSERT the log here as 'pending' so we have an ID to pass.
-                        // BUT inserting 1000 rows here might be slow.
-                        // BETTER: Let process-message INSERT the log.
-                        // WAIT: process-message code I saw earlier does UPDATE.
-                        // Let's check process-message again. It does UPDATE.
-                        // So we MUST insert the log here.
-
-                        phoneNumber: contact.telefone,
-                        messageContent: text,
-                        instanceName: instanceName,
-                        campaignId: campaign.id,
-                        tenantId: campaign.tenant_id,
-                        mediaUrl: template.mediaUrl,
-                        mediaType: template.mediaType
-                    };
-
-                    // We need to insert the log entry first so process-message can update it.
-                    // To avoid 1000 inserts, we can do a bulk insert first.
-                }
-            }
-
-            // BULK INSERT LOGS
             const logEntries = [];
             const qstashPayloads = [];
 
@@ -100,10 +72,24 @@ Deno.serve(async (req) => {
 
                 for (const template of templates) {
                     let text = template.text;
+                    const hasText = text && text.trim().length > 0;
+
+                    // Simple variable replacement
                     text = text.replace(/{nome}/g, contact.nome || '');
                     text = text.replace(/{telefone}/g, contact.telefone || '');
+                    // Also support @variable syntax if used
+                    text = text.replace(/@(\w+)/g, (_: string, key: string) => {
+                        return contact[key] || "";
+                    });
 
                     const messageId = crypto.randomUUID();
+
+                    // Calculate Delay
+                    const randomDelay = Math.floor(Math.random() * (delayMax - delayMin + 1) + delayMin) * 1000;
+                    accumulatedDelay += randomDelay;
+                    const deliveryTime = baseTime + accumulatedDelay;
+
+                    const shouldUseAI = useAI && hasText;
 
                     logEntries.push({
                         id: messageId,
@@ -111,12 +97,15 @@ Deno.serve(async (req) => {
                         instance_name: instanceName,
                         phone_number: contact.telefone,
                         message_content: text,
-                        status: 'pending', // Initial status
+                        status: 'queued', // Correctly mark as queued immediately
                         campaign_name: campaign.campaign_name,
                         campaign_type: 'scheduled',
                         metadata: {
-                            schedule_id: campaign.id
-                        }
+                            schedule_id: campaign.id,
+                            ai_rewritten: shouldUseAI
+                        },
+                        created_at: new Date().toISOString(),
+                        scheduled_for: new Date(deliveryTime).toISOString()
                     });
 
                     qstashPayloads.push({
@@ -127,7 +116,9 @@ Deno.serve(async (req) => {
                         campaignId: campaign.id,
                         tenantId: campaign.tenant_id,
                         mediaUrl: template.mediaUrl,
-                        mediaType: template.mediaType
+                        mediaType: template.mediaType,
+                        notBefore: Math.floor(deliveryTime / 1000),
+                        destinationUrl: shouldUseAI ? PROCESS_MESSAGE_URL_AI : PROCESS_MESSAGE_URL
                     });
                 }
             }
@@ -157,17 +148,25 @@ Deno.serve(async (req) => {
                 const chunk = qstashPayloads.slice(i, i + chunkSize);
 
                 // Construct batch request
-                const batch = chunk.map(p => ({
-                    url: PROCESS_MESSAGE_URL,
-                    body: JSON.stringify(p),
-                    headers: { "Content-Type": "application/json" }
-                }));
+                const batch = chunk.map(p => {
+                    const dest = p.destinationUrl || PROCESS_MESSAGE_URL;
+                    // Remove destinationUrl from body so it doesn't clutter payload
+                    const { destinationUrl, ...rest } = p;
+
+                    return {
+                        url: dest,
+                        body: JSON.stringify(rest),
+                        headers: { "Content-Type": "application/json" },
+                        notBefore: p.notBefore
+                    };
+                });
 
                 try {
                     await qstash.batch(batch);
                     scheduledCount += chunk.length;
+                    console.log(`[Process-Scheduler] Successfully batched ${chunk.length} messages for campaign ${campaign.id}`);
                 } catch (err) {
-                    console.error('QStash batch error:', err);
+                    console.error(`[Process-Scheduler] QStash batch error for campaign ${campaign.id}:`, err);
                     errorCount += chunk.length;
                 }
             }

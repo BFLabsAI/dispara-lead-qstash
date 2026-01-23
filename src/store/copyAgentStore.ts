@@ -73,6 +73,7 @@ interface CopyAgentState {
   loadChats: () => Promise<void>;
   startNewChat: (templateUsed?: string, initialMessageContent?: string) => Promise<void>;
   selectChat: (chatId: string) => void;
+  clearSelection: () => void; // New Action
   deleteChat: (chatId: string) => Promise<void>;
   renameChat: (chatId: string, newName: string) => Promise<void>;
   sendMessage: (messageContent: string, templateUsed?: string) => Promise<void>;
@@ -143,7 +144,7 @@ const buildSystemPrompt = (settings: CompanySettings | null, templateId?: string
     # STATUS: SEM CONTEXTO DA EMPRESA
     O usuário ainda não configurou os dados da empresa.
     
-     SUA TAREFA:
+    SUA TAREFA:
     1. Aja como um consultor proativo.
     2. Explique que para criar campanhas de alta conversão, você precisa de alguns dados.
     3. Peça educadamente: Nome da empresa, Segmento, Produto Principal e Pessoa Alvo.
@@ -199,6 +200,7 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
   isCompanySettingsModalOpen: false,
 
   // --- Chat Actions ---
+
   loadChats: async () => {
     set({ isChatLoading: true });
     try {
@@ -309,6 +311,10 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
     } finally {
       set({ isChatLoading: false });
     }
+  },
+
+  clearSelection: () => {
+    set({ currentChatId: null });
   },
 
   deleteChat: async (chatId: string) => {

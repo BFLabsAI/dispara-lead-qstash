@@ -23,6 +23,7 @@ interface ChatSidebarProps {
     selectedContact: any | null;
     onSelectContact: (contact: any) => void;
     refreshTrigger?: number;
+    className?: string;
 }
 
 const cleanPhone = (phone: string | null | undefined) => {
@@ -37,7 +38,8 @@ export function ChatSidebar({
     onSelectInstance,
     selectedContact,
     onSelectContact,
-    refreshTrigger = 0
+    refreshTrigger = 0,
+    className
 }: ChatSidebarProps) {
     // ... cleanPhone, arePhonesEquivalent ...
     const [instances, setInstances] = useState<any[]>([]);
@@ -141,7 +143,7 @@ export function ChatSidebar({
     // ...
 
     return (
-        <div className="flex w-72 sm:w-80 flex-col border-r bg-background dark:border-gray-800">
+        <div className={cn("flex w-full md:w-80 flex-col border-r bg-background dark:border-gray-800", className)}>
             {/* Header ... */}
             <div className="p-3 border-b dark:border-gray-800 bg-muted/10">
                 <div className="flex items-center justify-between mb-3">
