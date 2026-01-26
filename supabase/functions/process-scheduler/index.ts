@@ -71,7 +71,8 @@ Deno.serve(async (req) => {
                 const instanceName = instances[i % instances.length];
 
                 for (const template of templates) {
-                    let text = template.text;
+                    // Support both 'text' and 'content' properties (legacy vs new)
+                    let text = template.text || template.content || '';
                     const hasText = text && text.trim().length > 0;
 
                     // Simple variable replacement

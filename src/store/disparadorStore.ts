@@ -456,7 +456,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             metadata: {
               publico: publicTarget,
               criativo: content,
-              contact_data: contact // Snapshot for reprocessing
+              contact_data: contact, // Snapshot for reprocessing
+              usaria: shouldUseAI,
+              ai_rewritten: shouldUseAI
             },
             media_url: template.mediaUrl || null
           });
@@ -472,9 +474,8 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             mediaUrl: template.mediaUrl,
             mediaType: template.type !== 'texto' ? template.type : undefined,
             notBefore: Math.floor(deliveryTime / 1000),
-            destinationUrl: shouldUseAI
-              ? `${SUPABASE_URL}/functions/v1/process-message-ai`
-              : undefined
+            useAI: shouldUseAI,
+            destinationUrl: undefined // Let enqueue-campaign handle routing based on useAI flag
           };
 
           messagesToEnqueue.push(qstashPayload);
@@ -683,6 +684,7 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
               publico: campSettings?.target_audience,
               criativo: campSettings?.creative,
               contact_data: contact,
+              usaria: shouldUseAI,
               ai_rewritten: shouldUseAI // Mark as AI candidate
             },
             media_url: template.mediaUrl || null
@@ -698,9 +700,8 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
             mediaUrl: template.mediaUrl,
             mediaType: template.type !== 'texto' ? template.type : undefined,
             notBefore: Math.floor(deliveryTime / 1000),
-            destinationUrl: shouldUseAI
-              ? `${SUPABASE_URL}/functions/v1/process-message-ai` // Point to AI function
-              : undefined,
+            useAI: shouldUseAI,
+            destinationUrl: undefined,
             label: campaignLabel
           };
 

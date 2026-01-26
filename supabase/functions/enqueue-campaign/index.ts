@@ -65,7 +65,14 @@ serve(async (req) => {
             if (!destinationUrl) {
                 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
                 const baseUrl = supabaseUrl.startsWith('http') ? supabaseUrl : `https://${supabaseUrl}`;
-                destinationUrl = `${baseUrl}/functions/v1/process-message`;
+
+                // Server-side routing decision
+                if (msg.useAI) {
+                    destinationUrl = `${baseUrl}/functions/v1/process-message-ai`;
+                    console.log(`[Enqueue] Routing to AI Function due to useAI=true`);
+                } else {
+                    destinationUrl = `${baseUrl}/functions/v1/process-message`;
+                }
             }
 
             // Ensure schema

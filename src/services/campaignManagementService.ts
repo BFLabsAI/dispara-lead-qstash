@@ -127,32 +127,34 @@ export const campaignManagementService = {
             // Our status is 'paused'. So it will PROCEED.
             // Good.
 
-            const messagesToEnqueue = pausedMessages.map(msg => {
-                // Calculate new delays?
-                // If we resume, do we want to respect the original scheduled time? 
-                // If original time passed, it sends immediately.
-                // If we want to maintain the "staggered" delivery (delay_min/max), we might need to recalculate.
-                // The simplest "Resume" is just "Send Now" (or respect original schedule if future).
-                // QStash `notBefore`: if timestamp is past, sends immediately. 
-                // But what about `delay`?
-                // Let's just send them. If user wants to "spread" them out again, logic gets complex.
-                // For now: Send as is (respecting original 'scheduled_for' if valid, or immediate).
+            const messagesToEnqueue = pausedMessages.map((msg, index) => {
+                // --- Recalculate Delays for Smart Resume ---
+                // To avoid "bursts" (sending all old scheduled msgs at once), we must reschedule them
+                // starting from NOW, respecting the original interval (or a default safe interval).
 
-                const scheduledTime = msg.scheduled_for ? new Date(msg.scheduled_for).getTime() / 1000 : undefined;
+                // We'll apply a default random jitter between 30-60s if we can't find the original config easily,
+                // or just space them out by 10 seconds to be safe/smooth.
+                // Better: Use a fixed stagger of 15 seconds between messages to guarantee flow.
+                const staggerSeconds = 15;
+                const baseTime = Date.now();
+                const newDelay = (index * staggerSeconds * 1000) + Math.floor(Math.random() * 5000); // 15s * index + 0-5s jitter
+                const newScheduledTime = baseTime + newDelay;
+
+                // Determine AI usage from metadata
+                const useAI = msg.metadata?.usaria || msg.metadata?.ai_rewritten || false;
 
                 return {
-                    messageId: msg.id,
+                    messageId: msg.id, // Reuse ID for idempotency/logs
                     phoneNumber: msg.phone_number,
-                    messageContent: msg.message_content, // Use Log content
+                    messageContent: msg.message_content,
                     instanceName: msg.instance_name,
                     campaignId: msg.campaign_id,
                     tenantId: msg.tenant_id,
                     mediaUrl: msg.media_url,
                     mediaType: msg.message_type !== 'texto' ? msg.message_type : undefined,
-                    notBefore: scheduledTime, // If in past, sends now.
-                    label: campaignId
-                    // destinationUrl? If it was AI... we might not know from logs easily unless we check metadata or assume standard.
-                    // Let's assume standard `process-message`.
+                    notBefore: Math.floor(newScheduledTime / 1000), // Smart Resume: Future timestamp
+                    label: campaignId,
+                    useAI: useAI // Explicitly pass AI flag
                 };
             });
 

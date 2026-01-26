@@ -341,11 +341,9 @@ Fim: ${endTime}`;
             }
             return new Response(JSON.stringify({ success: true, id: uazapiMessageId }), { headers: { "Content-Type": "application/json" }, status: 200 });
         } else {
-            // IMPORTANT: Return 200 OK even if delivery failed (e.g. invalid number) to stop QStash from retrying forever.
-            // Consider 500 only for transient network errors, but for logic errors (invalid number, auth error), return 200.
             return new Response(JSON.stringify({ success: false, error: errorMessage }), {
                 headers: { "Content-Type": "application/json" },
-                status: 200 // Return 200 to acknowledge receipt and prevent QStash retries
+                status: 500 // Return 500 to allow QStash to retry transcient errors
             });
         }
     } catch (error) {
