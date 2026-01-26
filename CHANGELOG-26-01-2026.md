@@ -1,6 +1,6 @@
 # Changelog
 
-## [v1.3.0] - 26-01-2026
+## [v1.3.1] - 26-01-2026
 
 ### 🚀 Novidades (Features)
 
@@ -13,30 +13,28 @@
 
 ### 🐛 Correções & Melhorias (Fixes & Improvements)
 
+- **Campanhas Travadas (Crítico):** Corrigido bug crítico que fazia algumas campanhas "travarem" ou pararem de enviar aleatoriamente. O processo de disparo foi blindado. 🛡️
+- **Envio com IA:** Ajustada a marcação e processamento de mensagens enviadas com Inteligência Artificial, garantindo que a flag seja espeitada.
 - **Correção de Erro 406 (Detalhes do Contato):** Ao selecionar um contato que nunca recebeu campanha, o sistema exibia um erro. Corrigido para tratar esse cenário graciosamente.
 - **Renderização de Stickers:** Stickers (figurinhas) agora são processados corretamente pelo webhook. Figurinhas antigas com links quebrados exibem um placeholder "Sticker (Não processado)" em vez de imagem quebrada.
 - **Layout da Lista de Contatos:**
-    - **Nomes Longos:** Nomes de contatos agora podem ocupar **até 2 linhas** antes de cortar, em vez de sempre truncar na primeira linha.
+    - **Nomes Longos:** Nomes de contatos agora podem ocupar **até 2 linhas** antes de cortar.
     - **Prévia de Mensagem:** O texto da última mensagem também pode ocupar até 2 linhas.
-    - **Largura Aumentada:** Barra lateral ampliada para 384px, dando mais espaço para nomes, telefones e instâncias.
-    - **Tooltips:** Ao passar o mouse sobre texto cortado, o conteúdo completo aparece em uma dica flutuante.
+    - **Largura Aumentada:** Barra lateral ampliada para 384px.
+    - **Tooltips:** Hover para ler textos cortados.
 
 ---
 
 ## 📱 Texto para Envio aos Clientes (WhatsApp)
 
 Oi! 🎉
-Atualizamos a plataforma com várias melhorias. Confira:
+Hoje a atualização foi grande! O sistema está mais rápido e estável.
 
-✅ **Lista de Contatos Infinita:** Agora você pode rolar sem parar na lista de atendimento. Nada de limite! Ele carrega mais contatos automaticamente. 📜♾️
+✅ **Campanhas Mais Seguras:** Resolvemos de vez os casos de campanhas que "travavam". Agora o envio é garantido. 🛡️
+✅ **Lista de Contatos Infinita:** Pode rolar à vontade! Não tem mais limite de contatos na tela. 📜♾️
+✅ **Super Velocidade:** O carregamento do chat está **140x virado no jiraia**! 🚀
+✅ **IA Ajustada:** O envio com Inteligência Artificial foi calibrado para funcionar perfeitamente. 🤖
+✅ **Visual Melhorado:** Nomes longos agora aparecem em 2 linhas e as figurinhas (stickers) voltam a funcionar! 🎨
 
-✅ **Muito Mais Rápido:** O carregamento dos contatos ficou **140 vezes mais veloz!** Menos espera, mais produtividade. 🚀
-
-✅ **Nomes Aparecem Completos:** Nomes longos agora vão para a próxima linha em vez de cortar. Você consegue ler tudo sem precisar adivinhar. 👁️
-
-✅ **Stickers Funcionando:** As figurinhas que você recebe agora aparecem corretamente no chat. 🧩
-
-✅ **Correções Gerais:** Vários ajustes de estabilidade para uma experiência mais suave.
-
-Atualize a página e aproveite! 🔄
-Qualquer coisa, só chamar. 💬
+Atualize a página para garantir todas as correções! 🔄
+Qualquer dúvida, estamos por aqui. �
