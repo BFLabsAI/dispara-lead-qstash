@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Search, User, Megaphone, Globe } from "lucide-react";
+import { Search, User, Megaphone, Globe, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,11 +45,13 @@ export function ChatSidebar({
     const [instances, setInstances] = useState<any[]>([]);
     const [contacts, setContacts] = useState<any[]>([]);
     const [search, setSearch] = useState("");
+    const [offset, setOffset] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
+    const PAGE_SIZE = 50;
 
     // Fetch Instances
     useEffect(() => {
-        // ... same logic ...
         const fetchInstances = async () => {
             const { data } = await supabase
                 .from("instances_dispara_lead_saas_02")
@@ -66,37 +68,83 @@ export function ChatSidebar({
         fetchInstances();
     }, []);
 
-    // Fetch Contacts for Instance
+    // Reset pagination when instance changes
     useEffect(() => {
+        setContacts([]);
+        setOffset(0);
+        setHasMore(true);
+        // Initial fetch handled by the main effect below
+    }, [selectedInstance, refreshTrigger]);
+
+    // Fetch Contacts Function (Pagination)
+    const fetchContacts = async (isInitial = false) => {
         if (!selectedInstance) return;
+        if (loading) return;
+        if (!isInitial && !hasMore) return; // Stop if no more data
 
         setLoading(true);
-        const fetchContacts = async () => {
 
-            // Call the database function to get filtered contacts directly
+        const currentOffset = isInitial ? 0 : offset;
+
+        try {
             const { data, error } = await supabase
                 .rpc('get_instance_contacts', {
-                    p_instance_name: selectedInstance === 'all' ? null : selectedInstance
+                    p_instance_name: selectedInstance === 'all' ? null : selectedInstance,
+                    p_limit: PAGE_SIZE,
+                    p_offset: currentOffset
                 });
 
             if (error) {
                 console.error("Debug: Error fetching contacts via RPC", error);
-                toast.error("Erro ao carregar contatos.");
+
+                // If the error is related to parameter mismatch (old cached signature), try without pagination as fallback
+                if (error.code === '42883') { // Undefined function
+                    console.warn("RPC mismatch, trying fallback w/o pagination");
+                    const { data: fallbackData } = await supabase.rpc('get_instance_contacts', {
+                        p_instance_name: selectedInstance === 'all' ? null : selectedInstance
+                    });
+                    if (fallbackData) {
+                        setContacts(fallbackData);
+                        setHasMore(false);
+                    }
+                } else {
+                    toast.error("Erro ao carregar contatos.");
+                }
                 setLoading(false);
                 return;
             }
 
             if (data) {
-                setContacts(data);
+                if (isInitial) {
+                    setContacts(data);
+                } else {
+                    // Filter duplicates to be safe
+                    setContacts(prev => {
+                        const newIds = new Set(data.map((c: any) => c.id));
+                        return [...prev, ...data.filter((c: any) => !prev.some((p: any) => p.id === c.id))];
+                    });
+                }
+
+                if (data.length < PAGE_SIZE) {
+                    setHasMore(false);
+                } else {
+                    setOffset(currentOffset + PAGE_SIZE);
+                }
             } else {
-                setContacts([]);
+                if (isInitial) setContacts([]);
+                setHasMore(false);
             }
+        } catch (err) {
+            console.error(err);
+        } finally {
             setLoading(false);
-        };
+        }
+    };
 
-        fetchContacts();
+    // Initial Load & Realtime Trigger
+    useEffect(() => {
+        fetchContacts(true);
 
-        // Realtime subscription ...
         const subscription = supabase
             .channel(`chat_list_${selectedInstance}`)
             .on(
@@ -107,7 +155,12 @@ export function ChatSidebar({
                     table: "contacts_dispara_lead_saas_02",
                 },
                 () => {
-                    fetchContacts();
+                    // Logic for realtime updates: ideally insert/move to top
+                    // For now, refreshing the top page is safest or just let user scroll
+                    // We can just refetch page 0 silently?
+                    // Or specifically handle the update.
+                    // For simplicity, let's just re-fetch the first page to keep the "latest" view updated.
+                    fetchContacts(true);
                 }
             )
             .subscribe();
@@ -116,6 +169,16 @@ export function ChatSidebar({
             subscription.unsubscribe();
         };
     }, [selectedInstance, refreshTrigger]);
+
+    // Scroll Handler
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+        if (scrollHeight - scrollTop <= clientHeight + 100) { // Load when close to bottom
+            if (!loading && hasMore) {
+                fetchContacts(false);
+            }
+        }
+    };
 
     const [tagDefs, setTagDefs] = useState<any[]>([]);
 
@@ -143,7 +206,7 @@ export function ChatSidebar({
     // ...
 
     return (
-        <div className={cn("flex w-full md:w-80 flex-col border-r bg-background dark:border-gray-800", className)}>
+        <div className={cn("flex w-full md:w-96 flex-col border-r bg-background dark:border-gray-800", className)}>
             {/* Header ... */}
             <div className="p-3 border-b dark:border-gray-800 bg-muted/10">
                 <div className="flex items-center justify-between mb-3">
@@ -221,7 +284,7 @@ export function ChatSidebar({
                 </div>
             </div>
 
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
                 <div className="flex flex-col">
                     {filteredContacts.map((contact) => (
                         <button
@@ -240,17 +303,20 @@ export function ChatSidebar({
                             </Avatar>
 
                             <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                {/* Row 1: Name and Time */}
-                                <div className="flex items-center justify-between gap-2 w-full">
-                                    <span className={cn(
-                                        "font-bold text-sm truncate",
-                                        selectedContact?.id === contact.id ? "text-foreground" : "text-foreground/90"
-                                    )}>
+                                {/* Row 1: Name */}
+                                <div className="flex items-start justify-between gap-2 w-full">
+                                    <span
+                                        className={cn(
+                                            "font-bold text-sm line-clamp-2 break-words",
+                                            selectedContact?.id === contact.id ? "text-foreground" : "text-foreground/90"
+                                        )}
+                                        title={contact.name || contact.phone}
+                                    >
                                         {contact.name || contact.phone}
                                     </span>
                                     {contact.last_message_at && (
                                         <span className={cn(
-                                            "text-[10px] tabular-nums shrink-0",
+                                            "text-[10px] tabular-nums shrink-0 mt-0.5",
                                             selectedContact?.id === contact.id ? "text-foreground/70" : "text-muted-foreground"
                                         )}>
                                             {format(new Date(contact.last_message_at), "HH:mm")}
@@ -259,16 +325,19 @@ export function ChatSidebar({
                                 </div>
 
                                 {/* Row 2: Phone (Left) and Instance (Right) */}
-                                <div className="flex justify-between items-start -mt-0.5">
-                                    <span className="text-xs text-muted-foreground truncate font-medium">
+                                <div className="flex justify-between items-center -mt-0.5 gap-2">
+                                    <span className="text-xs text-muted-foreground font-medium shrink-0">
                                         {contact.phone}
                                     </span>
 
                                     {/* Instance Badge (Right) */}
                                     {contact.instance_name && (
-                                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60 shrink-0 ml-2">
-                                            <Megaphone className="h-3 w-3 text-green-500" />
-                                            <span className="text-muted-foreground/80">{contact.instance_name}</span>
+                                        <div
+                                            className="flex items-center gap-1 text-[10px] text-muted-foreground/60 min-w-0"
+                                            title={contact.instance_name}
+                                        >
+                                            <Megaphone className="h-3 w-3 text-green-500 shrink-0" />
+                                            <span className="text-muted-foreground/80 truncate">{contact.instance_name}</span>
                                         </div>
                                     )}
                                 </div>
@@ -300,25 +369,25 @@ export function ChatSidebar({
                                 )}
 
                                 {/* Row 4: Message Preview */}
-                                <div className="flex items-center gap-1 h-4 text-xs text-muted-foreground min-w-0 mt-0.5">
+                                <div className="flex items-start gap-1 text-xs text-muted-foreground min-w-0 mt-0.5">
                                     {/* Media Icon/Thumbnail */}
                                     {contact.last_message_type?.toLowerCase().includes('image') && contact.last_media_url ? (
                                         <div className="flex items-center gap-1.5 min-w-0">
-                                            <Globe className="h-3 w-3" /> {/* Placeholder for image icon if needed, but text is fine */}
-                                            <span className="truncate">Foto</span>
+                                            <Globe className="h-3 w-3 shrink-0" />
+                                            <span>Foto</span>
                                         </div>
                                     ) : contact.last_message_type?.toLowerCase().includes('video') ? (
                                         <div className="flex items-center gap-1 min-w-0">
                                             <span className="shrink-0">🎥</span>
-                                            <span className="truncate">Vídeo</span>
+                                            <span>Vídeo</span>
                                         </div>
                                     ) : contact.last_message_type?.toLowerCase().includes('audio') ? (
                                         <div className="flex items-center gap-1 min-w-0">
                                             <span className="shrink-0">🎤</span>
-                                            <span className="truncate">Áudio</span>
+                                            <span>Áudio</span>
                                         </div>
                                     ) : (
-                                        <p className="truncate flex-1 w-0 min-w-0 opacity-80 font-normal">
+                                        <p className="line-clamp-2 break-words flex-1 min-w-0 opacity-80 font-normal">
                                             {contact.last_message_content || "..."}
                                         </p>
                                     )}
@@ -326,9 +395,15 @@ export function ChatSidebar({
                             </div>
                         </button>
                     ))}
-                    {filteredContacts.length === 0 && (
+                    {filteredContacts.length === 0 && !loading && (
                         <div className="p-8 text-center">
                             <p className="text-sm text-muted-foreground">Nenhuma conversa</p>
+                        </div>
+                    )}
+
+                    {loading && contacts.length > 0 && (
+                        <div className="flex justify-center p-4">
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                         </div>
                     )}
                 </div>

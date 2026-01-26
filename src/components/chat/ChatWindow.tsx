@@ -431,7 +431,12 @@ export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails,
                                             onClick={() => handleFileClick(msg.media_url)}
                                             className="block cursor-pointer hover:opacity-90 transition-opacity"
                                         >
-                                            {msg.media_url.startsWith('/9j/') || msg.media_url.startsWith('data:image') ? (
+                                            {msg.media_url.includes('whatsapp.net') ? (
+                                                <div className="flex items-center justify-center h-32 w-32 bg-muted/50 text-muted-foreground flex-col gap-1 p-2 text-center">
+                                                    <FileText className="h-8 w-8 opacity-50" />
+                                                    <span className="text-[10px]">Sticker (Não processado)</span>
+                                                </div>
+                                            ) : msg.media_url.startsWith('/9j/') || msg.media_url.startsWith('data:image') ? (
                                                 <img src={`data:image/jpeg;base64,${msg.media_url.replace(/^data:image\/jpeg;base64,/, '')}`} alt="Media" className="max-w-full h-auto max-h-[300px] object-cover" />
                                             ) : (
                                                 <img src={msg.media_url} alt="Media" className="max-w-full h-auto max-h-[300px] object-cover" />

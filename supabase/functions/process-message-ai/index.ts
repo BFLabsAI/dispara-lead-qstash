@@ -295,6 +295,20 @@ Use português brasileiro natural. Responda SOMENTE com a mensagem reescrita.`;
                                 .eq('tenant_id', tenantId)
                                 .single();
 
+                            console.log(`[CompletionCheck] Settings found for tenant ${tenantId}: ${!!settings}`);
+
+                            if (settings?.report_notification_phones) {
+                                console.log(`[CompletionCheck] Phones in IO: ${JSON.stringify(settings.report_notification_phones)}`);
+                                await supabase.from('debug_logs').insert({
+                                    message: `[CompletionCheck] Attempting notify for ${campaign.name}. Phones: ${settings.report_notification_phones.length}`
+                                });
+                            } else {
+                                console.warn(`[CompletionCheck] No phones found in settings.`);
+                                await supabase.from('debug_logs').insert({
+                                    message: `[CompletionCheck] No phones found for ${campaign.name} (Tenant: ${tenantId})`
+                                });
+                            }
+
                             if (settings?.report_notification_phones?.length) {
                                 const notificationText = `🎉 *Ótimas notícias, finalizamos mais uma campanha!* (Via IA 🤖)
 
@@ -314,20 +328,41 @@ Início: ${startTime}
 Fim: ${endTime}`;
 
                                 const notifEndpoint = `${UAZAPI_BASE_URL || 'https://bflabs.uazapi.com'}/send/text`;
-                                await Promise.all(settings.report_notification_phones.map(async (phone: string) => {
+
+                                // Use for...of for sequential execution
+                                for (const phone of settings.report_notification_phones) {
                                     try {
-                                        await fetch(notifEndpoint, {
+                                        // Force JID format to bypass auto-formatting (9th digit issue)
+                                        const cleanPhone = String(phone).replace(/\D/g, "");
+                                        const targetNumber = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
+
+                                        await supabase.from('debug_logs').insert({
+                                            message: `[Completion] Sending to ${targetNumber} (Camp: ${campaign.name})`
+                                        });
+
+                                        const resp = await fetch(notifEndpoint, {
                                             method: 'POST',
-                                            headers: { 'Content-Type': 'application/json', 'token': instanceToken! },
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'token': instanceToken!
+                                            },
                                             body: JSON.stringify({
-                                                number: phone.replace(/\D/g, ""),
+                                                number: targetNumber,
                                                 text: notificationText
                                             })
                                         });
+                                        const respText = await resp.text();
+
+                                        await supabase.from('debug_logs').insert({
+                                            message: `[Completion] Result ${phone}: ${resp.status} - ${respText.substring(0, 100)}`
+                                        });
                                     } catch (e) {
                                         console.error(`Failed to notify ${phone}`, e);
+                                        await supabase.from('debug_logs').insert({
+                                            message: `[Completion] Error ${phone}: ${(e as Error).message}`
+                                        });
                                     }
-                                }));
+                                }
                             }
                         }
                     }

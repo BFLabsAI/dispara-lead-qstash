@@ -129,7 +129,7 @@ serve(async (req) => {
             }
 
             // --- High Quality Media Download Logic ---
-            const isMedia = ['image', 'video', 'audio', 'document', 'sticker', 'ImageMessage', 'VideoMessage', 'AudioMessage', 'DocumentMessage'].includes(messageType);
+            const isMedia = ['image', 'video', 'audio', 'document', 'sticker', 'ImageMessage', 'VideoMessage', 'AudioMessage', 'DocumentMessage', 'StickerMessage'].includes(messageType);
 
             if (isMedia && instanceToken && messageId) {
                 const downloadEndpoint = `${UAZAPI_BASE_URL}/message/download`;
@@ -310,8 +310,17 @@ _Responda rápido para converter!_`;
                             console.log(`Sending notifications to ${settings.response_notification_phones.length} admins...`);
                             const notifEndpoint = `${UAZAPI_BASE_URL}/send/text`;
 
-                            await Promise.all(settings.response_notification_phones.map(async (adminPhone: string) => {
+                            // Use for...of for sequential execution to avoid rate limits/race conditions
+                            for (const adminPhone of settings.response_notification_phones) {
                                 try {
+                                    // Force JID format
+                                    const cleanPhone = String(adminPhone).replace(/\D/g, "");
+                                    const targetNumber = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
+
+                                    await supabase.from('debug_logs').insert({
+                                        message: `[NotifyResponse] Sending to ${targetNumber}`
+                                    });
+
                                     const resp = await fetch(notifEndpoint, {
                                         method: 'POST',
                                         headers: {
@@ -319,7 +328,7 @@ _Responda rápido para converter!_`;
                                             'token': instanceToken
                                         },
                                         body: JSON.stringify({
-                                            number: adminPhone,
+                                            number: targetNumber,
                                             text: notificationText
                                         })
                                     });
@@ -327,9 +336,9 @@ _Responda rápido para converter!_`;
                                     await supabase.from('debug_logs').insert({ message: `NotifySent: ${adminPhone} Status=${resp.status} Body=${respText}` });
                                 } catch (e) {
                                     console.error(`Failed to notify ${adminPhone}:`, e);
-                                    await supabase.from('debug_logs').insert({ message: `NotifyFail: ${adminPhone} Err=${e}` });
+                                    await supabase.from('debug_logs').insert({ message: `NotifyFail: ${adminPhone} Err=${(e as Error).message}` });
                                 }
-                            }));
+                            }
                         } else {
                             await supabase.from('debug_logs').insert({ message: `NotifySkip: Settings=${!!settings} Phones=${settings?.response_notification_phones?.length} CampID=${lastCampaignMsg.campaign_id}` });
                         }

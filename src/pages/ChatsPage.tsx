@@ -30,7 +30,7 @@ export default function ChatsPage() {
             <ChatSidebar
                 className={cn(
                     "flex-shrink-0",
-                    selectedContact ? "hidden md:flex" : "flex w-full md:w-80"
+                    selectedContact ? "hidden md:flex" : "flex w-full md:w-96"
                 )}
                 selectedInstance={selectedInstance}
                 onSelectInstance={handleSelectInstance}

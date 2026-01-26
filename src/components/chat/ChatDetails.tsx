@@ -84,7 +84,7 @@ export function ChatDetails({ selectedContact, className, onUpdate }: ChatDetail
             .from("contacts_dispara_lead_saas_02")
             .select("notes, tags")
             .eq("id", selectedContact.id)
-            .single();
+            .maybeSingle();
 
         if (contactData) {
             setNotes(contactData.notes || "");
@@ -110,7 +110,7 @@ export function ChatDetails({ selectedContact, className, onUpdate }: ChatDetail
             .not("campaign_id", "is", null)
             .order("created_at", { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (latestLog && latestLog.campaigns_dispara_lead_saas_02) {
             // Supabase helper: handle if relation returns array or object
@@ -131,7 +131,7 @@ export function ChatDetails({ selectedContact, className, onUpdate }: ChatDetail
                 .from("campaigns_dispara_lead_saas_02")
                 .select("name, target_audience, created_at")
                 .eq("id", selectedContact.last_campaign_id)
-                .single();
+                .maybeSingle();
             if (camp) {
                 setCampaign(camp);
             } else {
@@ -273,7 +273,7 @@ export function ChatDetails({ selectedContact, className, onUpdate }: ChatDetail
     }
 
     return (
-        <div className={cn("w-72 flex flex-col border-l bg-background dark:border-gray-800 h-full", className)}>
+        <div className={cn("w-96 flex flex-col border-l bg-background dark:border-gray-800 h-full", className)}>
 
             {/* -- User Header -- */}
             <div className="flex flex-col items-center p-4 border-b dark:border-gray-800 bg-muted/5 shrink-0">
