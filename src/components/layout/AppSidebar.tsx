@@ -37,6 +37,7 @@ export const AppSidebar = () => {
   const impersonatedTenantId = useAdminStore((state) => state.impersonatedTenantId);
   const setImpersonatedTenantId = useAdminStore((state) => state.setImpersonatedTenantId);
   const setAdminTenantId = useAdminStore((state) => state.setAdminTenantId);
+  const resetAdminContext = useAdminStore((state) => state.resetAdminContext);
   const adminTenantId = useAdminStore((state) => state.adminTenantId);
   const [tenants, setTenants] = useState<any[]>([]);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -55,15 +56,24 @@ export const AppSidebar = () => {
   }, [isSuperAdmin, adminTenantId, impersonatedTenantId]);
 
   const checkSuperAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) {
+      setIsSuperAdmin(false);
+      resetAdminContext();
+      return;
+    }
 
     const { data } = await supabase.rpc('is_super_admin');
     if (data) {
       setIsSuperAdmin(true);
       fetchTenants();
       fetchAdminTenant(user.id);
+      return;
     }
+
+    setIsSuperAdmin(false);
+    resetAdminContext();
   };
 
   const fetchAdminTenant = async (userId: string) => {
@@ -95,12 +105,12 @@ export const AppSidebar = () => {
 
   const handleTenantChange = (value: string) => {
     if (value === 'all') {
-      // When selecting "Minha Conta", set to adminTenantId instead of null
-      // This ensures we filter by the admin's tenant ID and don't show ALL data
       if (adminTenantId) {
         setImpersonatedTenantId(adminTenantId);
-        setTimeout(() => window.location.reload(), 100);
+      } else {
+        setImpersonatedTenantId(null);
       }
+      setTimeout(() => window.location.reload(), 100);
     } else {
       setImpersonatedTenantId(value);
       setTimeout(() => window.location.reload(), 100);
@@ -122,7 +132,8 @@ export const AppSidebar = () => {
   }, []);
 
   const checkUserRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const { data } = await supabase
@@ -206,7 +217,7 @@ export const AppSidebar = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">
-                  <span className="font-medium">{adminTenant ? adminTenant.name : 'Minha Conta'}</span>
+                  <span className="font-medium">{adminTenant ? adminTenant.name : 'Sem tenant próprio'}</span>
                 </SelectItem>
                 {tenants.filter(t => t.id !== adminTenant?.id).map((tenant) => (
                   <SelectItem key={tenant.id} value={tenant.id}>

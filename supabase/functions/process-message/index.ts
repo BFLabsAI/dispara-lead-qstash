@@ -34,7 +34,16 @@ serve(async (req) => {
         }
 
         const payload = JSON.parse(body);
-        const { messageId, phoneNumber, messageContent, instanceName, campaignId, tenantId, mediaUrl, mediaType } = payload;
+        const lead = payload.lead ?? {};
+        const message = payload.message ?? {};
+        const messageId = payload.messageId;
+        const phoneNumber = lead.phone ?? payload.phoneNumber;
+        const messageContent = message.content ?? payload.messageContent;
+        const instanceName = payload.instanceName;
+        const campaignId = payload.campaignId;
+        const tenantId = payload.tenantId;
+        const mediaUrl = message.mediaUrl ?? payload.mediaUrl;
+        const mediaType = message.mediaType ?? payload.mediaType;
 
         console.log(`[Process-Message] Processing messageId: ${messageId}, campaignId: ${campaignId}, instance: ${instanceName}`);
 
@@ -130,17 +139,38 @@ serve(async (req) => {
         // -------------------------
 
         if (!alreadySent) {
+            const { data: circuitState } = await supabase
+                .rpc('get_tenant_delivery_circuit_state', { p_tenant_id: tenantId });
+
+            if (circuitState?.is_open) {
+                const breakerMessage = `Tenant circuit breaker open until ${circuitState.open_until}`;
+                await supabase
+                    .from('message_logs_dispara_lead_saas_03')
+                    .update({ status: 'paused', error_message: breakerMessage })
+                    .eq('id', messageId);
+
+                await supabase
+                    .from('campaigns_dispara_lead_saas_02')
+                    .update({ status: 'paused', updated_at: new Date().toISOString() })
+                    .eq('id', campaignId)
+                    .eq('tenant_id', tenantId)
+                    .in('status', ['processing', 'pending']);
+
+                return new Response(breakerMessage, { status: 429 });
+            }
+
             try {
                 let endpoint = '';
                 let bodyData: any = {};
 
                 if (finalMediaUrl) {
                     endpoint = `${UAZAPI_BASE_URL}/send/media`;
-                    const uazapiMediaType = {
+                    const mediaTypeMap: Record<string, string> = {
                         'imagem': 'image',
                         'video': 'video',
                         'audio': 'audio'
-                    }[finalMediaType] || finalMediaType;
+                    };
+                    const uazapiMediaType = finalMediaType ? (mediaTypeMap[String(finalMediaType)] || finalMediaType) : finalMediaType;
 
                     bodyData = {
                         number: phoneNumber,
@@ -197,28 +227,51 @@ serve(async (req) => {
 
             // No need to update media_url as we read it from DB
 
-            await supabase.from('message_logs_dispara_lead_saas_03').update(updateData).eq('id', messageId);
+            await supabase.rpc('record_campaign_message_outcome', {
+                p_message_id: messageId,
+                p_campaign_id: campaignId,
+                p_new_status: isSuccess ? 'sent' : 'failed',
+                p_sent_at: now,
+                p_provider_message_id: uazapiMessageId,
+                p_provider_response: uazapiResponse,
+                p_error_message: errorMessage
+            });
+
+            if (isSuccess) {
+                await supabase.rpc('register_tenant_delivery_success', { p_tenant_id: tenantId });
+            } else {
+                const { data: breakerState } = await supabase.rpc('register_tenant_delivery_failure', {
+                    p_tenant_id: tenantId,
+                    p_message_id: messageId,
+                    p_error: errorMessage ?? 'unknown_delivery_error'
+                });
+
+                if (breakerState?.state === 'open') {
+                    await supabase
+                        .from('campaigns_dispara_lead_saas_02')
+                        .update({ status: 'paused', updated_at: new Date().toISOString() })
+                        .eq('id', campaignId)
+                        .eq('tenant_id', tenantId)
+                        .in('status', ['processing', 'pending']);
+                }
+            }
         }
 
         // --- Campaign Completion Notification ---
         if (campaignId) {
             console.log(`[CompletionCheck] Checking for campaign ${campaignId} (Current message: ${messageId})`);
+            const { data: completionTriggered, error: completionError } = await supabase
+                .rpc('complete_campaign_if_finished', {
+                    p_campaign_id: campaignId,
+                    p_current_message_id: messageId,
+                    p_completed_at: new Date().toISOString(),
+                });
 
-            // We exclude the current message from the pending count.
-            // Why? Because we just processed it (either now or in a previous attempt).
-            // This prevents race conditions where DB lag might still see this message as 'pending'
-            // even after the update call.
-            const { count, error: countError } = await supabase
-                .from('message_logs_dispara_lead_saas_03')
-                .select('id', { count: 'exact', head: true })
-                .eq('campaign_id', campaignId)
-                .neq('id', messageId)
-                .in('status', ['queued', 'pending']);
+            if (completionError) {
+                console.error(`[CompletionCheck] RPC failed for campaign ${campaignId}: ${completionError.message}`);
+            }
 
-            const pendingCount = count || 0;
-            console.log(`[CompletionCheck] Other messages pending: ${pendingCount}`);
-
-            if (pendingCount === 0) {
+            if (completionTriggered) {
                 const { data: campaign, error: campError } = await supabase
                     .from('campaigns_dispara_lead_saas_02')
                     .select('*')
@@ -231,15 +284,7 @@ serve(async (req) => {
                     console.error(`[CompletionCheck] Campaign ${campaignId} not found. Error: ${campError?.message}`);
                 }
 
-                if (campaign && !campaign.completed_at) {
-                    // Mark as completed to prevent duplicate notifications (optimistic lock)
-                    const { error: updateError } = await supabase
-                        .from('campaigns_dispara_lead_saas_02')
-                        .update({ completed_at: new Date().toISOString(), status: 'completed' })
-                        .eq('id', campaignId)
-                        .is('completed_at', null); // Safety check
-
-                    if (!updateError) {
+                if (campaign) {
                         console.log(`[CompletionCheck] Campaign marked as completed. Gathering stats...`);
                         // Gather Stats
                         const { data: stats } = await supabase
@@ -322,9 +367,6 @@ Fim: ${endTime}`;
                                 console.log(`[CompletionCheck] No notification phones configured.`);
                             }
                         }
-                    } else {
-                        console.error(`[CompletionCheck] Failed to mark completed (Optimistic lock?): ${updateError?.message}`);
-                    }
                 } else {
                     console.log(`[CompletionCheck] Campaign already completed or not found.`);
                 }
@@ -332,9 +374,6 @@ Fim: ${endTime}`;
         }
 
         if (isSuccess) {
-            if (!alreadySent) {
-                await supabase.rpc('increment_campaign_sent_count', { campaign_id: campaignId });
-            }
             return new Response(JSON.stringify({ success: true, id: uazapiMessageId, skipped: alreadySent }), { headers: { "Content-Type": "application/json" }, status: 200 });
         } else {
             return new Response(JSON.stringify({ success: false, error: errorMessage }), { status: 500 });

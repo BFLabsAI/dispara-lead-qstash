@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "https://esm.sh/@upstash/qstash@2.7.17";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,35 @@ const debugResponse = (data: any) => {
     });
 };
 
+const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
+const getErrorStack = (error: unknown) => error instanceof Error ? error.stack : undefined;
+
+const buildJobPayload = (msg: Record<string, any>) => {
+    const lead = msg.lead ?? {
+        name: msg.contactName ?? msg.contact?.name ?? null,
+        phone: msg.phoneNumber ?? msg.contact?.phone ?? null,
+    };
+
+    const message = msg.message ?? {
+        content: msg.messageContent ?? null,
+        mediaUrl: msg.mediaUrl ?? null,
+        mediaType: msg.mediaType ?? null,
+    };
+
+    return {
+        messageId: msg.messageId,
+        campaignId: msg.campaignId,
+        tenantId: msg.tenantId,
+        instanceName: msg.instanceName,
+        phoneNumber: lead.phone,
+        messageContent: message.content,
+        mediaUrl: message.mediaUrl,
+        mediaType: message.mediaType,
+        lead,
+        message,
+    };
+};
+
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
@@ -23,8 +53,22 @@ serve(async (req) => {
     try {
         // 1. Authenticate
         const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
+        if (!authHeader?.startsWith('Bearer ')) {
             return debugResponse({ success: false, stage: 'Auth', error: 'Missing Authorization header' });
+        }
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+        const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+            return debugResponse({ success: false, stage: 'Auth', error: 'Missing Supabase auth configuration' });
+        }
+
+        const accessToken = authHeader.slice('Bearer '.length).trim();
+        const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
+        const { data: authData, error: authError } = await supabaseAuth.auth.getUser(accessToken);
+        if (authError || !authData.user) {
+            return debugResponse({ success: false, stage: 'Auth', error: 'Unauthorized' });
         }
 
         // 2. Check Secret
@@ -41,7 +85,7 @@ serve(async (req) => {
         try {
             client = new Client({ token: QSTASH_TOKEN });
         } catch (e) {
-            return debugResponse({ success: false, stage: 'Client Init', error: e.message });
+            return debugResponse({ success: false, stage: 'Client Init', error: getErrorMessage(e) });
         }
 
         // 4. Parse Body
@@ -49,7 +93,7 @@ serve(async (req) => {
         try {
             body = await req.json();
         } catch (e) {
-            return debugResponse({ success: false, stage: 'Body Parse', error: e.message });
+            return debugResponse({ success: false, stage: 'Body Parse', error: getErrorMessage(e) });
         }
 
         const messages = body.messages;
@@ -89,9 +133,11 @@ serve(async (req) => {
                 headers["Upstash-Label"] = msg.label;
             }
 
+            const jobPayload = buildJobPayload(msg);
+
             return {
                 url: destinationUrl,
-                body: JSON.stringify(msg),
+                body: JSON.stringify(jobPayload),
                 headers: headers,
                 delay: msg.delay,
                 notBefore: msg.notBefore,
@@ -108,7 +154,7 @@ serve(async (req) => {
             return debugResponse({
                 success: false,
                 stage: 'QStash API Call',
-                error: qstashErr.message,
+                error: getErrorMessage(qstashErr),
                 details: JSON.stringify(qstashErr),
                 tokenStatus
             });
@@ -120,8 +166,8 @@ serve(async (req) => {
         return debugResponse({
             success: false,
             stage: 'Unhandled Exception',
-            error: error.message,
-            stack: error.stack
+            error: getErrorMessage(error),
+            stack: getErrorStack(error)
         });
     }
 });

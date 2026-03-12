@@ -1,0 +1,23 @@
+[functions.auth_manager_dispara_lead]
+verify_jwt = false
+
+[functions.enqueue-campaign]
+verify_jwt = false
+
+[functions.manage-users]
+verify_jwt = true
+
+[functions.process-message]
+verify_jwt = false
+
+[functions.process-message-ai]
+verify_jwt = false
+
+[functions.uazapi_proxy_dispara_lead_saas]
+verify_jwt = false
+
+[functions.webhook_connection_dispara_lead_saas]
+verify_jwt = false
+
+[functions.webhook_messages_dispara_lead_saas]
+verify_jwt = false

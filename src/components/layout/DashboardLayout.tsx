@@ -27,7 +27,7 @@ export function DashboardLayout() {
     navigate('/admin/tenants');
   };
 
-  const isImpersonating = impersonatedTenantId && adminTenantId && impersonatedTenantId !== adminTenantId;
+  const isImpersonating = Boolean(impersonatedTenantId) && impersonatedTenantId !== adminTenantId;
 
   return (
     <div className="flex h-screen w-full overflow-hidden flex-col">

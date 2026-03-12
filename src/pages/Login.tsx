@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAdminStore } from '@/store/adminStore';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -13,29 +14,34 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const { toast } = useToast();
+    const resetAdminContext = useAdminStore((state) => state.resetAdminContext);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            resetAdminContext();
+
+            const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (error) throw error;
+            const userId = data.user?.id ?? data.session?.user?.id;
+            if (!userId) throw new Error("Sessão inválida após login.");
 
-            // Check if user is super admin
             const { data: profile } = await supabase
                 .from('users_dispara_lead_saas_02')
                 .select('is_super_admin')
-                .eq('id', (await supabase.auth.getUser()).data.user?.id)
+                .eq('id', userId)
                 .single();
 
             if (profile?.is_super_admin) {
                 navigate('/admin');
             } else {
+                resetAdminContext();
                 navigate('/dashboard');
             }
         } catch (error: any) {

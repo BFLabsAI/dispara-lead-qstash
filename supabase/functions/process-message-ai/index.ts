@@ -77,7 +77,7 @@ serve(async (req) => {
         // --- Idempotency Check ---
         const { data: existingLog } = await supabase
             .from('message_logs_dispara_lead_saas_03')
-            .select('status, provider_message_id, message_content')
+            .select('status, provider_message_id, message_content, metadata')
             .eq('id', messageId)
             .single();
 
@@ -91,6 +91,26 @@ serve(async (req) => {
         // -------------------------
 
         if (!alreadySent) {
+            const { data: circuitState } = await supabase
+                .rpc('get_tenant_delivery_circuit_state', { p_tenant_id: tenantId });
+
+            if (circuitState?.is_open) {
+                const breakerMessage = `Tenant circuit breaker open until ${circuitState.open_until}`;
+                await supabase
+                    .from('message_logs_dispara_lead_saas_03')
+                    .update({ status: 'paused', error_message: breakerMessage })
+                    .eq('id', messageId);
+
+                await supabase
+                    .from('campaigns_dispara_lead_saas_02')
+                    .update({ status: 'paused', updated_at: new Date().toISOString() })
+                    .eq('id', campaignId)
+                    .eq('tenant_id', tenantId)
+                    .in('status', ['processing', 'pending']);
+
+                return new Response(breakerMessage, { status: 429 });
+            }
+
             // --- AI Processing ---
             console.log(`[AI Debug] Params: HasKey=${!!OPENROUTER_API_KEY}, KeyLen=${OPENROUTER_API_KEY?.length}, ContentLen=${messageContent?.length}`);
 
@@ -246,37 +266,60 @@ Use português brasileiro natural. Responda SOMENTE com a mensagem reescrita.`;
                 };
             }
 
-            await supabase.from('message_logs_dispara_lead_saas_03').update(updatePayload).eq('id', messageId);
+            await supabase.rpc('record_campaign_message_outcome', {
+                p_message_id: messageId,
+                p_campaign_id: campaignId,
+                p_new_status: isSuccess ? 'sent' : 'failed',
+                p_sent_at: now,
+                p_provider_message_id: uazapiMessageId,
+                p_provider_response: uazapiResponse,
+                p_error_message: errorMessage || aiError,
+                p_message_content: rewrittenContent,
+                p_metadata: updatePayload.metadata ?? null
+            });
+
+            if (isSuccess) {
+                await supabase.rpc('register_tenant_delivery_success', { p_tenant_id: tenantId });
+            } else {
+                const { data: breakerState } = await supabase.rpc('register_tenant_delivery_failure', {
+                    p_tenant_id: tenantId,
+                    p_message_id: messageId,
+                    p_error: errorMessage || aiError || 'unknown_delivery_error'
+                });
+
+                if (breakerState?.state === 'open') {
+                    await supabase
+                        .from('campaigns_dispara_lead_saas_02')
+                        .update({ status: 'paused', updated_at: new Date().toISOString() })
+                        .eq('id', campaignId)
+                        .eq('tenant_id', tenantId)
+                        .in('status', ['processing', 'pending']);
+                }
+            }
         }
 
         // --- Campaign Completion Notification ---
         if (campaignId) {
             console.log(`[CompletionCheck-AI] Checking for campaign ${campaignId} (Current message: ${messageId})`);
-            const { count, error: countError } = await supabase
-                .from('message_logs_dispara_lead_saas_03')
-                .select('id', { count: 'exact', head: true })
-                .eq('campaign_id', campaignId)
-                .neq('id', messageId) // Race-condition proof
-                .in('status', ['queued', 'pending']);
+            const { data: completionTriggered, error: completionError } = await supabase
+                .rpc('complete_campaign_if_finished', {
+                    p_campaign_id: campaignId,
+                    p_current_message_id: messageId,
+                    p_completed_at: new Date().toISOString(),
+                });
 
-            const pendingCount = count || 0;
-            console.log(`[CompletionCheck-AI] Other messages pending: ${pendingCount}`);
+            if (completionError) {
+                console.error(`[CompletionCheck-AI] RPC failed for campaign ${campaignId}: ${completionError.message}`);
+            }
 
-            if (pendingCount === 0) {
+            if (completionTriggered) {
                 const { data: campaign } = await supabase
                     .from('campaigns_dispara_lead_saas_02')
                     .select('*')
                     .eq('id', campaignId)
                     .single();
 
-                if (campaign && !campaign.completed_at) {
-                    const { error: updateError } = await supabase
-                        .from('campaigns_dispara_lead_saas_02')
-                        .update({ completed_at: new Date().toISOString(), status: 'completed' })
-                        .eq('id', campaignId)
-                        .is('completed_at', null);
-
-                    if (!updateError) {
+                if (campaign) {
                         const { data: stats } = await supabase
                             .from('message_logs_dispara_lead_saas_03')
                             .select('sent_at, instance_name, campaign_type, metadata')
@@ -365,15 +408,11 @@ Fim: ${endTime}`;
                                 }
                             }
                         }
-                    }
                 }
             }
         }
 
         if (isSuccess) {
-            if (!alreadySent) {
-                await supabase.rpc('increment_campaign_sent_count', { campaign_id: campaignId });
-            }
             return new Response(JSON.stringify({ success: true, id: uazapiMessageId }), { headers: { "Content-Type": "application/json" }, status: 200 });
         } else {
             return new Response(JSON.stringify({ success: false, error: errorMessage }), {

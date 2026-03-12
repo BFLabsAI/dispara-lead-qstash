@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { invokeAuthenticatedEdgeFunction } from "./supabaseClient";
 
 export interface UazapiInstance {
   name: string;
@@ -7,11 +7,10 @@ export interface UazapiInstance {
 
 // Helper to invoke the proxy function
 async function invokeProxy(action: string, params: any = {}) {
-  const { data, error } = await supabase.functions.invoke('uazapi_proxy_dispara_lead_saas', {
-    body: { action, ...params }
-  });
-
-  if (error) throw new Error(error.message || 'Error invoking UazAPI Proxy');
+  const data = await invokeAuthenticatedEdgeFunction<{ error?: string }>(
+    'uazapi_proxy_dispara_lead_saas',
+    { action, ...params }
+  );
   if (data?.error) throw new Error(data.error);
 
   return data;

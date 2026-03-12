@@ -38,6 +38,25 @@ export default function PlansList() {
         limits: ""
     });
 
+    const parseLimits = useCallback((value: string) => {
+        if (!value?.trim()) return {};
+        try {
+            const parsed = JSON.parse(value);
+            return typeof parsed === "object" && parsed !== null ? parsed : {};
+        } catch {
+            return {};
+        }
+    }, []);
+
+    const updateLimitField = (field: "agent_messages_limit" | "instances_limit", value: string) => {
+        const numericValue = parseInt(value);
+        const currentLimits = parseLimits(formData.limits || '{}');
+        const newLimits = { ...currentLimits, [field]: isNaN(numericValue) ? 0 : numericValue };
+        setFormData({ ...formData, limits: JSON.stringify(newLimits) });
+    };
+
+    const parsedLimits = parseLimits(formData.limits || '{}');
+
     const loadPlans = useCallback(async () => {
         setLoading(true);
         try {
@@ -80,7 +99,7 @@ export default function PlansList() {
                 description: formData.description,
                 price: isNaN(price) ? 0 : price,
                 slug: generatedSlug,
-                limits: formData.limits ? JSON.parse(formData.limits) : {}
+                limits: parseLimits(formData.limits)
             };
 
             let error;
@@ -278,13 +297,8 @@ export default function PlansList() {
                                     <Input
                                         id="agent_limit"
                                         type="number"
-                                        value={JSON.parse(formData.limits || '{}').agent_messages_limit || ''}
-                                        onChange={(e) => {
-                                            const val = parseInt(e.target.value);
-                                            const currentLimits = JSON.parse(formData.limits || '{}');
-                                            const newLimits = { ...currentLimits, agent_messages_limit: isNaN(val) ? 0 : val };
-                                            setFormData({ ...formData, limits: JSON.stringify(newLimits) });
-                                        }}
+                                        value={parsedLimits.agent_messages_limit || ''}
+                                        onChange={(e) => updateLimitField("agent_messages_limit", e.target.value)}
                                         placeholder="Ex: 1000"
                                     />
                                 </div>
@@ -293,13 +307,8 @@ export default function PlansList() {
                                     <Input
                                         id="instances_limit"
                                         type="number"
-                                        value={JSON.parse(formData.limits || '{}').instances_limit || ''}
-                                        onChange={(e) => {
-                                            const val = parseInt(e.target.value);
-                                            const currentLimits = JSON.parse(formData.limits || '{}');
-                                            const newLimits = { ...currentLimits, instances_limit: isNaN(val) ? 0 : val };
-                                            setFormData({ ...formData, limits: JSON.stringify(newLimits) });
-                                        }}
+                                        value={parsedLimits.instances_limit || ''}
+                                        onChange={(e) => updateLimitField("instances_limit", e.target.value)}
                                         placeholder="Ex: 1"
                                     />
                                 </div>

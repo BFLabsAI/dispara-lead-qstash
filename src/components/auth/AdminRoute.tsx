@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { supabase } from '@/services/supabaseClient';
+import { useAdminStore } from '@/store/adminStore';
 
 export const AdminRoute = () => {
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
     const location = useLocation();
+    const resetAdminContext = useAdminStore((state) => state.resetAdminContext);
 
     useEffect(() => {
         const checkAdmin = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
 
             if (!user) {
+                resetAdminContext();
                 setIsAdmin(false);
                 return;
             }
@@ -20,6 +24,10 @@ export const AdminRoute = () => {
                 .select('is_super_admin')
                 .eq('id', user.id)
                 .single();
+
+            if (!profile?.is_super_admin) {
+                resetAdminContext();
+            }
 
             setIsAdmin(!!profile?.is_super_admin);
         };

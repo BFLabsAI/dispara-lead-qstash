@@ -1,100 +1,137 @@
+import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Filters } from "@/components/dashboard/Filters";
 import { DashboardTable } from "@/components/dashboard/Table";
-import { getDashboardDataAll } from "../services/dashboardService";
+import { getDashboardDataPaginated, getDashboardPreviewData } from "../services/dashboardService";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAdminStore } from "@/store/adminStore";
 
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
+
+const DEFAULT_LOG_WINDOW_DAYS = 7;
+
 const Logs = () => {
     const impersonatedTenantId = useAdminStore((state) => state.impersonatedTenantId);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 50;
     const [filters, setFilters] = useState<any>({
         instance: "all",
         tipo: "all",
         campaign: "all",
         publico: "all",
         criativo: "all",
+        responseStatus: "all",
         dateRange: null
     });
+    const hasExplicitDateRange = Boolean(filters.dateRange?.from || filters.dateRange?.to);
 
-    // React Query para buscar todos os dados com cache inteligente
+    const effectiveDateRange = useMemo(() => {
+        if (filters.dateRange?.from || filters.dateRange?.to) {
+            return {
+                from: filters.dateRange?.from ? dayjs(filters.dateRange.from).startOf('day') : null,
+                to: filters.dateRange?.to
+                    ? dayjs(filters.dateRange.to).endOf('day')
+                    : filters.dateRange?.from
+                        ? dayjs(filters.dateRange.from).endOf('day')
+                        : null,
+            };
+        }
+
+        return {
+            from: dayjs().subtract(DEFAULT_LOG_WINDOW_DAYS - 1, 'day').startOf('day'),
+            to: dayjs().endOf('day'),
+        };
+    }, [filters.dateRange]);
+
     const {
-        data: dashboardData,
+        data: filterPreviewData,
+    } = useQuery({
+        queryKey: [
+            'logsFilterPreview',
+            impersonatedTenantId,
+            hasExplicitDateRange ? effectiveDateRange.from?.toISOString() : 'default-7d',
+            hasExplicitDateRange ? effectiveDateRange.to?.toISOString() : null,
+        ],
+        queryFn: () => getDashboardPreviewData(500),
+        staleTime: 30000,
+        gcTime: 300000,
+        retry: 2,
+    });
+
+    const normalizedFilters = useMemo(() => ({
+        instance: filters.instance !== "all" ? filters.instance : undefined,
+        tipo: filters.tipo !== "all" ? filters.tipo : undefined,
+        campaign: filters.campaign !== "all" ? filters.campaign : undefined,
+        publico: filters.publico !== "all" ? filters.publico : undefined,
+        criativo: filters.criativo !== "all" ? filters.criativo : undefined,
+        responseStatus: filters.responseStatus !== "all" ? filters.responseStatus : undefined,
+        dateStart: effectiveDateRange.from?.toISOString(),
+        dateEnd: effectiveDateRange.to?.toISOString(),
+    }), [filters, effectiveDateRange]);
+
+    const {
+        data: paginatedData,
         isLoading: loading,
+        isFetching,
         error,
         refetch
     } = useQuery({
-        queryKey: ['dashboardData', 'all', impersonatedTenantId],
-        queryFn: () => getDashboardDataAll(),
+        queryKey: ['logsData', currentPage, pageSize, impersonatedTenantId, normalizedFilters],
+        queryFn: () => getDashboardDataPaginated(currentPage, pageSize, normalizedFilters),
         staleTime: 30000,
         gcTime: 300000,
         retry: 3,
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     });
-    const allData = dashboardData?.data || [];
+    const currentData = paginatedData?.data || [];
+    const totalCount = paginatedData?.count || 0;
+    const totalPages = paginatedData?.totalPages || 1;
+    const previewData = filterPreviewData || [];
 
-    // Apply filters to all data
-    const filteredData = useMemo(() => {
-        let filtered = [...allData];
+    const isBusy = loading || isFetching;
 
-        if (filters.instance !== "all") {
-            filtered = filtered.filter(item => item.instancia === filters.instance);
-        }
-        if (filters.tipo !== "all") {
-            filtered = filtered.filter(item => item.tipo_envio === filters.tipo);
-        }
-        if (filters.campaign !== "all") {
-            filtered = filtered.filter(item => item.nome_campanha === filters.campaign);
-        }
-        if (filters.publico !== "all") {
-            filtered = filtered.filter(item => item.publico === filters.publico);
-        }
-        if (filters.criativo !== "all") {
-            filtered = filtered.filter(item => item.criativo === filters.criativo);
-        }
-        if (filters.dateRange?.from) {
-            filtered = filtered.filter(item => item.date >= filters.dateRange.from);
-        }
-        if (filters.dateRange?.to) {
-            filtered = filtered.filter(item => item.date <= filters.dateRange.to);
-        }
-
-        return filtered;
-    }, [allData, filters]);
-
-    // Generate filter options from all data (not filtered)
+    // Generate filter options from a recent preview sample to keep the filters usable without loading all rows.
     const instanceOptions = useMemo(() => {
         const options = new Set<string>();
-        allData.forEach(item => item.instancia && options.add(item.instancia));
+        previewData.forEach(item => item.instancia && options.add(item.instancia));
         return ["all", ...Array.from(options).sort()];
-    }, [allData]);
+    }, [previewData]);
 
     const tipoOptions = useMemo(() => {
         const options = new Set<string>();
-        allData.forEach(item => item.tipo_envio && options.add(item.tipo_envio));
+        previewData.forEach(item => item.tipo_envio && options.add(item.tipo_envio));
         return ["all", ...Array.from(options).sort()];
-    }, [allData]);
+    }, [previewData]);
 
     const campaignOptions = useMemo(() => {
         const options = new Set<string>();
-        allData.forEach(item => item.nome_campanha && options.add(item.nome_campanha));
+        previewData.forEach(item => item.nome_campanha && options.add(item.nome_campanha));
         return ["all", ...Array.from(options).sort()];
-    }, [allData]);
+    }, [previewData]);
 
     const publicoOptions = useMemo(() => {
         const options = new Set<string>();
-        allData.forEach(item => item.publico && options.add(item.publico));
+        previewData.forEach(item => item.publico && options.add(item.publico));
         return ["all", ...Array.from(options).sort()];
-    }, [allData]);
+    }, [previewData]);
 
     const criativoOptions = useMemo(() => {
         const options = new Set<string>();
-        allData.forEach(item => item.criativo && options.add(item.criativo));
+        previewData.forEach(item => item.criativo && options.add(item.criativo));
         return ["all", ...Array.from(options).sort()];
-    }, [allData]);
+    }, [previewData]);
+
+    const handleFilterChange = (nextFilters: any) => {
+        setFilters(nextFilters);
+        setCurrentPage(1);
+    };
 
     if (loading) {
         return (
@@ -121,12 +158,12 @@ const Logs = () => {
         <div>
             <PageHeader
                 title="Logs de Disparo"
-                subtitle="Histórico detalhado de envios"
+                subtitle={hasExplicitDateRange ? "Histórico detalhado do período selecionado" : "Histórico detalhado dos últimos 7 dias"}
                 extra={
                     <div className="flex items-center gap-4">
                         <div className="text-sm text-muted-foreground">
-                            {allData.length > 0
-                                ? `${filteredData.length} de ${allData.length} registros`
+                            {totalCount > 0
+                                ? `${currentData.length} de ${totalCount} registros`
                                 : 'Nenhum registro'
                             }
                         </div>
@@ -134,24 +171,50 @@ const Logs = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => refetch()}
-                            disabled={loading}
+                            disabled={isBusy}
                             className="flex items-center gap-2"
                         >
-                            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`h-4 w-4 ${isBusy ? 'animate-spin' : ''}`} />
                             Atualizar
                         </Button>
                     </div>
                 }
             />
             <Filters
-                onFilterChange={setFilters}
+                onFilterChange={handleFilterChange}
                 instanceOptions={instanceOptions}
                 tipoOptions={tipoOptions}
                 campaignOptions={campaignOptions}
                 publicoOptions={publicoOptions}
                 criativoOptions={criativoOptions}
             />
-            <DashboardTable data={filteredData} />
+            <DashboardTable data={currentData} />
+
+            {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-4 mb-8">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                        disabled={currentPage === 1 || isBusy}
+                    >
+                        <ChevronLeft className="h-4 w-4 mr-2" />
+                        Anterior
+                    </Button>
+                    <div className="text-sm text-muted-foreground">
+                        Página {currentPage} de {totalPages}
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                        disabled={currentPage === totalPages || isBusy}
+                    >
+                        Próxima
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                </div>
+            )}
         </div>
     );
 };

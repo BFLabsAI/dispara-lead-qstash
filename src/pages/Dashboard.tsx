@@ -7,7 +7,7 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,11 +16,13 @@ import { Filters } from "@/components/dashboard/Filters";
 import { KPIs } from "@/components/dashboard/KPIs";
 import { Charts } from "@/components/dashboard/Charts";
 import { DashboardTable } from "@/components/dashboard/Table";
-import { supabase } from "../services/supabaseClient";
-import { getDashboardDataAll, getDashboardDataPaginated, getCampaignStats } from "../services/dashboardService";
+import { getDashboardPreviewData, getCampaignStats, getDashboardDataForDateRange } from "../services/dashboardService";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 import { useAdminStore } from "@/store/adminStore";
+
+const DASHBOARD_PREVIEW_LIMIT = 1000;
+const DEFAULT_DASHBOARD_WINDOW_DAYS = 7;
 
 export const Dashboard = () => {
   const queryClient = useQueryClient();
@@ -35,8 +37,26 @@ export const Dashboard = () => {
     dateRange: null
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const hasExplicitDateRange = Boolean(filters.dateRange?.from || filters.dateRange?.to);
 
-  // React Query para buscar todos os dados com cache inteligente
+  const effectiveDateRange = useMemo(() => {
+    if (filters.dateRange?.from || filters.dateRange?.to) {
+      return {
+        from: filters.dateRange?.from ? dayjs(filters.dateRange.from).startOf('day') : null,
+        to: filters.dateRange?.to
+          ? dayjs(filters.dateRange.to).endOf('day')
+          : filters.dateRange?.from
+            ? dayjs(filters.dateRange.from).endOf('day')
+            : null,
+      };
+    }
+
+    return {
+      from: dayjs().subtract(DEFAULT_DASHBOARD_WINDOW_DAYS - 1, 'day').startOf('day'),
+      to: dayjs().endOf('day'),
+    };
+  }, [filters.dateRange]);
+
   const {
     data: dashboardData,
     isLoading: loading,
@@ -44,8 +64,24 @@ export const Dashboard = () => {
     error,
     refetch
   } = useQuery({
-    queryKey: ['dashboardData', 'all', impersonatedTenantId],
-    queryFn: () => getDashboardDataAll(),
+    queryKey: [
+      'dashboardData',
+      impersonatedTenantId,
+      hasExplicitDateRange ? 'custom-range' : 'default-7d',
+      effectiveDateRange.from?.toISOString() ?? null,
+      effectiveDateRange.to?.toISOString() ?? null,
+      DASHBOARD_PREVIEW_LIMIT,
+    ],
+    queryFn: () => {
+      if (hasExplicitDateRange) {
+        return getDashboardDataForDateRange({
+          dateStart: effectiveDateRange.from?.toISOString(),
+          dateEnd: effectiveDateRange.to?.toISOString(),
+        });
+      }
+
+      return getDashboardPreviewData(DASHBOARD_PREVIEW_LIMIT);
+    },
     staleTime: 30000,
     gcTime: 300000,
     retry: 3,
@@ -59,7 +95,7 @@ export const Dashboard = () => {
     staleTime: 30000,
   });
 
-  const allData = dashboardData?.data || [];
+  const allData = dashboardData || [];
 
   // Calculate Scheduled Metrics
   const scheduledCampaignsList = useMemo(() => {
@@ -99,15 +135,15 @@ export const Dashboard = () => {
         filtered = filtered.filter(item => !item.responded_at);
       }
     }
-    if (filters.dateRange?.from) {
-      filtered = filtered.filter(item => item.date.isSameOrAfter(dayjs(filters.dateRange.from), 'day'));
+    if (effectiveDateRange.from) {
+      filtered = filtered.filter(item => item.date.isSameOrAfter(effectiveDateRange.from, 'day'));
     }
-    if (filters.dateRange?.to) {
-      filtered = filtered.filter(item => item.date.isSameOrBefore(dayjs(filters.dateRange.to), 'day'));
+    if (effectiveDateRange.to) {
+      filtered = filtered.filter(item => item.date.isSameOrBefore(effectiveDateRange.to, 'day'));
     }
 
     return filtered;
-  }, [allData, filters]);
+  }, [allData, filters, effectiveDateRange]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -212,12 +248,12 @@ export const Dashboard = () => {
     <div>
       <PageHeader
         title="Dashboard"
-        subtitle="Analytics e insights"
+        subtitle={hasExplicitDateRange ? "Analytics e insights do período selecionado" : "Analytics e insights dos últimos 7 dias"}
         extra={
           <div className="flex items-center gap-4">
             <div className="text-sm text-muted-foreground">
               {allData.length > 0
-                ? `${filteredData.length} de ${allData.length} registros`
+                ? `${filteredData.length} de ${allData.length} registros recentes`
                 : 'Nenhum registro'
               }
             </div>

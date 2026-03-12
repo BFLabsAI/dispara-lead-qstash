@@ -33,17 +33,22 @@
 ## 🏗️ Architecture Highlights
 
 ### 1. The "Fan-Out" Scheduler
-To solve the "timeout" problem common in serverless functions when processing large loops:
-1.  **Frontend** sends a campaign request to `process-scheduler`.
-2.  **Scheduler** validates the request and logs all messages as `pending` in bulk.
-3.  **Scheduler** pushes individual message tasks to **QStash** in batches (Fan-out).
-4.  **QStash** asynchronously calls the `process-message` function for each message, handling retries and rate limits.
+To solve the timeout problem common in serverless functions when processing large loops:
+1.  The frontend creates campaign/message logs in Supabase and calls `enqueue-campaign`.
+2.  `enqueue-campaign` publishes a minimal payload to **QStash** with `messageId`, `campaignId`, `lead`, and `message`.
+3.  **QStash** calls `process-message` or `process-message-ai` asynchronously.
+4.  Delivery completion is closed in Postgres through atomic RPCs and counters instead of repeated roundtrips.
 
 ### 2. Optimized Dashboard
 Instead of fetching thousands of rows to the client:
-1.  **Frontend** calls a Postgres RPC function `get_dashboard_stats`.
-2.  **Database** aggregates millions of records in milliseconds.
-3.  **Frontend** receives a tiny JSON payload with the final numbers.
+1.  `Dashboard` and `Logs` load the last `7 days` by default for fast first paint.
+2.  Expanded date ranges are fetched server-side only when the user requests them.
+3.  Dashboard stats come from `get_dashboard_stats`, backed by a daily materialized view.
+
+### 3. Tenant Isolation
+1.  The app resolves an effective tenant for normal and impersonated sessions.
+2.  Admin impersonation flows reuse the same tenant resolver as user-facing pages.
+3.  Queue processing includes tenant-aware protections such as a per-tenant circuit breaker.
 
 ## 🏁 Getting Started
 
@@ -100,9 +105,19 @@ npm run build
 ### Backend (Edge Functions)
 Deploy functions to Supabase:
 ```bash
-supabase functions deploy process-scheduler
+supabase functions deploy enqueue-campaign
 supabase functions deploy process-message
+supabase functions deploy process-message-ai
 ```
+
+### SQL Runbooks
+For environments where `supabase db pull` is blocked by Docker or migration drift, use the documented SQL runbooks in `tasks/2026-03-12_SQL_EDITOR_RUNBOOK.md` and `tasks/2026-03-12_SQL_EDITOR_RUNBOOK_PHASE2_COUNTERS_BREAKER_MV.md`.
+
+## 📈 Observability
+
+*   Campaign completion currently represents the end of processing for the batch, not guaranteed successful delivery of every message.
+*   Operational reading should prioritize `sent_count` and `failed_count` when available.
+*   QStash processing stays serial per campaign; campaigns are not executed in parallel.
 
 ## 🔒 Security
 

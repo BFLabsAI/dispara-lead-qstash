@@ -1,4 +1,4 @@
-import { supabase, SUPABASE_URL } from './supabaseClient';
+import { invokeAuthenticatedEdgeFunction, supabase, SUPABASE_URL } from './supabaseClient';
 import { qstashClient } from './qstashClient';
 import { showSuccess, showError } from '../utils/toast';
 
@@ -159,11 +159,10 @@ export const campaignManagementService = {
             });
 
             // 3. Re-equeue via Edge Function
-            const { data: enqueueData, error: enqueueError } = await supabase.functions.invoke('enqueue-campaign', {
-                body: { messages: messagesToEnqueue }
-            });
-
-            if (enqueueError) throw enqueueError;
+            const enqueueData = await invokeAuthenticatedEdgeFunction<{ success?: boolean; error?: string }>(
+                'enqueue-campaign',
+                { messages: messagesToEnqueue }
+            );
             if (enqueueData && !enqueueData.success) throw new Error(enqueueData.error);
 
             // 4. Update Logs to 'queued'

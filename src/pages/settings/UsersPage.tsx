@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/services/supabaseClient';
+import { invokeAuthenticatedEdgeFunction, invokePublicEdgeFunction, supabase } from '@/services/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -90,8 +90,9 @@ export default function UsersPage() {
         mutationFn: async (payload: { email: string, name: string, role: string }) => {
             if (!currentTenantId) throw new Error("Tenant ID not found");
 
-            const { data, error } = await supabase.functions.invoke('auth_manager_dispara_lead', {
-                body: {
+            const data = await invokeAuthenticatedEdgeFunction<{ error?: string }>(
+                'auth_manager_dispara_lead',
+                {
                     action: 'invite',
                     email: payload.email,
                     name: payload.name,
@@ -99,9 +100,7 @@ export default function UsersPage() {
                     tenant_id: currentTenantId,
                     redirectTo: `${window.location.origin}/finish-profile`
                 }
-            });
-
-            if (error) throw error;
+            );
             if (data?.error) throw new Error(data.error);
 
             return data;
@@ -126,14 +125,10 @@ export default function UsersPage() {
     // 4. Delete User Mutation
     const deleteMutation = useMutation({
         mutationFn: async (userId: string) => {
-            const { data, error } = await supabase.functions.invoke('manage-users', {
-                body: {
-                    action: 'delete',
-                    userId: userId
-                }
+            const data = await invokeAuthenticatedEdgeFunction<{ error?: string }>('manage-users', {
+                action: 'delete',
+                userId: userId
             });
-
-            if (error) throw error;
             if (data?.error) throw new Error(data.error);
 
             return data;
@@ -156,16 +151,12 @@ export default function UsersPage() {
     // 5. Resend Invite Mutation
     const resendInviteMutation = useMutation({
         mutationFn: async (email: string) => {
-            const { data, error } = await supabase.functions.invoke('manage-users', {
-                body: {
-                    action: 'resend_invite',
-                    email: email,
-                    tenant_id: currentTenantId,
-                    redirectTo: window.location.origin // Ensure we use the current page origin, not localhost default
-                }
+            const data = await invokeAuthenticatedEdgeFunction<{ error?: string }>('manage-users', {
+                action: 'resend_invite',
+                email: email,
+                tenant_id: currentTenantId,
+                redirectTo: window.location.origin // Ensure we use the current page origin, not localhost default
             });
-
-            if (error) throw error;
             if (data?.error) throw new Error(data.error);
 
             return data;

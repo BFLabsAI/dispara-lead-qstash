@@ -46,7 +46,7 @@ serve(async (req) => {
         const requesterTenantId = requesterProfile?.tenant_id
 
         // Parse Request
-        const { action, tenant_id, email, full_name, role, userId } = await req.json()
+        const { action, tenant_id, email, full_name, role, userId, redirectTo } = await req.json()
 
         // --- AUTHORIZATION CHECK ---
         // Basic rule: Must be Super Admin OR (Tenant Owner/Admin acting on SAME tenant)
@@ -108,6 +108,45 @@ serve(async (req) => {
 
             return new Response(
                 JSON.stringify({ message: 'User invited successfully', user: authData.user }),
+                {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 200,
+                }
+            )
+        }
+
+        // --- ACTION: RESEND INVITE ---
+        if (action === 'resend_invite') {
+            if (!email || !tenant_id) {
+                throw new Error('Email and Tenant ID are required')
+            }
+
+            if (!isSuperAdmin && tenant_id !== requesterTenantId) {
+                throw new Error('Forbidden: Tenant mismatch')
+            }
+
+            const { data: existingUser, error: existingUserError } = await supabaseAdmin
+                .from('users_dispara_lead_saas_02')
+                .select('id, tenant_id')
+                .eq('email', email)
+                .single()
+
+            if (existingUserError || !existingUser) {
+                throw new Error('User not found')
+            }
+
+            if (!isSuperAdmin && existingUser.tenant_id !== requesterTenantId) {
+                throw new Error('Forbidden: You can only manage your own tenant')
+            }
+
+            const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+                redirectTo: redirectTo || undefined
+            })
+
+            if (inviteError) throw inviteError
+
+            return new Response(
+                JSON.stringify({ message: 'Invite resent successfully' }),
                 {
                     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                     status: 200,

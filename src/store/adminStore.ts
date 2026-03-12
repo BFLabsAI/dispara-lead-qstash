@@ -6,6 +6,7 @@ interface AdminState {
     adminTenantId: string | null;
     setImpersonatedTenantId: (id: string | null) => void;
     setAdminTenantId: (id: string | null) => void;
+    resetAdminContext: () => void;
 }
 
 export const useAdminStore = create<AdminState>()(
@@ -15,6 +16,7 @@ export const useAdminStore = create<AdminState>()(
             adminTenantId: null,
             setImpersonatedTenantId: (id) => set({ impersonatedTenantId: id }),
             setAdminTenantId: (id) => set({ adminTenantId: id }),
+            resetAdminContext: () => set({ impersonatedTenantId: null, adminTenantId: null }),
         }),
         {
             name: 'admin-storage',

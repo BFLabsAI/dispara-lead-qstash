@@ -14,7 +14,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { supabase } from "@/services/supabaseClient";
+import { getEffectiveTenantId, supabase } from "@/services/supabaseClient";
 import { cn } from "@/lib/utils";
 
 interface ChatSidebarProps {
@@ -53,9 +53,16 @@ export function ChatSidebar({
     // Fetch Instances
     useEffect(() => {
         const fetchInstances = async () => {
+            const tenantId = await getEffectiveTenantId();
+            if (!tenantId) {
+                setInstances([]);
+                return;
+            }
+
             const { data } = await supabase
                 .from("instances_dispara_lead_saas_02")
                 .select("instance_name, status")
+                .eq("tenant_id", tenantId)
                 .order("created_at", { ascending: false });
 
             if (data) {
@@ -185,9 +192,16 @@ export function ChatSidebar({
     // Fetch available tags for mapping
     useEffect(() => {
         const fetchTags = async () => {
+            const tenantId = await getEffectiveTenantId();
+            if (!tenantId) {
+                setTagDefs([]);
+                return;
+            }
+
             const { data } = await supabase
                 .from("user_tags_dispara_lead_saas_02")
-                .select("id, name, color");
+                .select("id, name, color")
+                .eq("tenant_id", tenantId);
             if (data) setTagDefs(data);
         };
         fetchTags();
@@ -197,9 +211,15 @@ export function ChatSidebar({
 
     const [tagFilter, setTagFilter] = useState<string | null>("all");
 
+    const getContactSearchText = (contact: any) => {
+        if (typeof contact?.name === "string" && contact.name.trim()) return contact.name;
+        if (typeof contact?.phone === "string" && contact.phone.trim()) return contact.phone;
+        return "";
+    };
+
     const filteredContacts = contacts.filter((c) => {
-        const matchesSearch = (c.name || c.phone).toLowerCase().includes(search.toLowerCase());
-        const matchesTag = tagFilter === "all" || (c.tags && Array.isArray(c.tags) && c.tags.includes(tagFilter));
+        const matchesSearch = getContactSearchText(c).toLowerCase().includes(search.toLowerCase());
+        const matchesTag = tagFilter === "all" || (Array.isArray(c?.tags) && c.tags.includes(tagFilter));
         return matchesSearch && matchesTag;
     });
 
@@ -286,9 +306,9 @@ export function ChatSidebar({
 
             <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
                 <div className="flex flex-col">
-                    {filteredContacts.map((contact) => (
+                    {filteredContacts.map((contact, index) => (
                         <button
-                            key={contact.id}
+                            key={contact.id || `${contact.instance_name || "unknown"}-${contact.phone || contact.last_message_at || index}`}
                             onClick={() => onSelectContact(contact)}
                             className={cn(
                                 "flex items-start gap-3 border-b p-3 text-left transition-all hover:bg-muted/50 dark:border-gray-800/50 group relative",
@@ -310,9 +330,9 @@ export function ChatSidebar({
                                             "font-bold text-sm line-clamp-2 break-words",
                                             selectedContact?.id === contact.id ? "text-foreground" : "text-foreground/90"
                                         )}
-                                        title={contact.name || contact.phone}
+                                        title={getContactSearchText(contact) || "Contato sem identificacao"}
                                     >
-                                        {contact.name || contact.phone}
+                                        {getContactSearchText(contact) || "Contato sem identificacao"}
                                     </span>
                                     {contact.last_message_at && (
                                         <span className={cn(
@@ -327,7 +347,7 @@ export function ChatSidebar({
                                 {/* Row 2: Phone (Left) and Instance (Right) */}
                                 <div className="flex justify-between items-center -mt-0.5 gap-2">
                                     <span className="text-xs text-muted-foreground font-medium shrink-0">
-                                        {contact.phone}
+                                        {typeof contact.phone === "string" && contact.phone.trim() ? contact.phone : "-"}
                                     </span>
 
                                     {/* Instance Badge (Right) */}
@@ -343,7 +363,7 @@ export function ChatSidebar({
                                 </div>
 
                                 {/* Row 3: Tags (Left - wrapped) */}
-                                {contact.tags && Array.isArray(contact.tags) && contact.tags.length > 0 && (
+                                    {Array.isArray(contact.tags) && contact.tags.length > 0 && (
                                     <div className="flex flex-wrap gap-1 mt-0.5 mb-1">
                                         {contact.tags.slice(0, 3).map((tagId: string) => {
                                             const tag = getTagDetails(tagId);
@@ -371,24 +391,26 @@ export function ChatSidebar({
                                 {/* Row 4: Message Preview */}
                                 <div className="flex items-start gap-1 text-xs text-muted-foreground min-w-0 mt-0.5">
                                     {/* Media Icon/Thumbnail */}
-                                    {contact.last_message_type?.toLowerCase().includes('image') && contact.last_media_url ? (
+                                    {typeof contact.last_message_type === "string" && contact.last_message_type.toLowerCase().includes('image') && contact.last_media_url ? (
                                         <div className="flex items-center gap-1.5 min-w-0">
                                             <Globe className="h-3 w-3 shrink-0" />
                                             <span>Foto</span>
                                         </div>
-                                    ) : contact.last_message_type?.toLowerCase().includes('video') ? (
+                                    ) : typeof contact.last_message_type === "string" && contact.last_message_type.toLowerCase().includes('video') ? (
                                         <div className="flex items-center gap-1 min-w-0">
                                             <span className="shrink-0">🎥</span>
                                             <span>Vídeo</span>
                                         </div>
-                                    ) : contact.last_message_type?.toLowerCase().includes('audio') ? (
+                                    ) : typeof contact.last_message_type === "string" && contact.last_message_type.toLowerCase().includes('audio') ? (
                                         <div className="flex items-center gap-1 min-w-0">
                                             <span className="shrink-0">🎤</span>
                                             <span>Áudio</span>
                                         </div>
                                     ) : (
                                         <p className="line-clamp-2 break-words flex-1 min-w-0 opacity-80 font-normal">
-                                            {contact.last_message_content || "..."}
+                                            {typeof contact.last_message_content === "string" && contact.last_message_content.trim()
+                                                ? contact.last_message_content
+                                                : "..."}
                                         </p>
                                     )}
                                 </div>

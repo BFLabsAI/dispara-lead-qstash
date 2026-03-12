@@ -29,6 +29,71 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
+export async function invokePublicEdgeFunction<TResponse = unknown>(
+  functionName: string,
+  body?: unknown,
+): Promise<TResponse> {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const contentType = response.headers.get('content-type') ?? '';
+  const payload = contentType.includes('application/json')
+    ? await response.json()
+    : await response.text();
+
+  if (!response.ok) {
+    const message = typeof payload === 'string'
+      ? payload
+      : payload?.message || payload?.error || `Edge Function ${functionName} failed`;
+    throw new Error(message);
+  }
+
+  return payload as TResponse;
+}
+
+export async function invokeAuthenticatedEdgeFunction<TResponse = unknown>(
+  functionName: string,
+  body?: unknown,
+): Promise<TResponse> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const accessToken = session?.access_token;
+
+  if (!accessToken) {
+    throw new Error('Sessao expirada. Faca login novamente.');
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const contentType = response.headers.get('content-type') ?? '';
+  const payload = contentType.includes('application/json')
+    ? await response.json()
+    : await response.text();
+
+  if (!response.ok) {
+    const message = typeof payload === 'string'
+      ? payload
+      : payload?.message || payload?.error || `Edge Function ${functionName} failed`;
+    throw new Error(message);
+  }
+
+  return payload as TResponse;
+}
+
 export interface DisparadorData {
   numero: string;
   tipo_envio: string;
@@ -71,6 +136,30 @@ interface SaaSLog {
     ai_rewritten?: boolean;
   };
 }
+
+const DISPARADOR_LOG_SELECT = `
+  id,
+  phone_number,
+  status,
+  instance_name,
+  message_content,
+  campaign_name,
+  campaign_type,
+  created_at,
+  scheduled_for,
+  responded_at,
+  message_type,
+  error_message,
+  metadata
+`;
+
+const CAMPAIGN_STATS_SELECT = `
+  id,
+  name,
+  status,
+  scheduled_for,
+  total_messages
+`;
 
 // Helper to map new SaaS schema to legacy interface
 const mapSaaSLogToDisparadorData = (log: SaaSLog): DisparadorData => {
@@ -127,13 +216,38 @@ const retryWithBackoff = async <T>(
 
 import { useAdminStore } from '@/store/adminStore';
 
-// Helper to get effective tenant ID (Impersonated OR Authenticated)
-const getEffectiveTenantId = async () => {
+const TENANT_CACHE_TTL = 5 * 60 * 1000;
+let cachedTenantResolution: {
+  cacheKey: string;
+  tenantId: string | null;
+  timestamp: number;
+} | null = null;
+
+// Shared tenant resolver for authenticated and impersonated contexts.
+export const getEffectiveTenantId = async () => {
   const impersonated = useAdminStore.getState().impersonatedTenantId;
   if (impersonated) return impersonated;
 
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  const cacheKey = `session:${userId}`;
+  if (
+    cachedTenantResolution &&
+    cachedTenantResolution.cacheKey === cacheKey &&
+    Date.now() - cachedTenantResolution.timestamp < TENANT_CACHE_TTL
+  ) {
+    return cachedTenantResolution.tenantId;
+  }
+
   // Fallback to authenticated user's tenant
   const { data } = await supabase.rpc('get_my_tenant_id');
+  cachedTenantResolution = {
+    cacheKey,
+    tenantId: data ?? null,
+    timestamp: Date.now(),
+  };
   return data;
 };
 
@@ -147,6 +261,9 @@ export async function fetchDisparadorDataPaginated(
     instance?: string;
     tipo?: string;
     campaign?: string;
+    publico?: string;
+    criativo?: string;
+    responseStatus?: string;
     dateStart?: string;
     dateEnd?: string;
   }
@@ -161,7 +278,7 @@ export async function fetchDisparadorDataPaginated(
     // Build the query with optimized column selection
     let query = supabase
       .from('message_logs_dispara_lead_saas_03')
-      .select('*', { count: 'exact', head: false })
+      .select(DISPARADOR_LOG_SELECT, { count: 'exact', head: false })
       .eq('tenant_id', tenantId);
 
     // Apply filters efficiently
@@ -175,6 +292,18 @@ export async function fetchDisparadorDataPaginated(
     }
     if (filters?.campaign) {
       query = query.eq('campaign_name', filters.campaign);
+    }
+    if (filters?.publico) {
+      query = query.filter('metadata->>publico', 'eq', filters.publico);
+    }
+    if (filters?.criativo) {
+      query = query.filter('metadata->>criativo', 'eq', filters.criativo);
+    }
+    if (filters?.responseStatus === 'responded') {
+      query = query.not('responded_at', 'is', null);
+    }
+    if (filters?.responseStatus === 'not_responded') {
+      query = query.is('responded_at', null);
     }
     if (filters?.dateStart) {
       query = query.gte('created_at', filters.dateStart);
@@ -229,7 +358,7 @@ export async function fetchRecentDisparadorData(limit: number = 100): Promise<Di
 
     let query = supabase
       .from('message_logs_dispara_lead_saas_03')
-      .select('*')
+      .select(DISPARADOR_LOG_SELECT)
       .order('created_at', { ascending: false })
       .limit(limit)
       .eq('tenant_id', tenantId);
@@ -263,6 +392,78 @@ export async function fetchRecentDisparadorData(limit: number = 100): Promise<Di
   }
 }
 
+export async function fetchDisparadorDataForDateRange(filters?: {
+  instance?: string;
+  tipo?: string;
+  campaign?: string;
+  dateStart?: string;
+  dateEnd?: string;
+}): Promise<DisparadorData[]> {
+  const operation = async () => {
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) return [];
+
+    let allData: DisparadorData[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
+      let query = supabase
+        .from('message_logs_dispara_lead_saas_03')
+        .select(DISPARADOR_LOG_SELECT)
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (filters?.instance) {
+        query = query.eq('instance_name', filters.instance);
+      }
+      if (filters?.tipo) {
+        const status = filters.tipo === 'sucesso' ? 'sent' : (filters.tipo === 'falha' ? 'failed' : filters.tipo);
+        query = query.eq('status', status);
+      }
+      if (filters?.campaign) {
+        query = query.eq('campaign_name', filters.campaign);
+      }
+      if (filters?.dateStart) {
+        query = query.gte('created_at', filters.dateStart);
+      }
+      if (filters?.dateEnd) {
+        query = query.lte('created_at', filters.dateEnd);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching disparador data range chunk:', error);
+        throw new Error(`Failed to fetch data range chunk: ${error.message}`);
+      }
+
+      const chunk = (data || []).map(mapSaaSLogToDisparadorData);
+      allData = [...allData, ...chunk];
+
+      if (!data || data.length < pageSize) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+
+    return allData;
+  };
+
+  try {
+    return await retryWithBackoff(operation, 3, 1000);
+  } catch (error) {
+    console.error('Failed to fetch data range after retries:', error);
+    throw new Error('Unable to load filtered data. Please check your connection.');
+  }
+}
+
 // Legacy function - now optimized to fetch all data recursively
 export async function fetchAllDisparadorData(): Promise<DisparadorData[]> {
   const operation = async () => {
@@ -280,7 +481,7 @@ export async function fetchAllDisparadorData(): Promise<DisparadorData[]> {
 
       let query = supabase
         .from('message_logs_dispara_lead_saas_03')
-        .select('*')
+        .select(DISPARADOR_LOG_SELECT)
         .order('created_at', { ascending: false })
         .range(from, to)
         .eq('tenant_id', tenantId);
@@ -412,21 +613,12 @@ const STATS_CACHE_TTL = 60000; // 1 minute
 
 export async function getDashboardStatsOptimized() {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    // Get tenant_id
-    const { data: userData } = await supabase
-      .from('users_dispara_lead_saas_02')
-      .select('tenant_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!userData?.tenant_id) throw new Error('Tenant not found');
+    const tenantId = await getEffectiveTenantId();
+    if (!tenantId) throw new Error('Tenant not found');
 
     // Call the RPC function
     const { data, error } = await supabase
-      .rpc('get_dashboard_stats', { p_tenant_id: userData.tenant_id });
+      .rpc('get_dashboard_stats', { p_tenant_id: tenantId });
 
     if (error) throw error;
 
@@ -551,7 +743,7 @@ export async function fetchCampaignStats() {
 
   let query = supabase
     .from('campaigns_dispara_lead_saas_02')
-    .select('*')
+    .select(CAMPAIGN_STATS_SELECT)
     .eq('tenant_id', tenantId);
 
   const { data, error } = await query;

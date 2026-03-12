@@ -1,5 +1,24 @@
 # Changelog
 
+## [v1.3.0] - 2026-03-12
+
+### Features
+- Dashboard e Logs agora abrem com janela padrao de `7 dias`, com expansao server-side sob demanda para periodos maiores.
+- O pipeline de campanhas ganhou contadores atomicos (`sent_count`, `failed_count`), circuit breaker por tenant e materialized view diaria para stats.
+- O painel admin recebeu novas consultas agregadas, ajustes de performance e suporte a super admins globais.
+
+### Fixes
+- Corrigida a consistencia de tenant em impersonation, incluindo `Disparo`, `Dashboard`, `Logs` e leituras administrativas.
+- Adicionado `ErrorBoundary` e guardas defensivas em rotas/componentes com risco de tela branca por shape inesperado.
+- Corrigidas chamadas do frontend para Edge Functions: rotas publicas usam helper anonimo e rotas sensiveis voltaram a exigir sessao autenticada.
+- `auth_manager_dispara_lead` agora exige usuario autenticado para convites; somente `recovery` permanece publico.
+
+### Infrastructure
+- `enqueue-campaign` passou a publicar payload minimo no QStash com `messageId`, `campaignId`, `lead` e `message`.
+- Completion de campanha foi movido para a RPC atomica `complete_campaign_if_finished(...)`.
+- Foram adicionados indices para `message_logs_dispara_lead_saas_03` e uma trilha de runbooks SQL para deploy manual seguro.
+- `process-message` e `process-message-ai` foram adaptadas para usar a nova camada atomica e redeployadas apos as migrations.
+
 ## [v1.2.1] - 2026-03-12
 
 ### 🐛 Correções & Melhorias (Fixes & Improvements)

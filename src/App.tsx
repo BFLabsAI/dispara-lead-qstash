@@ -31,10 +31,12 @@ import TenantList from "./pages/admin/TenantList";
 import TenantDetails from "./pages/admin/TenantDetails";
 import PlansList from "./pages/admin/PlansList";
 import EmailTemplatesPage from "./pages/admin/EmailTemplatesPage";
+import SuperAdminsPage from "./pages/admin/SuperAdminsPage";
 import Obrigado from "./pages/Obrigado";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SidebarProvider } from "./components/ui/sidebar";
+import { RouteErrorBoundary } from "./components/errors/RouteErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,7 +75,13 @@ const App = () => (
                 <Route path="/finish-profile" element={<FinishProfilePage />} />
               </Route>
               <Route element={<ProtectedRoute />}>
-                <Route element={<DashboardLayout />}>
+                <Route
+                  element={
+                    <RouteErrorBoundary>
+                      <DashboardLayout />
+                    </RouteErrorBoundary>
+                  }
+                >
                   <Route path="/welcome" element={<Home />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/logs" element={<Logs />} />
@@ -93,11 +101,22 @@ const App = () => (
 
               {/* Rotas de Admin */}
               <Route element={<AdminRoute />}>
-                <Route path="/admin" element={<AdminLayout />}>
+                <Route
+                  path="/admin"
+                  element={
+                    <RouteErrorBoundary
+                      title="Nao foi possivel carregar o Manager Portal"
+                      description="A area administrativa encontrou um erro nao tratado. Tente recarregar a tela ou navegar novamente."
+                    >
+                      <AdminLayout />
+                    </RouteErrorBoundary>
+                  }
+                >
                   <Route index element={<AdminDashboard />} />
                   <Route path="tenants" element={<TenantList />} />
                   <Route path="tenants/:id" element={<TenantDetails />} />
                   <Route path="plans" element={<PlansList />} />
+                  <Route path="super-admins" element={<SuperAdminsPage />} />
                   <Route path="email-templates" element={<EmailTemplatesPage />} />
                 </Route>
               </Route>

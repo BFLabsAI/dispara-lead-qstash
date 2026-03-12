@@ -17,19 +17,28 @@ const APP_CONFIG = {
     senderEmail: 'tecnologia@bflabs.com.br'
 };
 
+const getBearerToken = (req: Request) => {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) return null;
+
+    const token = authHeader.slice('Bearer '.length).trim();
+    return token || null;
+};
+
 Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
     }
 
     try {
-        const { action, email, name, tenant_id, role, redirectTo } = await req.json();
+        const { action, email, name, tenant_id, role, redirectTo, is_super_admin } = await req.json();
 
         if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
             throw new Error("Missing Supabase configuration");
         }
 
         const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const supabaseAuth = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
 
         // HELPER: Send Email via Brevo
         const sendBrevoEmail = async ({ type, toEmail, toName, variables }: any) => {
@@ -85,7 +94,56 @@ Deno.serve(async (req) => {
         // --- ACTIONS ---
 
         if (action === 'invite') {
+            const requesterToken = getBearerToken(req);
+            if (!requesterToken) {
+                throw new Error("Unauthorized");
+            }
+
+            const { data: authData, error: authError } = await supabaseAuth.auth.getUser(requesterToken);
+            const requester = authData?.user;
+            if (authError || !requester) {
+                throw new Error("Unauthorized");
+            }
+
             console.log(`[AUTH_MANAGER] Starting invite for ${email}`);
+            const isGlobalSuperAdmin = Boolean(is_super_admin);
+            const emailTemplateType = isGlobalSuperAdmin ? 'super_admin_invite' : 'invite';
+            const invitedTenantId = isGlobalSuperAdmin ? '__global_super_admin__' : tenant_id;
+
+            if (!email) {
+                throw new Error("Email is required");
+            }
+
+            if (!isGlobalSuperAdmin && !tenant_id) {
+                throw new Error("Tenant ID is required for non-super-admin invites");
+            }
+
+            const { data: requesterProfile, error: requesterProfileError } = await supabaseAdmin
+                .from('users_dispara_lead_saas_02')
+                .select('role, tenant_id, is_super_admin')
+                .eq('id', requester.id)
+                .single();
+
+            if (requesterProfileError || !requesterProfile) {
+                throw new Error("Unauthorized");
+            }
+
+            const requesterIsSuperAdmin = Boolean(requesterProfile.is_super_admin);
+            const requesterIsTenantAdmin = requesterProfile.role === 'owner' || requesterProfile.role === 'admin';
+
+            if (isGlobalSuperAdmin) {
+                if (!requesterIsSuperAdmin) {
+                    throw new Error("Forbidden");
+                }
+            } else {
+                if (!requesterIsSuperAdmin && !requesterIsTenantAdmin) {
+                    throw new Error("Forbidden");
+                }
+
+                if (!requesterIsSuperAdmin && requesterProfile.tenant_id !== tenant_id) {
+                    throw new Error("Forbidden");
+                }
+            }
 
             // 0. Ensure user exists (Create if not exists)
             const { error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -93,8 +151,10 @@ Deno.serve(async (req) => {
                 email_confirm: true,
                 user_metadata: {
                     full_name: name || email.split('@')[0],
-                    invited_to_tenant_id: tenant_id
-                }
+                    ...(invitedTenantId ? { invited_to_tenant_id: invitedTenantId } : {}),
+                    ...(isGlobalSuperAdmin ? { skip_profile_bootstrap: true } : {}),
+                },
+                app_metadata: isGlobalSuperAdmin ? { is_super_admin: true } : undefined,
             });
 
             if (createError && !createError.message.includes("already registered") && !createError.message.includes("already exists")) {
@@ -117,7 +177,9 @@ Deno.serve(async (req) => {
             if (!targetUser) throw new Error("Failed to resolve user from link generation");
 
             // 2. Upsert User Profile
-            const finalRole = (role === 'user' ? 'member' : role) || 'member';
+            const finalRole = isGlobalSuperAdmin
+                ? ((role === 'user' ? 'admin' : role) || 'admin')
+                : ((role === 'user' ? 'member' : role) || 'member');
             console.log(`[AUTH_MANAGER] Upserting user: ${targetUser.id} | Role: ${finalRole}`);
 
             const { error: upsertError } = await supabaseAdmin
@@ -126,8 +188,9 @@ Deno.serve(async (req) => {
                     id: targetUser.id,
                     email: email,
                     full_name: name || email.split('@')[0],
-                    tenant_id: tenant_id,
-                    role: finalRole
+                    tenant_id: isGlobalSuperAdmin ? null : tenant_id,
+                    role: finalRole,
+                    is_super_admin: isGlobalSuperAdmin,
                 }, { onConflict: 'id' });
 
             if (upsertError) {
@@ -139,7 +202,7 @@ Deno.serve(async (req) => {
 
             // 3. Send Email
             await sendBrevoEmail({
-                type: 'invite',
+                type: emailTemplateType,
                 toEmail: email,
                 toName: name,
                 variables: {

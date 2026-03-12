@@ -6,7 +6,7 @@ import {
   disconnectInstanceClient,
 } from '../services/uazapiClient';
 import { uploadFileToSupabase } from '../services/supabaseStorage';
-import { supabase, SUPABASE_URL } from '../services/supabaseClient';
+import { getEffectiveTenantId, invokeAuthenticatedEdgeFunction, supabase, SUPABASE_URL } from '../services/supabaseClient';
 import { useAdminStore } from './adminStore';
 
 interface Instance {
@@ -115,30 +115,9 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
   loadInstances: async (silent = false) => {
     if (!silent) set({ isLoading: true });
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const { data: userData } = await supabase
-        .from('users_dispara_lead_saas_02')
-        .select('tenant_id, role')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.tenant_id) {
-        console.error("Tenant ID not found for user:", user.id);
+      const targetTenantId = await getEffectiveTenantId();
+      if (!targetTenantId) {
         throw new Error("Tenant não encontrado");
-      }
-
-      let targetTenantId = userData.tenant_id;
-      const { data: isSuper } = await supabase.rpc('is_super_admin');
-      const impersonatedId = useAdminStore.getState().impersonatedTenantId;
-
-      if (isSuper && impersonatedId) {
-        targetTenantId = impersonatedId;
-      } else if (impersonatedId && !isSuper) {
-        console.warn("Clearing stale admin state for regular user");
-        useAdminStore.getState().setImpersonatedTenantId(null);
-        useAdminStore.getState().setAdminTenantId(null);
       }
 
       const { data: dbInstances, error: dbError } = await supabase
@@ -363,21 +342,8 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { data: userData } = await supabase
-        .from('users_dispara_lead_saas_02')
-        .select('tenant_id, role')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.tenant_id) throw new Error("Tenant não encontrado");
-
-      let targetTenantId = userData.tenant_id;
-      const { data: isSuper } = await supabase.rpc('is_super_admin');
-      const impersonatedId = useAdminStore.getState().impersonatedTenantId;
-
-      if (isSuper && impersonatedId) {
-        targetTenantId = impersonatedId;
-      }
+      const targetTenantId = await getEffectiveTenantId();
+      if (!targetTenantId) throw new Error("Tenant não encontrado");
 
       const finalCampaignName = campaignName || `Disparo Rápido ${new Date().toLocaleTimeString()}`;
 
@@ -488,17 +454,10 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
 
       if (logsError) throw logsError;
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-
-      const { data: enqueueData, error: enqueueError } = await supabase.functions.invoke('enqueue-campaign', {
-        body: { messages: messagesToEnqueue },
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined
-      });
-
-      if (enqueueError) {
-        throw new Error(`Erro network Edge Function: ${enqueueError.message}`);
-      }
+      const enqueueData = await invokeAuthenticatedEdgeFunction<{ success?: boolean; error?: string; stage?: string }>(
+        'enqueue-campaign',
+        { messages: messagesToEnqueue }
+      );
 
       if (enqueueData && enqueueData.success === false) {
         console.error("QStash Debug Error:", enqueueData);
@@ -717,15 +676,10 @@ export const useDisparadorStore = create<DisparadorState>((set, get) => ({
       if (insertError) throw insertError;
 
       // 7. Enqueue
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-
-      const { data: enqueueData, error: enqueueError } = await supabase.functions.invoke('enqueue-campaign', {
-        body: { messages: messagesToEnqueue },
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined
-      });
-
-      if (enqueueError) throw enqueueError;
+      const enqueueData = await invokeAuthenticatedEdgeFunction<{ success?: boolean; error?: string }>(
+        'enqueue-campaign',
+        { messages: messagesToEnqueue }
+      );
 
       // 8. Update Status to processing
       await supabase

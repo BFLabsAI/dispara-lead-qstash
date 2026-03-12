@@ -115,6 +115,7 @@ export default function EmailTemplatesPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
                 <TabsList>
                     <TabsTrigger value="invite">Convite (Invite)</TabsTrigger>
+                    <TabsTrigger value="super_admin_invite">Convite Super Admin</TabsTrigger>
                     <TabsTrigger value="recovery">Recuperação de Senha</TabsTrigger>
                     {/* Signup removed as per latest plan */}
                 </TabsList>

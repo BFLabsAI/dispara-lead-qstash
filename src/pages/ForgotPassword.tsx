@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '@/services/supabaseClient';
+import { invokePublicEdgeFunction } from '@/services/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState('');
@@ -21,18 +19,14 @@ export default function ForgotPassword() {
         setLoading(true);
 
         try {
-            const { data, error } = await supabase.functions.invoke('auth_manager_dispara_lead', {
-                headers: {
-                    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-                },
-                body: {
+            const data = await invokePublicEdgeFunction<{ error?: string }>(
+                'auth_manager_dispara_lead',
+                {
                     action: 'recovery',
                     email,
                     redirectTo: `${window.location.origin}/reset-password`,
                 }
-            });
-
-            if (error) throw error;
+            );
             if (data?.error) throw new Error(data.error);
 
             setSubmitted(true);

@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS public.email_templates_dispara_lead_saas (
-    type text PRIMARY KEY CHECK (type IN ('invite', 'recovery')),
+    type text PRIMARY KEY CHECK (type IN ('invite', 'recovery', 'super_admin_invite')),
     subject text NOT NULL,
     html_content text NOT NULL,
     created_at timestamptz DEFAULT now(),
@@ -35,6 +35,28 @@ VALUES
       <a href="{{action_url}}" class="btn">Aceitar Convite</a>
     </div>
     <p style="font-size: 12px; color: #666;">Se você não esperava este convite, pode ignorar este email.</p>
+  </div>
+</body>
+</html>'),
+
+('super_admin_invite', 'Você foi convidado para administrar o DisparaLead', '<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: sans-serif; background-color: #f9f9f9; padding: 20px; }
+  .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .btn { display: inline-block; padding: 12px 24px; background-color: #111827; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>Olá, {{name}}!</h2>
+    <p>Você foi convidado para acessar o Manager Portal do DisparaLead como super admin.</p>
+    <p>Esse acesso é global e não fica vinculado a um tenant específico.</p>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="{{action_url}}" class="btn">Criar Conta de Super Admin</a>
+    </div>
+    <p style="font-size: 12px; color: #666;">Conta vinculada ao email {{email}}.</p>
   </div>
 </body>
 </html>'),

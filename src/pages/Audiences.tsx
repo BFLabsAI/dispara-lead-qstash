@@ -23,6 +23,11 @@ export const Audiences = () => {
     const [uniqueTags, setUniqueTags] = useState<string[]>([]);
     const [dialogOpen, setDialogOpen] = useState(false);
 
+    const getAudienceName = (audience: Audience) => {
+        if (typeof audience?.name === "string" && audience.name.trim()) return audience.name;
+        return "Audiência sem nome";
+    };
+
     useEffect(() => {
         fetchAudiences();
     }, []);
@@ -35,7 +40,11 @@ export const Audiences = () => {
 
             // Extract unique tags
             const allTags = new Set<string>();
-            data.forEach(a => a.tags?.forEach(t => allTags.add(t.name)));
+            data.forEach(a => a.tags?.forEach(t => {
+                if (typeof t?.name === "string" && t.name.trim()) {
+                    allTags.add(t.name);
+                }
+            }));
             setUniqueTags(Array.from(allTags).sort());
 
         } catch (error) {
@@ -60,8 +69,8 @@ export const Audiences = () => {
     };
 
     const filteredAudiences = audiences.filter(a => {
-        const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesTag = selectedTag ? a.tags?.some(t => t.name === selectedTag) : true;
+        const matchesSearch = getAudienceName(a).toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesTag = selectedTag ? a.tags?.some(t => t?.name === selectedTag) : true;
         return matchesSearch && matchesTag;
     });
 
@@ -148,15 +157,15 @@ export const Audiences = () => {
                             <CardHeader className="pb-3">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <CardTitle className="text-lg font-semibold">{audience.name}</CardTitle>
+                                        <CardTitle className="text-lg font-semibold">{getAudienceName(audience)}</CardTitle>
                                         <CardDescription className="text-xs pt-1 flex items-center gap-1">
                                             <Calendar className="h-3 w-3" />
-                                            {new Date(audience.created_at).toLocaleDateString()}
+                                            {audience.created_at ? new Date(audience.created_at).toLocaleDateString() : "-"}
                                         </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <AudienceDetailsDialog audienceId={audience.id} audienceName={audience.name} />
-                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(audience.id, audience.name)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                                        <AudienceDetailsDialog audienceId={audience.id} audienceName={getAudienceName(audience)} />
+                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(audience.id, getAudienceName(audience))} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                                             <span className="sr-only">Excluir</span>
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
                                         </Button>
@@ -169,7 +178,7 @@ export const Audiences = () => {
                                         <Users className="h-5 w-5 text-primary" />
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold">{audience.total_contacts.toLocaleString()}</p>
+                                        <p className="text-2xl font-bold">{Number(audience.total_contacts || 0).toLocaleString()}</p>
                                         <p className="text-xs text-muted-foreground">Contatos registrados</p>
                                     </div>
                                 </div>
@@ -177,10 +186,11 @@ export const Audiences = () => {
                                 <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
                                     {audience.tags && audience.tags.length > 0 ? (
                                         audience.tags.map((tag: any) => {
-                                            const colors = getTagColor(tag.name);
+                                            const tagName = typeof tag?.name === "string" && tag.name.trim() ? tag.name : "Sem nome";
+                                            const colors = getTagColor(tagName);
                                             return (
                                                 <Badge
-                                                    key={tag.id}
+                                                    key={tag.id || `${audience.id}-${tagName}`}
                                                     variant="secondary"
                                                     className="text-xs font-normal border"
                                                     style={{
@@ -190,7 +200,7 @@ export const Audiences = () => {
                                                     }}
                                                 >
                                                     <TagIcon className="h-3 w-3 mr-1 opacity-50" />
-                                                    {tag.name}
+                                                    {tagName}
                                                 </Badge>
                                             );
                                         })

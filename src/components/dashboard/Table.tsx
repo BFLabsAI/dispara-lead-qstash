@@ -30,6 +30,12 @@ export const DashboardTable = ({ data }: TableProps) => {
     }
   };
 
+  const getSafeText = (value: unknown, fallback: string = "-") => {
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    return fallback;
+  };
+
   const getStatusBadge = (item: any) => {
     const status = item.tipo_envio?.toLowerCase();
 
@@ -52,14 +58,14 @@ export const DashboardTable = ({ data }: TableProps) => {
     }
 
     if (status === 'falha' || status === 'failed') {
-      let errorText = item.error_message || "Erro desconhecido";
+      let errorText = getSafeText(item.error_message, "Erro desconhecido");
 
       // Try to parse JSON error if it looks like JSON
-      if (errorText.startsWith('{') || errorText.startsWith('[')) {
+      if (typeof errorText === "string" && (errorText.startsWith('{') || errorText.startsWith('['))) {
         try {
           const parsed = JSON.parse(errorText);
           // Extract meaningful message if possible
-          errorText = parsed.message || parsed.error || JSON.stringify(parsed, null, 2);
+          errorText = getSafeText(parsed?.message ?? parsed?.error, JSON.stringify(parsed, null, 2));
         } catch (e) {
           // Keep original text if parse fails
         }
@@ -83,7 +89,7 @@ export const DashboardTable = ({ data }: TableProps) => {
       );
     }
 
-    return <span className="capitalize">{item.tipo_envio}</span>;
+    return <span className="capitalize">{getSafeText(item.tipo_envio)}</span>;
   };
 
   return (
@@ -96,7 +102,7 @@ export const DashboardTable = ({ data }: TableProps) => {
           <h3 className="font-bold text-xl text-gray-900 dark:text-white">Registros de Disparo</h3>
         </div>
 
-        {data.length > 0 ? (
+        {Array.isArray(data) && data.length > 0 ? (
           <div className="overflow-x-auto rounded-xl border border-green-200/50 dark:border-green-500/30">
             <Table>
               <TableHeader className="bg-green-50/50 dark:bg-green-900/20">
@@ -114,21 +120,21 @@ export const DashboardTable = ({ data }: TableProps) => {
               </TableHeader>
               <TableBody>
                 {data.map((item) => (
-                  <TableRow key={item.id || `${item.created_at}-${item.numero}`} className="border-b border-green-200/20 dark:border-green-500/10 hover:bg-green-500/10">
-                    <TableCell>{formatDate(item.created_at)}</TableCell>
+                  <TableRow key={item.id || `${getSafeText(item.created_at, "unknown")}-${getSafeText(item.numero, "unknown")}`} className="border-b border-green-200/20 dark:border-green-500/10 hover:bg-green-500/10">
+                    <TableCell>{formatDate(getSafeText(item.created_at, ""))}</TableCell>
                     <TableCell>
                       <Badge className="bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-300 border border-transparent hover:bg-green-200">
-                        {item.instancia}
+                        {getSafeText(item.instancia)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate font-mono text-xs" title={item.numero}>
-                      {item.numero}
+                    <TableCell className="max-w-xs truncate font-mono text-xs" title={getSafeText(item.numero)}>
+                      {getSafeText(item.numero)}
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(item)}
                     </TableCell>
-                    <TableCell className="max-w-[150px] truncate" title={item.nome_campanha}>
-                      {item.nome_campanha || '-'}
+                    <TableCell className="max-w-[150px] truncate" title={getSafeText(item.nome_campanha)}>
+                      {getSafeText(item.nome_campanha)}
                     </TableCell>
                     <TableCell className="capitalize">
                       {(item.tipo_campanha || '').toLowerCase().includes('agendada') ? (
@@ -142,7 +148,7 @@ export const DashboardTable = ({ data }: TableProps) => {
                       )}
                     </TableCell>
                     <TableCell>
-                      {item.usaria || item.usarIA ? (
+                          {Boolean(item.usaria || item.usarIA) ? (
                         <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
                           <CheckCircle className="h-3 w-3 mr-1" /> Sim
                         </Badge>
@@ -161,8 +167,10 @@ export const DashboardTable = ({ data }: TableProps) => {
                         <span className="text-gray-400 text-xs">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground" title={item.texto}>
-                      {item.texto?.substring(0, 60)}...
+                    <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground" title={getSafeText(item.texto)}>
+                      {typeof item.texto === "string" && item.texto.length > 0
+                        ? `${item.texto.substring(0, 60)}...`
+                        : "-"}
                     </TableCell>
                   </TableRow>
                 ))}

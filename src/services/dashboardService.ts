@@ -7,6 +7,7 @@ dayjs.extend(timezone);
 
 import {
   fetchAllDisparadorData,
+  fetchDisparadorDataForDateRange,
   fetchDisparadorDataPaginated,
   fetchRecentDisparadorData,
   subscribeToDisparadorUpdates,
@@ -16,18 +17,47 @@ import {
 } from "./supabaseClient";
 import { supabase } from "./supabaseClient";
 
+const formatDisparadorRows = (data: DisparadorData[]) =>
+  data
+    .map((item: DisparadorData) => ({
+      ...item,
+      date: dayjs.utc(item.created_at).local(),
+    }))
+    .sort((a: any, b: any) => b.date.diff(a.date));
+
 // Legacy function - now uses Supabase directly
 export const getDashboardData = async () => {
   try {
     const data = await fetchAllDisparadorData();
-    return data
-      .map((item: DisparadorData) => ({
-        ...item,
-        date: dayjs.utc(item.created_at).local(),
-      }))
-      .sort((a: any, b: any) => b.date.diff(a.date));
+    return formatDisparadorRows(data);
   } catch (error) {
     console.error('Error loading dashboard data:', error);
+    throw error;
+  }
+};
+
+export const getDashboardPreviewData = async (limit: number = 1000) => {
+  try {
+    const data = await fetchRecentDisparadorData(limit);
+    return formatDisparadorRows(data);
+  } catch (error) {
+    console.error('Error loading dashboard preview data:', error);
+    throw error;
+  }
+};
+
+export const getDashboardDataForDateRange = async (filters?: {
+  instance?: string;
+  tipo?: string;
+  campaign?: string;
+  dateStart?: string;
+  dateEnd?: string;
+}) => {
+  try {
+    const data = await fetchDisparadorDataForDateRange(filters);
+    return formatDisparadorRows(data);
+  } catch (error) {
+    console.error('Error loading dashboard data for date range:', error);
     throw error;
   }
 };
@@ -54,6 +84,9 @@ export const getDashboardDataPaginated = async (
     instance?: string;
     tipo?: string;
     campaign?: string;
+    publico?: string;
+    criativo?: string;
+    responseStatus?: string;
     dateStart?: string;
     dateEnd?: string;
   }
@@ -119,10 +152,7 @@ export const getDashboardDataAll = async (filters?: {
       );
     }
 
-    const formattedData = filteredData.map((item: DisparadorData) => ({
-      ...item,
-      date: dayjs.utc(item.created_at).local(),
-    }));
+    const formattedData = formatDisparadorRows(filteredData);
 
     return {
       data: formattedData,

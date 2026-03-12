@@ -13,6 +13,7 @@ import { useAdminStore } from "@/store/adminStore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createInstance, deleteInstance, type UazapiInstance } from "@/services/uazapiClient";
+import { invokeAuthenticatedEdgeFunction } from "@/services/supabaseClient";
 
 interface Tenant {
     id: string;
@@ -160,17 +161,13 @@ export default function TenantDetails() {
 
     const handleInviteUser = async () => {
         try {
-            const { data, error } = await supabase.functions.invoke('manage-users', {
-                body: {
-                    action: 'invite',
-                    tenant_id: id,
-                    email: inviteFormData.email,
-                    full_name: inviteFormData.fullName,
-                    role: inviteFormData.role
-                }
+            const data = await invokeAuthenticatedEdgeFunction<{ error?: string }>('manage-users', {
+                action: 'invite',
+                tenant_id: id,
+                email: inviteFormData.email,
+                full_name: inviteFormData.fullName,
+                role: inviteFormData.role
             });
-
-            if (error) throw new Error(error.message || 'Erro ao chamar função');
             if (data?.error) throw new Error(data.error);
 
             toast({

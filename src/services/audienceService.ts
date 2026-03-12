@@ -60,9 +60,13 @@ export const audienceService = {
         if (error) throw error;
 
         // 3. Map tags to clean structure
-        return audiences.map((a: any) => ({
+        return (audiences || []).map((a: any) => ({
             ...a,
-            tags: a.audience_tags_dispara_lead_saas_02.map((t: any) => t.tag)
+            tags: Array.isArray(a?.audience_tags_dispara_lead_saas_02)
+                ? a.audience_tags_dispara_lead_saas_02
+                    .map((t: any) => t?.tag)
+                    .filter(Boolean)
+                : []
         }));
     },
 
@@ -93,11 +97,13 @@ export const audienceService = {
      * Create or Find tags by name
      */
     async ensureTags(tagNames: string[], tenantId: string): Promise<string[]> {
-        if (tagNames.length === 0) return [];
+        if (!Array.isArray(tagNames) || tagNames.length === 0) return [];
 
         const tagIds: string[] = [];
 
-        for (const name of tagNames) {
+        for (const rawName of tagNames) {
+            const name = typeof rawName === 'string' ? rawName.trim() : '';
+            if (!name) continue;
             // Try to find existing
             let { data, error } = await supabase
                 .from('tags_dispara_lead_saas_02')
@@ -185,6 +191,8 @@ export const audienceService = {
   * Fetch contacts for specific audiences
   */
     async getContactsForAudiences(audienceIds: string[]): Promise<AudienceContact[]> {
+        if (!Array.isArray(audienceIds) || audienceIds.length === 0) return [];
+
         const { data, error } = await supabase
             .from('audience_contacts_dispara_lead_saas_02')
             .select('phone_number, name, metadata, audience_id')
