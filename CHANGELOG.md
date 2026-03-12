@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.2.1] - 2026-03-12
+
+### 🐛 Correções & Melhorias (Fixes & Improvements)
+- **Recuperação de senha:** Corrigido o fluxo de "Esqueci minha senha" para chamar a Edge Function correta `auth_manager_dispara_lead` em vez de `manage-users`.
+- **Tratamento de erro no frontend:** A tela de recuperação agora valida `data.error` da Edge Function e deixa de exibir falso positivo de "Email enviado".
+- **Auth anônimo para recovery:** Ajustado o request da recuperação para enviar `Authorization: Bearer <anon key>`, compatível com o comportamento atual do endpoint remoto.
+- **Falha explícita no envio de email:** A Edge Function `auth_manager_dispara_lead` agora retorna erro quando `BREVO_API_KEY` não estiver configurada, em vez de fingir sucesso sem envio.
+
 ## [v1.2.0] - 2026-01-23
 
 ### 🚀 Novidades (Features)

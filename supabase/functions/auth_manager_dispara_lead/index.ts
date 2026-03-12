@@ -54,8 +54,7 @@ Deno.serve(async (req) => {
 
             // 3. Call Brevo
             if (!BREVO_API_KEY) {
-                console.warn("BREVO_API_KEY not set. Email skipped.");
-                return;
+                throw new Error("BREVO_API_KEY not set");
             }
 
             const endpoint = 'https://api.brevo.com/v3/smtp/email';
