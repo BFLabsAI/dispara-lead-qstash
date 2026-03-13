@@ -19,21 +19,30 @@ export const AdminRoute = () => {
                 return;
             }
 
-            const { data: profile } = await supabase
+            const { data: profile, error } = await supabase
                 .from('users_dispara_lead_saas_02')
                 .select('is_super_admin')
                 .eq('id', user.id)
                 .single();
 
-            if (!profile?.is_super_admin) {
+            if (error || !profile?.is_super_admin) {
                 resetAdminContext();
+                setIsAdmin(false);
+                return;
             }
 
-            setIsAdmin(!!profile?.is_super_admin);
+            setIsAdmin(true);
         };
 
         checkAdmin();
-    }, []);
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+            setIsAdmin(null);
+            checkAdmin();
+        });
+
+        return () => subscription.unsubscribe();
+    }, [resetAdminContext]);
 
     if (isAdmin === null) {
         return <div className="flex items-center justify-center h-screen">Verificando permissões...</div>;
