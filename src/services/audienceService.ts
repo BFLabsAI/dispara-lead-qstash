@@ -66,8 +66,54 @@ export interface AudienceTagMutationResult {
     skippedCount: number;
 }
 
+export interface AudienceCreationInstance {
+    id: string;
+    instance_name: string;
+    status: string | null;
+}
+
+export interface SyncedInstanceLabel {
+    id: string;
+    external_label_id: string;
+    name: string | null;
+    color_hex: string | null;
+}
+
+type SyncedInstanceContactRow = {
+    id: string;
+    phone: string;
+    jid: string;
+    contact_name: string | null;
+    display_name: string | null;
+    wa_chatid?: string | null;
+};
+
+type CreateAudienceFromSyncedContactsParams = {
+    name: string;
+    description?: string;
+    tags?: string[];
+    instanceId: string;
+    mode: 'labels' | 'naming';
+    labelIds?: string[];
+    namingTerm?: string;
+};
+
+type AudienceSyncRulePayload = {
+    tenant_id: string;
+    audience_id: string;
+    instance_id: string;
+    source_type: 'synced_contacts';
+    match_mode: 'labels' | 'naming';
+    label_ids: string[];
+    label_names: string[];
+    naming_term: string | null;
+    naming_term_normalized: string | null;
+    sync_enabled: boolean;
+};
+
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
+const SYNC_CONTACTS_BATCH_SIZE = 1000;
 
 const resolveTenantId = async () => {
     let tenantId = useAdminStore.getState().impersonatedTenantId;
@@ -293,7 +339,143 @@ const extractMetadataKeysFromContacts = (contacts: AudienceContact[]) => {
     return Array.from(keys).sort((a, b) => a.localeCompare(b));
 };
 
+const normalizeNamingValue = (value: string | null | undefined) => (
+    typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').toLowerCase() : ''
+);
+
+const fetchAllRows = async <TRow>(params: {
+    table: string;
+    select: string;
+    filters?: (query: ReturnType<typeof supabase.from>) => ReturnType<typeof supabase.from>;
+    orderBy?: { column: string; ascending?: boolean }[];
+}) => {
+    const rows: TRow[] = [];
+    let from = 0;
+
+    while (true) {
+        let query = supabase
+            .from(params.table)
+            .select(params.select);
+
+        if (params.filters) {
+            query = params.filters(query);
+        }
+
+        for (const order of params.orderBy ?? []) {
+            query = query.order(order.column, { ascending: order.ascending ?? true });
+        }
+
+        const to = from + SYNC_CONTACTS_BATCH_SIZE - 1;
+        const { data, error } = await query.range(from, to);
+        if (error) throw error;
+
+        const batch = (data || []) as TRow[];
+        rows.push(...batch);
+
+        if (batch.length < SYNC_CONTACTS_BATCH_SIZE) {
+            break;
+        }
+
+        from += SYNC_CONTACTS_BATCH_SIZE;
+    }
+
+    return rows;
+};
+
+const mapSyncedContactToAudienceContact = (
+    contact: SyncedInstanceContactRow,
+    params: {
+        instanceId: string;
+        instanceName: string;
+        mode: 'labels' | 'naming';
+        matchedLabels?: string[];
+        namingTermNormalized?: string | null;
+    },
+): AudienceContact => ({
+    phone_number: contact.phone,
+    name: contact.contact_name?.trim() || contact.display_name?.trim() || null,
+    metadata: {
+        source: 'synced_contacts',
+        instance_id: params.instanceId,
+        instance_name: params.instanceName,
+        contact_sync_mode: params.mode,
+        matched_labels: params.matchedLabels ?? [],
+        naming_term_normalized: params.namingTermNormalized ?? null,
+        source_contact_id: contact.id,
+        jid: contact.jid,
+        wa_chatid: contact.wa_chatid ?? null,
+    },
+});
+
+const upsertAudienceSyncRule = async (payload: AudienceSyncRulePayload) => {
+    const { error } = await supabase
+        .from('audience_sync_rules_dispara_lead_saas_02')
+        .upsert({
+            ...payload,
+            updated_at: new Date().toISOString(),
+        }, {
+            onConflict: 'audience_id',
+        });
+
+    if (error) throw error;
+};
+
 export const audienceService = {
+    async getAudienceCreationInstances(): Promise<AudienceCreationInstance[]> {
+        const tenantId = await resolveTenantId();
+        if (!tenantId) return [];
+
+        const { data, error } = await supabase
+            .from('instances_dispara_lead_saas_02')
+            .select('id, instance_name, status')
+            .eq('tenant_id', tenantId)
+            .order('instance_name', { ascending: true });
+
+        if (error) throw error;
+        return (data || []) as AudienceCreationInstance[];
+    },
+
+    async getSyncedLabelsForInstance(instanceId: string): Promise<SyncedInstanceLabel[]> {
+        if (!instanceId) return [];
+
+        const { data, error } = await supabase
+            .from('instance_labels_dispara_lead_saas_02')
+            .select('id, external_label_id, name, color_hex')
+            .eq('instance_id', instanceId)
+            .order('name', { ascending: true });
+
+        if (error) throw error;
+        return (data || []) as SyncedInstanceLabel[];
+    },
+
+    async countSyncedContactsByLabels(instanceId: string, labelIds: string[]): Promise<number> {
+        if (!instanceId || !Array.isArray(labelIds) || labelIds.length === 0) return 0;
+
+        const data = await fetchAllRows<{ instance_contact_id: string }>({
+            table: 'instance_contact_labels_dispara_lead_saas_02',
+            select: 'instance_contact_id',
+            filters: (query) => query.eq('instance_id', instanceId).in('instance_label_id', labelIds),
+        });
+
+        return new Set((data || []).map((row) => row.instance_contact_id)).size;
+    },
+
+    async countSyncedContactsByNaming(instanceId: string, namingTerm: string): Promise<number> {
+        const normalizedTerm = normalizeNamingValue(namingTerm);
+        if (!instanceId || !normalizedTerm) return 0;
+
+        const data = await fetchAllRows<{ contact_name?: string | null; display_name?: string | null }>({
+            table: 'instance_contacts_dispara_lead_saas_02',
+            select: 'contact_name, display_name',
+            filters: (query) => query.eq('instance_id', instanceId),
+        });
+
+        return (data || []).filter((row: { contact_name?: string | null; display_name?: string | null }) => {
+            const sourceName = normalizeNamingValue(row.contact_name) || normalizeNamingValue(row.display_name);
+            return sourceName.includes(normalizedTerm);
+        }).length;
+    },
+
     /**
      * Fetch all audiences with their tags
      */
@@ -441,6 +623,107 @@ export const audienceService = {
 
             if (batchError) console.error('Error inserting batch contact:', batchError);
         }
+
+        return audience;
+    },
+
+    async createAudienceFromSyncedContacts(params: CreateAudienceFromSyncedContactsParams) {
+        const tenantId = await resolveTenantId();
+        if (!tenantId) {
+            throw new Error('Tenant não encontrado.');
+        }
+
+        const instances = await this.getAudienceCreationInstances();
+        const instance = instances.find((item) => item.id === params.instanceId);
+        if (!instance) {
+            throw new Error('Instância de referência não encontrada.');
+        }
+
+        let syncedContacts: SyncedInstanceContactRow[] = [];
+        let matchedLabels: string[] = [];
+        let namingTermNormalized: string | null = null;
+
+        if (params.mode === 'labels') {
+            const labelIds = Array.from(new Set((params.labelIds || []).filter(Boolean)));
+            if (labelIds.length === 0) {
+                throw new Error('Selecione ao menos uma etiqueta.');
+            }
+
+            const labels = await this.getSyncedLabelsForInstance(params.instanceId);
+            matchedLabels = labels
+                .filter((label) => labelIds.includes(label.id))
+                .map((label) => label.name?.trim() || label.external_label_id);
+
+            const links = await fetchAllRows<{ instance_contact_id: string }>({
+                table: 'instance_contact_labels_dispara_lead_saas_02',
+                select: 'instance_contact_id',
+                filters: (query) => query.eq('instance_id', params.instanceId).in('instance_label_id', labelIds),
+            });
+
+            const contactIds = Array.from(
+                new Set((links || []).map((row) => row.instance_contact_id).filter(Boolean)),
+            );
+
+            if (contactIds.length === 0) {
+                throw new Error('Nenhum contato encontrado para as etiquetas selecionadas.');
+            }
+
+            const contacts = await fetchAllRows<SyncedInstanceContactRow>({
+                table: 'instance_contacts_dispara_lead_saas_02',
+                select: 'id, phone, jid, contact_name, display_name, wa_chatid',
+                filters: (query) => query.in('id', contactIds),
+            });
+            syncedContacts = (contacts || []) as SyncedInstanceContactRow[];
+        } else {
+            namingTermNormalized = normalizeNamingValue(params.namingTerm);
+            if (!namingTermNormalized) {
+                throw new Error('Informe o naming de busca.');
+            }
+
+            const contacts = await fetchAllRows<SyncedInstanceContactRow>({
+                table: 'instance_contacts_dispara_lead_saas_02',
+                select: 'id, phone, jid, contact_name, display_name, wa_chatid',
+                filters: (query) => query.eq('instance_id', params.instanceId),
+            });
+
+            syncedContacts = ((contacts || []) as SyncedInstanceContactRow[]).filter((contact) => {
+                const sourceName = normalizeNamingValue(contact.contact_name) || normalizeNamingValue(contact.display_name);
+                return sourceName.includes(namingTermNormalized);
+            });
+
+            if (syncedContacts.length === 0) {
+                throw new Error('Nenhum contato encontrado para esse naming.');
+            }
+        }
+
+        const contacts = syncedContacts.map((contact) => mapSyncedContactToAudienceContact(contact, {
+            instanceId: params.instanceId,
+            instanceName: instance.instance_name,
+            mode: params.mode,
+            matchedLabels,
+            namingTermNormalized,
+        }));
+
+        const audience = await this.createAudience({
+            name: params.name,
+            description: params.description,
+            tags: params.tags || [],
+            contacts,
+            tenantId,
+        });
+
+        await upsertAudienceSyncRule({
+            tenant_id: tenantId,
+            audience_id: audience.id,
+            instance_id: params.instanceId,
+            source_type: 'synced_contacts',
+            match_mode: params.mode,
+            label_ids: params.mode === 'labels' ? (params.labelIds || []) : [],
+            label_names: matchedLabels,
+            naming_term: params.mode === 'naming' ? (params.namingTerm?.trim() || null) : null,
+            naming_term_normalized: params.mode === 'naming' ? namingTermNormalized : null,
+            sync_enabled: true,
+        });
 
         return audience;
     },

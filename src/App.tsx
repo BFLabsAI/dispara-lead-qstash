@@ -23,6 +23,7 @@ import ResetPassword from "./pages/ResetPassword";
 import FinishProfilePage from "./pages/FinishProfilePage";
 import CampaignManagement from "./pages/CampaignManagement";
 import CampaignList from "./pages/CampaignList";
+import ContactsPage from "./pages/Contacts";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { AdminLayout } from "./components/layout/AdminLayout";
@@ -86,6 +87,7 @@ const App = () => (
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/logs" element={<Logs />} />
                   <Route path="/instancias" element={<Instancias />} />
+                  <Route path="/contatos" element={<ContactsPage />} />
                   <Route path="/disparo" element={<Disparo />} />
                   <Route path="/audiences" element={<Audiences />} />
                   <Route path="/agendar-campanha" element={<CampaignSchedulerPage />} />

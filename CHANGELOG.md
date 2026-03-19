@@ -1,5 +1,22 @@
 # Changelog
 
+## [v1.4.2] - 2026-03-19
+
+### Features
+- A criacao de audiencias ganhou um fluxo novo em `Nova Audiencia`, com escolha entre `Importar` e `Criar de contatos`, reaproveitando a base sincronizada por instancia.
+- O modo `Criar de contatos` passou a suportar audiencia por `Etiquetas`, com selecao de uma ou mais labels da instancia e previsao da quantidade de contatos antes da confirmacao.
+- O modo `Criar de contatos` passou a suportar audiencia por `Naming`, com busca normalizada em minusculas e correspondencia por `contains` sobre os nomes sincronizados.
+- O modal de criacao de audiencia foi redesenhado para seguir o mesmo design system do modal de detalhes da audiencia, com cabecalho destacado, cards contextuais e secoes mais consistentes com o modulo.
+
+### Fixes
+- A contagem e a criacao de audiencias a partir dos contatos sincronizados deixaram de truncar em `1000` registros e passaram a ler a base em lotes.
+- O fluxo de `Naming` deixou de exigir match exato e passou a encontrar contatos cujo nome contenha o termo digitado apos normalizacao.
+- A criacao de audiencias a partir de contatos sincronizados deixou de falhar por ausencia de regra persistida, com a introducao da tabela de regras de refresh automatico.
+
+### Infrastructure
+- Foi adicionada a migration `20260319233000_audience_sync_rules.sql`, criando `audience_sync_rules_dispara_lead_saas_02` para persistir a origem e os criterios de audiencias baseadas em contatos sincronizados.
+- A Edge Function `sync-instance-contacts` passou a atualizar automaticamente as audiencias vinculadas a uma instancia ao final do sync, adicionando novos contatos elegiveis por `Etiquetas` ou `Naming`.
+
 ## [v1.4.1] - 2026-03-19
 
 ### Features

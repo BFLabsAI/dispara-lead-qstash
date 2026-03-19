@@ -1,0 +1,2 @@
+[functions.sync-instance-contacts]
+verify_jwt = false

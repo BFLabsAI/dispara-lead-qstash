@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import { AudienceSplitUpload } from "@/components/audience/AudienceSplitUpload";
 import { audienceService, Audience, Tag } from "@/services/audienceService";
 import { AudienceDetailsDialog } from "@/components/audience/AudienceDetailsDialog";
+import { CreateAudienceDialog } from "@/components/audience/CreateAudienceDialog";
 import { toast } from "sonner";
 import { supabase } from "@/services/supabaseClient";
 
@@ -31,7 +32,6 @@ export const Audiences = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
     const [uniqueTags, setUniqueTags] = useState<string[]>([]);
-    const [dialogOpen, setDialogOpen] = useState(false);
     const [audienceToDelete, setAudienceToDelete] = useState<Audience | null>(null);
 
     const getAudienceName = (audience: Audience) => {
@@ -90,22 +90,7 @@ export const Audiences = () => {
                 title="Gestão de Audiências"
                 subtitle="Organize seus contatos em listas segmentadas"
                 extra={
-                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="gap-2">
-                                <Plus className="h-4 w-4" /> Nova Audiência
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
-                            <DialogHeader>
-                                <DialogTitle>Importar Contatos</DialogTitle>
-                                <DialogDescription>
-                                    Faça upload de uma planilha para criar novas audiências. Você pode dividir listas grandes automaticamente.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <AudienceSplitUpload onSuccess={() => { setDialogOpen(false); fetchAudiences(); }} />
-                        </DialogContent>
-                    </Dialog>
+                    <CreateAudienceDialog onSuccess={fetchAudiences} />
                 }
             />
 

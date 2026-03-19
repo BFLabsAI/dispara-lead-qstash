@@ -13,6 +13,9 @@ verify_jwt = false
 [functions.process-message-ai]
 verify_jwt = false
 
+[functions.sync-instance-contacts]
+verify_jwt = false
+
 [functions.uazapi_proxy_dispara_lead_saas]
 verify_jwt = false
 
