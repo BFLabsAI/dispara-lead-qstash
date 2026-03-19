@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle, XCircle, QrCode, Server, Zap, Link, Search, Plus, Trash2, Power, RefreshCw, Loader2 } from "lucide-react";
 import { useDisparadorStore } from "../../store/disparadorStore";
 import { useAdminStore } from "../../store/adminStore";
-import { supabase } from "@/services/supabaseClient";
+import { getEffectiveTenantId, supabase } from "@/services/supabaseClient";
 import { QrDialog } from "./QrDialog";
 import { showError, showSuccess } from "@/utils/toast";
 import { InstanceCard } from "./InstanceCard";
@@ -96,18 +96,10 @@ export const InstanceManager = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Check for impersonation (Super Admin)
-      // We must check the store state directly as we are in a component
+      // Check for impersonation (Super Admin) or active tenant selection
       const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
 
-      const { data: userData } = await supabase
-        .from('users_dispara_lead_saas_02')
-        .select('tenant_id')
-        .eq('id', user.id) // Still fetch user to validade auth
-        .single();
-
-      // Use impersonated ID if exists, otherwise user's tenant
-      const targetTenantId = impersonatedTenantId || userData?.tenant_id;
+      const targetTenantId = impersonatedTenantId || await getEffectiveTenantId();
 
       if (!targetTenantId) throw new Error("Tenant não encontrado");
 

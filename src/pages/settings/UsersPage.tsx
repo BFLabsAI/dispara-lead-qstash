@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { invokeAuthenticatedEdgeFunction, invokePublicEdgeFunction, supabase } from '@/services/supabaseClient';
+import { invokeAuthenticatedEdgeFunction, supabase } from '@/services/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAdminStore } from '@/store/adminStore';
+import { getTenantAccessSummary } from '@/services/supabaseClient';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -45,27 +46,16 @@ export default function UsersPage() {
 
     const impersonatedTenantId = useAdminStore((state) => state.impersonatedTenantId);
 
-    // 1. Fetch Current User Data
-    const { data: currentUserData, isLoading: isLoadingUserData } = useQuery({
-        queryKey: ['currentUserData'],
-        queryFn: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Not authenticated");
-
-            const { data, error } = await supabase
-                .from('users_dispara_lead_saas_02')
-                .select('role, tenant_id')
-                .eq('id', user.id)
-                .single();
-
-            if (error) throw error;
-            return data;
-        }
+    // 1. Fetch current tenant access context
+    const { data: tenantAccess, isLoading: isLoadingTenantAccess } = useQuery({
+        queryKey: ['tenantAccess', impersonatedTenantId],
+        queryFn: getTenantAccessSummary
     });
 
-    const currentUserRole = currentUserData?.role || 'member';
-    // Effective Tenant: Impersonated (if super admin switched) OR User's own tenant
-    const currentTenantId = impersonatedTenantId || currentUserData?.tenant_id;
+    const currentUserRole = tenantAccess?.activeRole || 'member';
+    const currentTenantId = tenantAccess?.activeTenantId;
+    const isSuperAdmin = tenantAccess?.isSuperAdmin ?? false;
+    const canManageTeam = isSuperAdmin || currentUserRole === 'owner' || currentUserRole === 'admin';
 
     // 2. Fetch Workspace Users
     const { data: users, isLoading: isLoadingUsers } = useQuery({
@@ -73,14 +63,45 @@ export default function UsersPage() {
         queryFn: async () => {
             if (!currentTenantId) return [];
 
-            const { data, error } = await supabase
-                .from('users_dispara_lead_saas_02')
-                .select('*')
-                .eq('tenant_id', currentTenantId)
-                .order('created_at', { ascending: false });
+            try {
+                const { data, error } = await supabase
+                    .from('user_tenant_memberships_dispara_lead_saas_02')
+                    .select(`
+                        user_id,
+                        tenant_id,
+                        role,
+                        status,
+                        created_at,
+                        users_dispara_lead_saas_02 (
+                            id,
+                            email,
+                            full_name,
+                            created_at
+                        )
+                    `)
+                    .eq('tenant_id', currentTenantId)
+                    .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            return data as UserProfile[];
+                if (error) throw error;
+
+                return (data || []).map((membership: any) => ({
+                    id: membership.users_dispara_lead_saas_02?.id || membership.user_id || membership.id || '',
+                    email: membership.users_dispara_lead_saas_02?.email || '',
+                    full_name: membership.users_dispara_lead_saas_02?.full_name || '',
+                    role: membership.role,
+                    created_at: membership.users_dispara_lead_saas_02?.created_at || membership.created_at,
+                    tenant_id: membership.tenant_id,
+                })) as UserProfile[];
+            } catch {
+                const { data, error } = await supabase
+                    .from('users_dispara_lead_saas_02')
+                    .select('*')
+                    .eq('tenant_id', currentTenantId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                return data as UserProfile[];
+            }
         },
         enabled: !!currentTenantId
     });
@@ -111,7 +132,7 @@ export default function UsersPage() {
             setInviteEmail('');
             setInviteName('');
             setInviteRole('admin');
-            queryClient.invalidateQueries({ queryKey: ['workspaceUsers'] });
+            queryClient.invalidateQueries({ queryKey: ['workspaceUsers', currentTenantId] });
         },
         onError: (error: Error) => {
             toast({
@@ -136,7 +157,7 @@ export default function UsersPage() {
         onSuccess: () => {
             toast({ title: "Usuário removido", description: "O usuário foi excluído com sucesso." });
             setUserToDelete(null);
-            queryClient.invalidateQueries({ queryKey: ['workspaceUsers'] });
+            queryClient.invalidateQueries({ queryKey: ['workspaceUsers', currentTenantId] });
         },
         onError: (error: Error) => {
             toast({
@@ -193,9 +214,9 @@ export default function UsersPage() {
         }
     };
 
-    if (isLoadingUserData) return <div className="p-8 flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    if (isLoadingTenantAccess) return <div className="p-8 flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
-    if (currentUserRole !== 'owner' && currentUserRole !== 'admin') {
+    if (!canManageTeam) {
         return (
             <div className="p-8 text-center text-muted-foreground">
                 <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />

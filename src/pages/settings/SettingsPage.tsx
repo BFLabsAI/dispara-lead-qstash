@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Save, Bell, FileBarChart } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/services/supabaseClient";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getEffectiveTenantId, supabase } from "@/services/supabaseClient";
 
 import { PhoneInputSection } from "@/components/settings/PhoneInputSection";
 
@@ -36,26 +35,17 @@ export default function SettingsPage() {
     const fetchSettings = async () => {
         setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            const { data: userData, error: userError } = await supabase
-                .from("users_dispara_lead_saas_02")
-                .select("tenant_id")
-                .eq("id", user.id)
-                .single();
-
-            if (userError || !userData?.tenant_id) {
-                console.error("Tenant Fetch Error:", userError);
+            const resolvedTenantId = await getEffectiveTenantId();
+            if (!resolvedTenantId) {
                 throw new Error("Conta não encontrada.");
             }
 
-            setTenantId(userData.tenant_id);
+            setTenantId(resolvedTenantId);
 
             const { data, error } = await supabase
                 .from("company_settings_dispara_lead_saas_02")
                 .select("response_notification_phones, report_notification_phones")
-                .eq("tenant_id", userData.tenant_id)
+                .eq("tenant_id", resolvedTenantId)
                 .maybeSingle();
 
             if (error) throw error;

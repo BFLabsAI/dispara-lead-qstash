@@ -1,5 +1,23 @@
 # Changelog
 
+## [v1.4.0] - 2026-03-19
+
+### Features
+- A plataforma passou a suportar memberships multi-tenant, permitindo que o mesmo usuario participe de multiplas empresas com contexto ativo por tenant.
+- Foi criada a tabela `user_tenant_memberships_dispara_lead_saas_02`, com backfill do modelo legado e sincronizacao de owner principal por tenant.
+- O frontend foi adaptado para trabalhar com tenant efetivo por membership em `Users`, `Settings`, `Dashboard`, `Sidebar`, `InstanceManager`, `AudienceSplitUpload`, `AudienceDefinition`, `UserTagManager`, `TenantDetails` e servicos de Supabase.
+
+### Fixes
+- Convites e gestao de usuarios deixaram de sobrescrever `tenant_id` no perfil global e passaram a criar/remover acessos por membership.
+- O modelo de ownership foi endurecido para garantir exatamente `1 owner` ativo por tenant, permitindo ao mesmo usuario ser owner de multiplos tenants.
+- O script administrativo local de onboarding passou a forcar `https://disparalead.bflabs.com.br/finish-profile` nos emails, sem alterar o comportamento da function de producao.
+
+### Infrastructure
+- Foram adicionadas as migrations `20260319120000_multi_tenant_memberships.sql` e `20260319133000_enforce_single_owner_per_tenant.sql`.
+- Foi criada a Edge Function `bulk-tenant-onboarding` para onboarding em lote e tambem um fluxo administrativo local em `scripts/admin/` com suporte a `dry-run`, `apply` e envio de convite.
+- Foi criado um script local para provisionamento em lote de instancias na UazAPI, seguindo a mesma logica da tela de instancias e registrando webhooks automaticamente.
+- O onboarding real do cliente AM Consorcios foi executado com criacao de tenants, usuarios, memberships e instancias por usuario nao-owner.
+
 ## [v1.3.0] - 2026-03-12
 
 ### Features

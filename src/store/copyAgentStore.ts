@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { showError, showSuccess } from '@/utils/toast';
-import { supabase } from '@/services/supabaseClient';
+import { getEffectiveTenantId, supabase } from '@/services/supabaseClient';
 import { sendMessageToOpenRouter, OpenRouterMessage, AVAILABLE_MODELS } from '@/services/openRouterApi';
 import { AGENT_TEMPLATES } from '@/constants/agentTemplates';
 
@@ -445,29 +445,20 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
       });
 
       // 4. Log to Main Dashboard Table
-      // We need to fetch the tenant_id for the log. 
-      // Ideally we have it in the store or session.
-      // For now, we rely on the backend trigger or we need to fetch it.
-      // Let's assume we can insert and RLS will check, but we need tenant_id for the log table if it's not defaulted.
-      // Actually, let's fetch the user profile first to get tenant_id.
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase.from('users_dispara_lead_saas_02').select('tenant_id').eq('id', user.id).single();
-
-        if (profile) {
-          await supabase.from('message_logs_dispara_lead_saas_03').insert({
-            tenant_id: profile.tenant_id,
-            status: 'sent',
-            instance_name: 'CopyAgent',
-            message_content: aiMessageContent,
-            campaign_name: 'Copy Agent Chat',
-            campaign_type: 'copy_agent',
-            metadata: {
-              publico: 'Individual',
-              criativo: 'AI Generated'
-            }
-          });
-        }
+      const tenantId = await getEffectiveTenantId();
+      if (tenantId) {
+        await supabase.from('message_logs_dispara_lead_saas_03').insert({
+          tenant_id: tenantId,
+          status: 'sent',
+          instance_name: 'CopyAgent',
+          message_content: aiMessageContent,
+          campaign_name: 'Copy Agent Chat',
+          campaign_type: 'copy_agent',
+          metadata: {
+            publico: 'Individual',
+            criativo: 'AI Generated'
+          }
+        });
       }
 
     } catch (error) {
@@ -559,16 +550,12 @@ export const useCopyAgentStore = create<CopyAgentState>((set, get) => ({
 
   saveCompanySettings: async (settings: CompanySettings) => {
     try {
-      // First, get the tenant_id
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
-
-      const { data: profile } = await supabase.from('users_dispara_lead_saas_02').select('tenant_id').eq('id', user.id).single();
-      if (!profile) throw new Error("User profile not found");
+      const tenantId = await getEffectiveTenantId();
+      if (!tenantId) throw new Error("Tenant not found");
 
       // Map App (camelCase) to DB (snake_case)
       const dbData = {
-        tenant_id: profile.tenant_id,
+        tenant_id: tenantId,
         company_name: settings.companyName,
         market_segment: settings.marketSegment,
         company_size: settings.companySize,

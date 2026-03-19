@@ -28,6 +28,7 @@ interface User {
     email: string;
     full_name: string;
     role: string;
+    status?: string;
 }
 
 interface Instance {
@@ -87,11 +88,41 @@ export default function TenantDetails() {
             });
 
             // Load Users
-            const { data: usersData } = await supabase
-                .from('users_dispara_lead_saas_02')
-                .select('*')
-                .eq('tenant_id', id);
-            setUsers(usersData || []);
+            try {
+                const { data: membershipsData, error: membershipsError } = await supabase
+                    .from('user_tenant_memberships_dispara_lead_saas_02')
+                    .select(`
+                        user_id,
+                        tenant_id,
+                        role,
+                        status,
+                        users_dispara_lead_saas_02 (
+                            id,
+                            email,
+                            full_name
+                        )
+                    `)
+                    .eq('tenant_id', id)
+                    .order('created_at', { ascending: false });
+
+                if (membershipsError) throw membershipsError;
+
+                const mappedUsers = (membershipsData || []).map((membership: any) => ({
+                    id: membership.users_dispara_lead_saas_02?.id || membership.user_id || membership.id || '',
+                    email: membership.users_dispara_lead_saas_02?.email || '',
+                    full_name: membership.users_dispara_lead_saas_02?.full_name || '',
+                    role: membership.role,
+                    status: membership.status,
+                }));
+
+                setUsers(mappedUsers);
+            } catch {
+                const { data: usersData } = await supabase
+                    .from('users_dispara_lead_saas_02')
+                    .select('*')
+                    .eq('tenant_id', id);
+                setUsers(usersData || []);
+            }
 
             // Load Instances
             console.log('Loading instances for tenant:', id);

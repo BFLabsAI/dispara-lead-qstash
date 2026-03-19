@@ -24,7 +24,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAdminStore } from "@/store/adminStore";
-import { supabase } from "@/services/supabaseClient";
+import {
+  getTenantAccessSummary,
+  setActiveTenantId,
+  type TenantAccessSummary,
+} from "@/services/supabaseClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,86 +39,56 @@ export const AppSidebar = () => {
   const isMobile = useIsMobile();
   const location = useLocation();
   const impersonatedTenantId = useAdminStore((state) => state.impersonatedTenantId);
-  const setImpersonatedTenantId = useAdminStore((state) => state.setImpersonatedTenantId);
   const setAdminTenantId = useAdminStore((state) => state.setAdminTenantId);
   const resetAdminContext = useAdminStore((state) => state.resetAdminContext);
   const adminTenantId = useAdminStore((state) => state.adminTenantId);
-  const [tenants, setTenants] = useState<any[]>([]);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-
-  const [adminTenant, setAdminTenant] = useState<any>(null);
+  const [tenantAccess, setTenantAccess] = useState<TenantAccessSummary | null>(null);
+  const [accessLoading, setAccessLoading] = useState(true);
 
   useEffect(() => {
-    checkSuperAdmin();
+    let cancelled = false;
+
+    const loadTenantAccess = async () => {
+      setAccessLoading(true);
+
+      try {
+        const summary = await getTenantAccessSummary();
+        if (cancelled) return;
+
+        setTenantAccess(summary);
+
+        if (summary.isSuperAdmin) {
+          setAdminTenantId(summary.homeTenantId);
+          if (!impersonatedTenantId && summary.homeTenantId) {
+            await setActiveTenantId(summary.homeTenantId);
+          }
+        } else {
+          setAdminTenantId(null);
+          if (!impersonatedTenantId && summary.activeTenantId) {
+            await setActiveTenantId(summary.activeTenantId);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          resetAdminContext();
+          setTenantAccess(null);
+        }
+      } finally {
+        if (!cancelled) setAccessLoading(false);
+      }
+    };
+
+    loadTenantAccess();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Initialize impersonatedTenantId to adminTenantId if null (to prevent showing ALL data)
-  useEffect(() => {
-    if (isSuperAdmin && adminTenantId && !impersonatedTenantId) {
-      setImpersonatedTenantId(adminTenantId);
-    }
-  }, [isSuperAdmin, adminTenantId, impersonatedTenantId]);
-
-  const checkSuperAdmin = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) {
-      setIsSuperAdmin(false);
-      resetAdminContext();
-      return;
-    }
-
-    const { data } = await supabase.rpc('is_super_admin');
-    if (data) {
-      setIsSuperAdmin(true);
-      fetchTenants();
-      fetchAdminTenant(user.id);
-      return;
-    }
-
-    setIsSuperAdmin(false);
-    resetAdminContext();
-  };
-
-  const fetchAdminTenant = async (userId: string) => {
-    const { data } = await supabase
-      .from('users_dispara_lead_saas_02')
-      .select('tenant_id, tenants_dispara_lead_saas_02(name)')
-      .eq('id', userId)
-      .single();
-
-    if (data && data.tenants_dispara_lead_saas_02) {
-      const tenantId = data.tenant_id;
-      setAdminTenant({
-        id: tenantId,
-        name: (data.tenants_dispara_lead_saas_02 as any).name
-      });
-      setAdminTenantId(tenantId);
-
-      // If no impersonation is set, default to own tenant
-      if (!impersonatedTenantId) {
-        setImpersonatedTenantId(tenantId);
-      }
-    }
-  };
-
-  const fetchTenants = async () => {
-    const { data } = await supabase.from('tenants_dispara_lead_saas_02').select('id, name, slug');
-    setTenants(data || []);
-  };
-
-  const handleTenantChange = (value: string) => {
-    if (value === 'all') {
-      if (adminTenantId) {
-        setImpersonatedTenantId(adminTenantId);
-      } else {
-        setImpersonatedTenantId(null);
-      }
-      setTimeout(() => window.location.reload(), 100);
-    } else {
-      setImpersonatedTenantId(value);
-      setTimeout(() => window.location.reload(), 100);
-    }
+  const handleTenantChange = async (value: string) => {
+    const nextTenantId = value === '__home__' ? tenantAccess?.homeTenantId : value;
+    await setActiveTenantId(nextTenantId || null);
+    setTimeout(() => window.location.reload(), 100);
   };
 
   // ... (logo logic)
@@ -125,27 +99,20 @@ export const AppSidebar = () => {
     logoSrc = theme === 'dark' ? '/icon dark.png' : '/icon white.png';
   }
 
-  const [userRole, setUserRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    checkUserRole();
-  }, []);
-
-  const checkUserRole = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) return;
-
-    const { data } = await supabase
-      .from('users_dispara_lead_saas_02')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (data) {
-      setUserRole(data.role);
-    }
-  };
+  const userRole = tenantAccess?.activeRole ?? null;
+  const isSuperAdmin = tenantAccess?.isSuperAdmin ?? false;
+  const accessibleTenants = tenantAccess?.accessibleTenants ?? [];
+  const activeTenantId = impersonatedTenantId || tenantAccess?.activeTenantId || null;
+  const showTenantSwitcher = isSuperAdmin || accessibleTenants.length > 1;
+  const homeTenant = tenantAccess?.homeTenantId
+    ? accessibleTenants.find((tenant) => tenant.id === tenantAccess.homeTenantId) || null
+    : null;
+  const selectedTenant = activeTenantId
+    ? accessibleTenants.find((tenant) => tenant.id === activeTenantId) || null
+    : null;
+  const selectedTenantValue = isSuperAdmin
+    ? (activeTenantId && activeTenantId !== tenantAccess?.homeTenantId ? activeTenantId : '__home__')
+    : (activeTenantId || selectedTenant?.id || '');
 
   const navItems = [
     { name: 'Home', href: '/welcome', icon: Home, type: 'link' },
@@ -177,7 +144,7 @@ export const AppSidebar = () => {
     },
   ];
 
-  const isImpersonating = impersonatedTenantId && adminTenantId && impersonatedTenantId !== adminTenantId;
+  const isImpersonating = Boolean(isSuperAdmin && impersonatedTenantId && adminTenantId && impersonatedTenantId !== adminTenantId);
 
   return (
     <aside
@@ -202,24 +169,28 @@ export const AppSidebar = () => {
           </Link>
         </div>
 
-        {/* Tenant Switcher for Super Admin */}
-        {isSuperAdmin && isSidebarOpen && (
+        {/* Tenant Switcher */}
+        {showTenantSwitcher && isSidebarOpen && !accessLoading && (
           <div className="p-4 border-b border-border">
             <div className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Navegar como:
+              {isSuperAdmin ? 'Navegar como:' : 'Empresa ativa:'}
             </div>
             <Select
-              value={impersonatedTenantId || 'all'}
+              value={selectedTenantValue}
               onValueChange={handleTenantChange}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecione uma conta" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">
-                  <span className="font-medium">{adminTenant ? adminTenant.name : 'Sem tenant próprio'}</span>
-                </SelectItem>
-                {tenants.filter(t => t.id !== adminTenant?.id).map((tenant) => (
+                {isSuperAdmin && (
+                  <SelectItem value="__home__">
+                    <span className="font-medium">{homeTenant?.name || 'Minha conta'}</span>
+                  </SelectItem>
+                )}
+                {accessibleTenants
+                  .filter((tenant) => !isSuperAdmin || tenant.id !== tenantAccess?.homeTenantId)
+                  .map((tenant) => (
                   <SelectItem key={tenant.id} value={tenant.id}>
                     {tenant.name}
                   </SelectItem>
@@ -228,7 +199,7 @@ export const AppSidebar = () => {
             </Select>
           </div>
         )}
-        {isSuperAdmin && !isSidebarOpen && (
+        {showTenantSwitcher && !isSidebarOpen && !accessLoading && (
           <div className="p-4 border-b border-border flex justify-center">
             <Building className="h-5 w-5 text-muted-foreground" />
           </div>

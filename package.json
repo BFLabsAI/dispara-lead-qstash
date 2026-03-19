@@ -8,7 +8,9 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "admin:onboard-tenants": "node scripts/admin/bulk-tenant-onboarding.mjs",
+    "admin:provision-instances": "node scripts/admin/bulk-instance-provision.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

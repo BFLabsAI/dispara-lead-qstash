@@ -223,10 +223,271 @@ let cachedTenantResolution: {
   timestamp: number;
 } | null = null;
 
+export type TenantRole = 'owner' | 'admin' | 'member';
+export type TenantMembershipStatus = 'invited' | 'active' | 'disabled' | string;
+
+export interface TenantOption {
+  id: string;
+  name: string;
+  slug?: string | null;
+  status?: string | null;
+  role?: TenantRole | null;
+  membershipStatus?: TenantMembershipStatus | null;
+  isPrimary?: boolean;
+}
+
+export interface TenantMembership {
+  tenant_id: string;
+  role: TenantRole;
+  status: TenantMembershipStatus;
+  tenant?: TenantOption | null;
+}
+
+export interface TenantAccessSummary {
+  userId: string | null;
+  isSuperAdmin: boolean;
+  activeTenantId: string | null;
+  activeRole: TenantRole | null;
+  homeTenantId: string | null;
+  accessibleTenants: TenantOption[];
+  memberships: TenantMembership[];
+}
+
+let cachedTenantAccess: {
+  cacheKey: string;
+  summary: TenantAccessSummary;
+  timestamp: number;
+} | null = null;
+
+const normalizeTenantOptions = (items: TenantOption[]) => {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+};
+
+const mapTenantsById = (tenants: any[] | null | undefined) => {
+  const map = new Map<string, TenantOption>();
+  (tenants || []).forEach((tenant) => {
+    if (!tenant?.id) return;
+    map.set(tenant.id, {
+      id: tenant.id,
+      name: tenant.name || 'Sem nome',
+      slug: tenant.slug ?? null,
+      status: tenant.status ?? null,
+    });
+  });
+  return map;
+};
+
+const loadTenantAccessSummary = async (): Promise<TenantAccessSummary> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id ?? null;
+  const impersonatedTenantId = useAdminStore.getState().impersonatedTenantId;
+
+  if (!userId) {
+    return {
+      userId: null,
+      isSuperAdmin: false,
+      activeTenantId: impersonatedTenantId,
+      activeRole: null,
+      homeTenantId: null,
+      accessibleTenants: [],
+      memberships: [],
+    };
+  }
+
+  const cacheKey = `session:${userId}`;
+  if (
+    cachedTenantAccess &&
+    cachedTenantAccess.cacheKey === cacheKey &&
+    Date.now() - cachedTenantAccess.timestamp < TENANT_CACHE_TTL
+  ) {
+    const summary = cachedTenantAccess.summary;
+    const activeTenantId = impersonatedTenantId || summary.activeTenantId;
+    const activeMembership = summary.memberships.find((membership) => membership.tenant_id === activeTenantId) || null;
+
+    return {
+      ...summary,
+      activeTenantId,
+      activeRole: activeMembership?.role ?? summary.activeRole,
+    };
+  }
+
+  const { data: isSuperAdmin } = await supabase.rpc('is_super_admin');
+
+  if (isSuperAdmin) {
+    const [tenantsResult, profileResult] = await Promise.all([
+      supabase.from('tenants_dispara_lead_saas_02').select('id, name, slug, status').order('name', { ascending: true }),
+      supabase.from('users_dispara_lead_saas_02').select('tenant_id, role, is_super_admin').eq('id', userId).maybeSingle(),
+    ]);
+
+    const accessibleTenants = normalizeTenantOptions((tenantsResult.data || []).map((tenant) => ({
+      id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug ?? null,
+      status: tenant.status ?? null,
+    })));
+
+    const homeTenantId = profileResult.data?.tenant_id ?? accessibleTenants[0]?.id ?? null;
+    const activeTenantId = impersonatedTenantId || homeTenantId || accessibleTenants[0]?.id || null;
+    const activeTenant = accessibleTenants.find((tenant) => tenant.id === activeTenantId) || null;
+
+    const summary: TenantAccessSummary = {
+      userId,
+      isSuperAdmin: true,
+      activeTenantId,
+      activeRole: profileResult.data?.role ?? 'admin',
+      homeTenantId,
+      accessibleTenants,
+      memberships: [],
+    };
+
+    cachedTenantAccess = {
+      cacheKey,
+      summary,
+      timestamp: Date.now(),
+    };
+
+    return {
+      ...summary,
+      accessibleTenants: accessibleTenants.map((tenant) => ({
+        ...tenant,
+        isPrimary: tenant.id === activeTenant?.id,
+      })),
+    };
+  }
+
+  const profileResult = await supabase
+    .from('users_dispara_lead_saas_02')
+    .select('tenant_id, role, is_super_admin')
+    .eq('id', userId)
+    .maybeSingle();
+
+  const profileTenantId = profileResult.data?.tenant_id ?? null;
+  const profileRole = (profileResult.data?.role as TenantRole | null) ?? null;
+
+  let memberships: TenantMembership[] = [];
+  let accessibleTenants: TenantOption[] = [];
+
+  const membershipResult = await supabase
+    .from('user_tenant_memberships_dispara_lead_saas_02')
+    .select('tenant_id, role, status')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (!membershipResult.error && Array.isArray(membershipResult.data) && membershipResult.data.length > 0) {
+    memberships = membershipResult.data as TenantMembership[];
+    const tenantIds = memberships.map((membership) => membership.tenant_id);
+    const tenantsResult = await supabase
+      .from('tenants_dispara_lead_saas_02')
+      .select('id, name, slug, status')
+      .in('id', tenantIds);
+
+    const tenantsById = mapTenantsById(tenantsResult.data);
+    accessibleTenants = memberships.map((membership) => {
+      const tenant = tenantsById.get(membership.tenant_id);
+      return {
+        id: membership.tenant_id,
+        name: tenant?.name || 'Sem nome',
+        slug: tenant?.slug ?? null,
+        status: tenant?.status ?? null,
+        role: membership.role,
+        membershipStatus: membership.status,
+      };
+    });
+  } else {
+    accessibleTenants = profileTenantId
+      ? [{
+        id: profileTenantId,
+        name: 'Conta atual',
+        role: profileRole,
+        isPrimary: true,
+      }]
+      : [];
+    memberships = profileTenantId && profileRole
+      ? [{
+        tenant_id: profileTenantId,
+        role: profileRole,
+        status: 'active',
+        tenant: accessibleTenants[0] || null,
+      }]
+      : [];
+  }
+
+  accessibleTenants = normalizeTenantOptions(
+    accessibleTenants.map((tenant) => ({
+      ...tenant,
+      isPrimary: tenant.id === (impersonatedTenantId || profileTenantId || tenant.id),
+    }))
+  );
+
+  const activeTenantId = impersonatedTenantId || profileTenantId || accessibleTenants[0]?.id || null;
+  const activeMembership = memberships.find((membership) => membership.tenant_id === activeTenantId) || null;
+
+  const summary: TenantAccessSummary = {
+    userId,
+    isSuperAdmin: false,
+    activeTenantId,
+    activeRole: activeMembership?.role ?? profileRole ?? null,
+    homeTenantId: profileTenantId,
+    accessibleTenants,
+    memberships,
+  };
+
+  cachedTenantAccess = {
+    cacheKey,
+    summary,
+    timestamp: Date.now(),
+  };
+
+  return summary;
+};
+
+export const getTenantAccessSummary = async () => {
+  return await loadTenantAccessSummary();
+};
+
+export const getAccessibleTenants = async () => {
+  const summary = await loadTenantAccessSummary();
+  return summary.accessibleTenants;
+};
+
+export const getCurrentTenantRole = async () => {
+  const summary = await loadTenantAccessSummary();
+  return summary.activeRole;
+};
+
+export const setActiveTenantId = async (tenantId: string | null) => {
+  useAdminStore.getState().setImpersonatedTenantId(tenantId);
+  cachedTenantResolution = null;
+  cachedTenantAccess = null;
+
+  if (!tenantId) return;
+
+  try {
+    await supabase.rpc('set_current_tenant_id', { p_tenant_id: tenantId });
+  } catch {
+    // Older schemas do not expose this RPC yet. Local state still keeps the UI in sync.
+  }
+};
+
 // Shared tenant resolver for authenticated and impersonated contexts.
 export const getEffectiveTenantId = async () => {
   const impersonated = useAdminStore.getState().impersonatedTenantId;
   if (impersonated) return impersonated;
+
+  const summary = await loadTenantAccessSummary();
+  if (summary.activeTenantId) {
+    cachedTenantResolution = {
+      cacheKey: `session:${summary.userId || 'anonymous'}`,
+      tenantId: summary.activeTenantId,
+      timestamp: Date.now(),
+    };
+    return summary.activeTenantId;
+  }
 
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user?.id;
@@ -241,7 +502,6 @@ export const getEffectiveTenantId = async () => {
     return cachedTenantResolution.tenantId;
   }
 
-  // Fallback to authenticated user's tenant
   const { data } = await supabase.rpc('get_my_tenant_id');
   cachedTenantResolution = {
     cacheKey,

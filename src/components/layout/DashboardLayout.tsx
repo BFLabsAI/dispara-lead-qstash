@@ -10,19 +10,20 @@ import { useNavigate } from "react-router-dom";
 import { useAdminStore } from "@/store/adminStore";
 import { Button } from "@/components/ui/button";
 import { LogOut, Menu } from "lucide-react";
+import { setActiveTenantId } from "@/services/supabaseClient";
 
 export function DashboardLayout() {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { impersonatedTenantId, setImpersonatedTenantId, adminTenantId } = useAdminStore();
+  const { impersonatedTenantId, adminTenantId } = useAdminStore();
 
   const handleExitImpersonation = () => {
     // When exiting, set back to adminTenantId instead of null
     if (adminTenantId) {
-      setImpersonatedTenantId(adminTenantId);
+      setActiveTenantId(adminTenantId);
     } else {
-      setImpersonatedTenantId(null);
+      setActiveTenantId(null);
     }
     navigate('/admin/tenants');
   };

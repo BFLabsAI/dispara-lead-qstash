@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Plus, X, Search, Check, Save } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/services/supabaseClient";
+import { getEffectiveTenantId, supabase } from "@/services/supabaseClient";
 import {
     Popover,
     PopoverContent,
@@ -80,22 +80,10 @@ export function UserTagManager({ contactId, assignedTagIds = [], onUpdateTags }:
         if (!newTagName.trim()) return;
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("User not found");
-
-            // Fetch tenant_id explicitly from users table
-            const { data: userData, error: userError } = await supabase
-                .from("users_dispara_lead_saas_02")
-                .select("tenant_id")
-                .eq("id", user.id)
-                .single();
-
-            if (userError || !userData?.tenant_id) {
-                console.error("Tenant Fetch Error:", userError);
+            const tenantId = await getEffectiveTenantId();
+            if (!tenantId) {
                 throw new Error("ID da conta não encontrado.");
             }
-
-            const tenantId = userData.tenant_id;
 
             const { data, error } = await supabase
                 .from("user_tags_dispara_lead_saas_02")

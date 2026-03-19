@@ -1,0 +1,25 @@
+[
+  {
+    "tenant": {
+      "name": "Empresa Exemplo A",
+      "slug": "empresa-exemplo-a",
+      "allow_existing": false
+    },
+    "users": [
+      { "email": "owner.a@example.com", "name": "Owner A", "role": "owner" },
+      { "email": "admin.a@example.com", "name": "Admin A", "role": "admin" },
+      { "email": "member.a@example.com", "name": "Member A", "role": "member" }
+    ]
+  },
+  {
+    "tenant": {
+      "name": "Empresa Exemplo B",
+      "slug": "empresa-exemplo-b",
+      "allow_existing": false
+    },
+    "users": [
+      { "email": "owner.shared@example.com", "name": "Owner Shared", "role": "owner" },
+      { "email": "member.b@example.com", "name": "Member B", "role": "member" }
+    ]
+  }
+]

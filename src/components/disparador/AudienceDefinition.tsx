@@ -16,7 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn, getTagColor } from "@/lib/utils";
 import { audienceService, Audience } from "@/services/audienceService";
 import { toast } from "sonner";
-import { supabase } from "@/services/supabaseClient";
+import { getEffectiveTenantId } from "@/services/supabaseClient";
 import { useAdminStore } from "@/store/adminStore";
 
 interface AudienceDefinitionProps {
@@ -46,15 +46,8 @@ export const AudienceDefinition = ({
         return;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('users_dispara_lead_saas_02')
-          .select('tenant_id')
-          .eq('id', user.id)
-          .single();
-        if (data?.tenant_id) setTenantId(data.tenant_id);
-      }
+      const resolvedTenantId = await getEffectiveTenantId();
+      if (resolvedTenantId) setTenantId(resolvedTenantId);
     };
     fetchTenant();
   }, [impersonatedId]);
