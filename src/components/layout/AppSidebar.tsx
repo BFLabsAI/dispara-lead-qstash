@@ -27,6 +27,7 @@ import { useAdminStore } from "@/store/adminStore";
 import {
   getTenantAccessSummary,
   setActiveTenantId,
+  supabase,
   type TenantAccessSummary,
 } from "@/services/supabaseClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -119,6 +120,7 @@ export const AppSidebar = () => {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, type: 'link' },
     { name: 'Atendimento', href: '/chats', icon: MessageSquare, type: 'link' },
     ...(isSuperAdmin ? [{ name: 'Manager Portal', href: '/admin', icon: Server, type: 'link' }] : []),
+    { name: 'Contatos', href: '/contatos', icon: LinkIcon, type: 'link' },
     { name: 'Públicos', href: '/audiences', icon: Users, type: 'link' },
     { name: 'Logs', href: '/logs', icon: HardDrive, type: 'link' },
     {
@@ -318,49 +320,86 @@ export const AppSidebar = () => {
           })}
         </nav>
 
-        {/* Logout */}
-        {/* Logout */}
-        <div className={cn("p-4 border-t border-border flex", isSidebarOpen ? "flex-col gap-1" : "items-center justify-center")}>
-          {isSidebarOpen && <div className="w-full text-center text-[10px] text-muted-foreground/50 tracking-widest font-light mb-1">v3.0</div>}
-          <div className={cn("flex items-center w-full", isSidebarOpen ? "justify-between" : "justify-center")}>
-            {isSidebarOpen && <span className="text-sm text-sidebar-foreground">Sair</span>}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={async () => {
-                // Clear admin store to prevent stale impersonation
-                useAdminStore.getState().setImpersonatedTenantId(null);
-                useAdminStore.getState().setAdminTenantId(null);
+        <div className="border-t border-border p-4">
+          {isSidebarOpen && (
+            <div className="mb-2 text-center text-[10px] font-light tracking-widest text-muted-foreground/50">
+              v3.0
+            </div>
+          )}
 
-                await supabase.auth.signOut();
-                window.location.href = '/login';
-              }}
-              className={cn(
-                "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                !isSidebarOpen && "w-full"
-              )}
-            >
-              <LogOut className="h-5 w-5" />
-              <span className="sr-only">Sair</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Alternador de Tema */}
-        <div className={cn("p-4 border-t border-border flex items-center", isSidebarOpen ? "justify-between" : "justify-center")}>
-          {isSidebarOpen && <span className="text-sm text-sidebar-foreground">Modo Escuro</span>}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
+          <div
             className={cn(
-              "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              !isSidebarOpen && "w-full"
+              "flex items-center",
+              isSidebarOpen ? "justify-between gap-2.5" : "flex-col justify-center gap-2"
             )}
           >
-            {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-            <span className="sr-only">Alternar tema</span>
-          </Button>
+            {isSidebarOpen ? (
+              <>
+                <div className="flex items-center gap-1.5 rounded-2xl border border-red-200/80 bg-[linear-gradient(135deg,rgba(254,242,242,0.98),rgba(254,226,226,0.9))] px-2 py-1.5 shadow-sm dark:border-red-950/80 dark:bg-[linear-gradient(135deg,rgba(69,10,10,0.72),rgba(127,29,29,0.42))]">
+                  <span className="px-1 text-sm font-medium text-red-700 dark:text-red-100">Sair</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async () => {
+                      useAdminStore.getState().setImpersonatedTenantId(null);
+                      useAdminStore.getState().setAdminTenantId(null);
+
+                      await supabase.auth.signOut();
+                      window.location.href = '/login';
+                    }}
+                    className="h-8 w-8 rounded-xl bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 hover:text-white dark:bg-red-500 dark:text-white dark:hover:bg-red-400"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="sr-only">Sair</span>
+                  </Button>
+                </div>
+
+                <div className="h-5 w-px shrink-0 bg-border/70" />
+
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="group flex items-center gap-2 rounded-2xl border border-emerald-200/80 bg-[linear-gradient(135deg,rgba(240,253,244,0.98),rgba(220,252,231,0.92))] px-2.5 py-1.5 text-sidebar-foreground shadow-sm transition-all hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/80 dark:bg-[linear-gradient(135deg,rgba(6,78,59,0.6),rgba(2,44,34,0.54))] dark:hover:border-emerald-800 dark:hover:bg-emerald-900/60"
+                >
+                  <span className="px-1 text-sm font-medium">
+                    {theme === 'dark' ? 'Escuro' : 'Claro'}
+                  </span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm transition-transform group-hover:scale-[1.03] dark:bg-emerald-500 dark:text-emerald-950">
+                    {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  </span>
+                  <span className="sr-only">Alternar tema</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={async () => {
+                    useAdminStore.getState().setImpersonatedTenantId(null);
+                    useAdminStore.getState().setAdminTenantId(null);
+
+                    await supabase.auth.signOut();
+                    window.location.href = '/login';
+                  }}
+                  className="h-10 w-10 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="sr-only">Sair</span>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  className="h-10 w-10 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                >
+                  {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  <span className="sr-only">Alternar tema</span>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Botão para encolher/expandir a sidebar */}

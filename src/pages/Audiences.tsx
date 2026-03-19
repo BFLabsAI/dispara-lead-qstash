@@ -2,15 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { cn, getTagColor } from "@/lib/utils";
+import { getTagColor } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, Search, Tag as TagIcon, Trash2, Calendar } from "lucide-react";
+import { Plus, Users, Search, Tag as TagIcon, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AudienceSplitUpload } from "@/components/audience/AudienceSplitUpload";
-import { audienceService, Audience } from "@/services/audienceService";
+import { audienceService, Audience, Tag } from "@/services/audienceService";
 import { AudienceDetailsDialog } from "@/components/audience/AudienceDetailsDialog";
 import { toast } from "sonner";
 import { supabase } from "@/services/supabaseClient";
@@ -22,6 +32,7 @@ export const Audiences = () => {
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
     const [uniqueTags, setUniqueTags] = useState<string[]>([]);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [audienceToDelete, setAudienceToDelete] = useState<Audience | null>(null);
 
     const getAudienceName = (audience: Audience) => {
         if (typeof audience?.name === "string" && audience.name.trim()) return audience.name;
@@ -55,13 +66,12 @@ export const Audiences = () => {
         }
     };
 
-    const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Tem certeza que deseja excluir a audiência "${name}"?`)) return;
-
+    const handleDelete = async (id: string) => {
         try {
             const { error } = await supabase.from('audiences_dispara_lead_saas_02').delete().eq('id', id);
             if (error) throw error;
             toast.success("Audiência excluída.");
+            setAudienceToDelete(null);
             fetchAudiences();
         } catch (error) {
             toast.error("Erro ao excluir.");
@@ -164,8 +174,13 @@ export const Audiences = () => {
                                         </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <AudienceDetailsDialog audienceId={audience.id} audienceName={getAudienceName(audience)} />
-                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(audience.id, getAudienceName(audience))} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                                        <AudienceDetailsDialog
+                                            audienceId={audience.id}
+                                            audienceName={getAudienceName(audience)}
+                                            audienceTags={audience.tags || []}
+                                            onAudienceChanged={fetchAudiences}
+                                        />
+                                        <Button variant="ghost" size="sm" onClick={() => setAudienceToDelete(audience)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                                             <span className="sr-only">Excluir</span>
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
                                         </Button>
@@ -185,7 +200,7 @@ export const Audiences = () => {
 
                                 <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
                                     {audience.tags && audience.tags.length > 0 ? (
-                                        audience.tags.map((tag: any) => {
+                                        audience.tags.map((tag: Tag) => {
                                             const tagName = typeof tag?.name === "string" && tag.name.trim() ? tag.name : "Sem nome";
                                             const colors = getTagColor(tagName);
                                             return (
@@ -213,6 +228,30 @@ export const Audiences = () => {
                     ))
                 )}
             </div>
+
+            <AlertDialog open={!!audienceToDelete} onOpenChange={(open) => !open && setAudienceToDelete(null)}>
+                <AlertDialogContent className="rounded-2xl border-emerald-300/70 bg-[linear-gradient(180deg,rgba(240,253,244,0.98),rgba(220,252,231,0.95))] dark:border-emerald-900/70 dark:bg-[linear-gradient(180deg,rgba(4,47,36,0.98),rgba(3,57,46,0.96))]">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir audiência?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {audienceToDelete
+                                ? `Essa ação remove a audiência "${getAudienceName(audienceToDelete)}" e seus contatos associados.`
+                                : "Essa ação remove a audiência selecionada."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl dark:border-emerald-800 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40">
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => audienceToDelete && void handleDelete(audienceToDelete.id)}
+                        >
+                            Excluir
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

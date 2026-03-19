@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { Search, User, Megaphone, Globe, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +31,25 @@ const cleanPhone = (phone: string | null | undefined) => {
     return phone.replace(/\D/g, "");
 };
 
+const isGetInstanceContactsSignatureMismatch = (error: unknown) => {
+    if (!error || typeof error !== "object") return false;
+
+    const typedError = error as { code?: string; message?: string; details?: string; hint?: string };
+    const message = `${typedError.message || ""} ${typedError.details || ""} ${typedError.hint || ""}`.toLowerCase();
+
+    return (
+        typedError.code === "42883" ||
+        typedError.code === "PGRST202" ||
+        (message.includes("get_instance_contacts") &&
+            (
+                message.includes("function") ||
+                message.includes("signature") ||
+                message.includes("find") ||
+                message.includes("parameter")
+            ))
+    );
+};
+
 // ... arePhonesEquivalent ...
 
 export function ChatSidebar({
@@ -49,6 +68,7 @@ export function ChatSidebar({
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const PAGE_SIZE = 50;
+    const contactsCacheRef = useRef<Map<string, { data: any[]; offset: number; hasMore: boolean }>>(new Map());
 
     // Fetch Instances
     useEffect(() => {
@@ -80,7 +100,15 @@ export function ChatSidebar({
         setContacts([]);
         setOffset(0);
         setHasMore(true);
-        // Initial fetch handled by the main effect below
+
+        if (selectedInstance) {
+            const cached = contactsCacheRef.current.get(selectedInstance);
+            if (cached) {
+                setContacts(cached.data);
+                setOffset(cached.offset);
+                setHasMore(cached.hasMore);
+            }
+        }
     }, [selectedInstance, refreshTrigger]);
 
     // Fetch Contacts Function (Pagination)
@@ -94,25 +122,34 @@ export function ChatSidebar({
         const currentOffset = isInitial ? 0 : offset;
 
         try {
+            const rpcParams = {
+                p_instance_name: selectedInstance === 'all' ? null : selectedInstance,
+                p_limit: PAGE_SIZE,
+                p_offset: currentOffset
+            };
+
             const { data, error } = await supabase
                 .rpc('get_instance_contacts', {
-                    p_instance_name: selectedInstance === 'all' ? null : selectedInstance,
-                    p_limit: PAGE_SIZE,
-                    p_offset: currentOffset
+                    ...rpcParams
                 });
 
             if (error) {
                 console.error("Debug: Error fetching contacts via RPC", error);
 
-                // If the error is related to parameter mismatch (old cached signature), try without pagination as fallback
-                if (error.code === '42883') { // Undefined function
-                    console.warn("RPC mismatch, trying fallback w/o pagination");
-                    const { data: fallbackData } = await supabase.rpc('get_instance_contacts', {
+                // Fallback for environments where the RPC still uses the legacy single-parameter signature.
+                if (isGetInstanceContactsSignatureMismatch(error)) {
+                    console.warn("RPC signature mismatch, trying legacy fallback without pagination params");
+                    const { data: fallbackData, error: fallbackError } = await supabase.rpc('get_instance_contacts', {
                         p_instance_name: selectedInstance === 'all' ? null : selectedInstance
                     });
-                    if (fallbackData) {
+
+                    if (fallbackError) {
+                        console.error("Debug: Error fetching contacts via legacy RPC fallback", fallbackError);
+                        toast.error("Erro ao carregar contatos.");
+                    } else if (fallbackData) {
                         setContacts(fallbackData);
                         setHasMore(false);
+                        setOffset(0);
                     }
                 } else {
                     toast.error("Erro ao carregar contatos.");
@@ -122,10 +159,16 @@ export function ChatSidebar({
             }
 
             if (data) {
+                const nextData = isInitial
+                    ? data
+                    : (() => {
+                        const existingIds = new Set(contacts.map((contact: any) => contact.id));
+                        return [...contacts, ...data.filter((contact: any) => !existingIds.has(contact.id))];
+                    })();
+
                 if (isInitial) {
                     setContacts(data);
                 } else {
-                    // Filter duplicates to be safe
                     setContacts(prev => {
                         const newIds = new Set(data.map((c: any) => c.id));
                         return [...prev, ...data.filter((c: any) => !prev.some((p: any) => p.id === c.id))];
@@ -134,12 +177,27 @@ export function ChatSidebar({
 
                 if (data.length < PAGE_SIZE) {
                     setHasMore(false);
+                    contactsCacheRef.current.set(selectedInstance, {
+                        data: nextData,
+                        offset: currentOffset,
+                        hasMore: false,
+                    });
                 } else {
                     setOffset(currentOffset + PAGE_SIZE);
+                    contactsCacheRef.current.set(selectedInstance, {
+                        data: nextData,
+                        offset: currentOffset + PAGE_SIZE,
+                        hasMore: true,
+                    });
                 }
             } else {
                 if (isInitial) setContacts([]);
                 setHasMore(false);
+                contactsCacheRef.current.set(selectedInstance, {
+                    data: [],
+                    offset: 0,
+                    hasMore: false,
+                });
             }
         } catch (err) {
             console.error(err);

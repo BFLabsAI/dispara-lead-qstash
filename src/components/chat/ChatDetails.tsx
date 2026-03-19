@@ -76,16 +76,53 @@ export function ChatDetails({ selectedContact, className, onUpdate }: ChatDetail
         if (!selectedContact) return;
 
         const phoneVariations = getPhoneVariations(selectedContact.phone);
-        console.log("Fetching details for:", selectedContact.name, "Phones:", phoneVariations);
+        const [
+            contactResult,
+            latestLogResult,
+            audienceResult,
+            mediaMessagesResult,
+        ] = await Promise.all([
+            supabase
+                .from("contacts_dispara_lead_saas_02")
+                .select("notes, tags")
+                .eq("id", selectedContact.id)
+                .maybeSingle(),
+            supabase
+                .from("message_logs_dispara_lead_saas_03")
+                .select(`
+                    created_at,
+                    campaigns_dispara_lead_saas_02 (
+                        name, 
+                        target_audience,
+                        created_at
+                    )
+                `)
+                .in("phone_number", phoneVariations)
+                .not("campaign_id", "is", null)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+            supabase
+                .from("audience_contacts_dispara_lead_saas_02")
+                .select(`
+                    audiences_dispara_lead_saas_02 (
+                        name,
+                        audience_tags_dispara_lead_saas_02 (
+                            tags_dispara_lead_saas_02 (name, color)
+                        )
+                    )
+                `)
+                .in("phone_number", phoneVariations),
+            supabase
+                .from("messages_dispara_lead_saas_02")
+                .select("id, media_url, message_type, sent_at, content")
+                .eq("contact_id", selectedContact.id)
+                .not("media_url", "is", null)
+                .order("sent_at", { ascending: false })
+                .limit(20),
+        ]);
 
-
-        // 1. Fetch Fresh Notes
-        const { data: contactData } = await supabase
-            .from("contacts_dispara_lead_saas_02")
-            .select("notes, tags")
-            .eq("id", selectedContact.id)
-            .maybeSingle();
-
+        const contactData = contactResult.data;
         if (contactData) {
             setNotes(contactData.notes || "");
             if (Array.isArray(contactData.tags)) {
@@ -93,24 +130,7 @@ export function ChatDetails({ selectedContact, className, onUpdate }: ChatDetail
             }
         }
 
-        // 2. Fetch Last Campaign (Try message logs first as source of truth for sent messages)
-        // We look for message logs for this contact's phone variations that have a campaign_id
-        // NOTE: Using message_logs_dispara_lead_saas_03 as found in DB inspection
-        const { data: latestLog } = await supabase
-            .from("message_logs_dispara_lead_saas_03")
-            .select(`
-                created_at,
-                campaigns_dispara_lead_saas_02 (
-                    name, 
-                    target_audience,
-                    created_at
-                )
-            `)
-            .in("phone_number", phoneVariations)
-            .not("campaign_id", "is", null)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+        const latestLog = latestLogResult.data;
 
         if (latestLog && latestLog.campaigns_dispara_lead_saas_02) {
             // Supabase helper: handle if relation returns array or object
@@ -143,17 +163,7 @@ export function ChatDetails({ selectedContact, className, onUpdate }: ChatDetail
 
         // 3. Fetch Audiences & Audience Tags
         // We find all audiences this phone belongs to
-        const { data: audienceData } = await supabase
-            .from("audience_contacts_dispara_lead_saas_02")
-            .select(`
-                audiences_dispara_lead_saas_02 (
-                    name,
-                    audience_tags_dispara_lead_saas_02 (
-                        tags_dispara_lead_saas_02 (name, color)
-                    )
-                )
-            `)
-            .in("phone_number", phoneVariations);
+        const audienceData = audienceResult.data;
 
         if (audienceData && audienceData.length > 0) {
             const names: string[] = [];
@@ -186,13 +196,7 @@ export function ChatDetails({ selectedContact, className, onUpdate }: ChatDetail
 
         // 4. Fetch Recent Files (Using contact ID is usually safest, but double check with logs if needed)
         // Usually messages table uses contact_id correctly if linked.
-        const { data: mediaMessages } = await supabase
-            .from("messages_dispara_lead_saas_02")
-            .select("id, media_url, message_type, sent_at, content")
-            .eq("contact_id", selectedContact.id)
-            .not("media_url", "is", null)
-            .order("sent_at", { ascending: false })
-            .limit(20);
+        const mediaMessages = mediaMessagesResult.data;
 
         if (mediaMessages) {
             setRecentFiles(mediaMessages);

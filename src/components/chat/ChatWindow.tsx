@@ -3,7 +3,6 @@ import { useEffect, useState, useRef, useLayoutEffect } from "react";
 import { ArrowLeft, MoreVertical, Loader2, Search, Paperclip, Send, CheckCheck, FileText, Megaphone, Bot, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/services/supabaseClient";
 import { format } from "date-fns";
@@ -39,41 +38,49 @@ export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails,
     const [newMessage, setNewMessage] = useState("");
     const [sending, setSending] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'image' | 'video' | 'other', file?: File } | null>(null);
-    const [instanceData, setInstanceData] = useState<{ id: string, token: string, tenant_id: string, instance_name: string } | null>(null);
+    const [messagesLoading, setMessagesLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const messagesCacheRef = useRef<Map<string, any[]>>(new Map());
+    const instanceDataCacheRef = useRef<Map<string, { id: string, token: string, tenant_id: string, instance_name: string } | null>>(new Map());
 
-    // Fetch Instance Data (Token & IDs)
-    useEffect(() => {
-        const fetchInstanceData = async () => {
-            let targetInstanceName = selectedInstance;
+    const resolveTargetInstanceName = () => {
+        if (selectedInstance === 'all') {
+            return selectedContact?.instance_name || null;
+        }
 
-            // If "all" selected, try to infer from contact
-            if (selectedInstance === 'all') {
-                if (selectedContact?.instance_name) {
-                    targetInstanceName = selectedContact.instance_name;
-                } else {
-                    setInstanceData(null);
-                    return;
-                }
-            }
+        return selectedInstance;
+    };
 
-            if (!targetInstanceName) return;
+    const getInstanceData = async () => {
+        const targetInstanceName = resolveTargetInstanceName();
+        if (!targetInstanceName) return null;
 
-            const { data, error } = await supabase
-                .from("instances_dispara_lead_saas_02")
-                .select("id, token, tenant_id, instance_name")
-                .eq("instance_name", targetInstanceName)
-                .single();
+        if (instanceDataCacheRef.current.has(targetInstanceName)) {
+            return instanceDataCacheRef.current.get(targetInstanceName) ?? null;
+        }
 
-            if (data) {
-                setInstanceData(data);
-            } else {
-                console.error("Failed to fetch instance data:", error);
-                setInstanceData(null);
-            }
+        const { data, error } = await supabase
+            .from("instances_dispara_lead_saas_02")
+            .select("id, tenant_id, instance_name, metadata")
+            .eq("instance_name", targetInstanceName)
+            .single();
+
+        if (!data || error) {
+            console.error("Failed to fetch instance data:", error);
+            instanceDataCacheRef.current.set(targetInstanceName, null);
+            return null;
+        }
+
+        const resolved = {
+            id: data.id,
+            tenant_id: data.tenant_id,
+            instance_name: data.instance_name,
+            token: data.metadata?.token || data.metadata?.apikey || "",
         };
-        fetchInstanceData();
-    }, [selectedInstance, selectedContact]);
+
+        instanceDataCacheRef.current.set(targetInstanceName, resolved);
+        return resolved;
+    };
 
     // State for visual readiness (prevents scroll jump visibility)
     const [visualReady, setVisualReady] = useState(false);
@@ -84,8 +91,11 @@ export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails,
     useEffect(() => {
         if (!selectedContact) return;
 
-        setMessages([]); // Clear on switch
+        const cacheKey = selectedContact.id;
+        const cachedMessages = cacheKey ? messagesCacheRef.current.get(cacheKey) : null;
+        setMessages(cachedMessages ?? []);
         setVisualReady(false); // Hide until scrolled
+        setMessagesLoading(true);
 
         const fetchMessages = async () => {
             // ... match by ID ...
@@ -101,12 +111,20 @@ export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails,
 
             if (rawData) {
                 // Reverse to standard chronological order
-                setMessages(rawData.reverse());
+                const normalizedMessages = rawData.reverse();
+                messagesCacheRef.current.set(selectedContact.id, normalizedMessages);
+                setMessages(normalizedMessages);
                 // Scroll will happen in useLayoutEffect
             }
+
+            if (error) {
+                console.error("Failed to fetch messages:", error);
+            }
+
+            setMessagesLoading(false);
         };
 
-        fetchMessages();
+        void fetchMessages();
         // ... subscription ...
     }, [selectedContact]);
 
@@ -158,6 +176,7 @@ export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails,
     };
 
     const handleConfirmSendMedia = async () => {
+        const instanceData = await getInstanceData();
         if (!previewFile?.file || !selectedInstance || !selectedContact || !instanceData) return;
 
         // Capture data before clearing state
@@ -248,6 +267,7 @@ export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails,
     };
 
     const handleSendMessage = async () => {
+        const instanceData = await getInstanceData();
         if ((!newMessage.trim() && !previewFile?.file) || !selectedInstance || !selectedContact || !instanceData) return;
 
         // Branch: Media Message
@@ -399,7 +419,7 @@ export function ChatWindow({ selectedInstance, selectedContact, onToggleDetails,
                 )}
             >
                 <div className="flex flex-col gap-2 max-w-5xl mx-auto pb-2">
-                    {messages.length === 0 && !visualReady && (
+                    {messagesLoading && !visualReady && (
                         <div className="flex justify-center p-4">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
