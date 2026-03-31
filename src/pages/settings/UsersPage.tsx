@@ -56,6 +56,7 @@ export default function UsersPage() {
     const currentTenantId = tenantAccess?.activeTenantId;
     const isSuperAdmin = tenantAccess?.isSuperAdmin ?? false;
     const canManageTeam = isSuperAdmin || currentUserRole === 'owner' || currentUserRole === 'admin';
+    const inviteRedirectTo = `${window.location.origin}/finish-profile`;
 
     // 2. Fetch Workspace Users
     const { data: users, isLoading: isLoadingUsers } = useQuery({
@@ -119,7 +120,7 @@ export default function UsersPage() {
                     name: payload.name,
                     role: payload.role,
                     tenant_id: currentTenantId,
-                    redirectTo: `${window.location.origin}/finish-profile`
+                    redirectTo: inviteRedirectTo
                 }
             );
             if (data?.error) throw new Error(data.error);
@@ -176,7 +177,7 @@ export default function UsersPage() {
                 action: 'resend_invite',
                 email: email,
                 tenant_id: currentTenantId,
-                redirectTo: window.location.origin
+                redirectTo: inviteRedirectTo
             });
             if (data?.error) throw new Error(data.error);
 
