@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/services/supabaseClient';
+import { getPublicAppUrl } from '@/services/publicAppUrl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,7 @@ export default function Register() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const { toast } = useToast();
+    const emailRedirectTo = getPublicAppUrl();
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,7 +30,7 @@ export default function Register() {
                 email,
                 password,
                 options: {
-                    emailRedirectTo: window.location.origin,
+                    emailRedirectTo,
                     data: {
                         company_name: companyName,
                         full_name: companyName // Or add a separate input for full name if needed

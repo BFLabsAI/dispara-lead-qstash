@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { invokePublicEdgeFunction } from '@/services/supabaseClient';
+import { getPublicAppUrl } from '@/services/publicAppUrl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +14,7 @@ export default function ForgotPassword() {
     const [submitted, setSubmitted] = useState(false);
     const navigate = useNavigate();
     const { toast } = useToast();
+    const resetRedirectTo = `${getPublicAppUrl()}/reset-password`;
 
     const handleReset = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,7 +26,7 @@ export default function ForgotPassword() {
                 {
                     action: 'recovery',
                     email,
-                    redirectTo: `${window.location.origin}/reset-password`,
+                    redirectTo: resetRedirectTo,
                 }
             );
             if (data?.error) throw new Error(data.error);

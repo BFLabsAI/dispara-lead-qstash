@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createInstance, deleteInstance, type UazapiInstance } from "@/services/uazapiClient";
 import { invokeAuthenticatedEdgeFunction } from "@/services/supabaseClient";
+import { getPublicAppUrl } from "@/services/publicAppUrl";
 
 interface Tenant {
     id: string;
@@ -67,6 +68,7 @@ export default function TenantDetails() {
         status: "",
         plan_id: ""
     });
+    const inviteRedirectTo = `${getPublicAppUrl()}/finish-profile`;
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -197,7 +199,8 @@ export default function TenantDetails() {
                 tenant_id: id,
                 email: inviteFormData.email,
                 full_name: inviteFormData.fullName,
-                role: inviteFormData.role
+                role: inviteFormData.role,
+                redirectTo: inviteRedirectTo
             });
             if (data?.error) throw new Error(data.error);
 

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Shield } from 'lucide-react';
+import { getPublicAppUrl } from '@/services/publicAppUrl';
 
 interface SuperAdminProfile {
   id: string;
@@ -27,6 +28,7 @@ export default function SuperAdminsPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
+  const inviteRedirectTo = `${getPublicAppUrl()}/finish-profile`;
 
   const { data: superAdmins = [], isLoading } = useQuery({
     queryKey: ['superAdmins'],
@@ -52,7 +54,7 @@ export default function SuperAdminsPage() {
           name: inviteName,
           role: 'admin',
           is_super_admin: true,
-          redirectTo: `${window.location.origin}/finish-profile`
+          redirectTo: inviteRedirectTo
         }
       );
       if (data?.error) throw new Error(data.error);

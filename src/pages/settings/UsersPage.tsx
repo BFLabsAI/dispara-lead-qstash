@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAdminStore } from '@/store/adminStore';
 import { getTenantAccessSummary } from '@/services/supabaseClient';
+import { getPublicAppUrl } from '@/services/publicAppUrl';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -56,7 +57,7 @@ export default function UsersPage() {
     const currentTenantId = tenantAccess?.activeTenantId;
     const isSuperAdmin = tenantAccess?.isSuperAdmin ?? false;
     const canManageTeam = isSuperAdmin || currentUserRole === 'owner' || currentUserRole === 'admin';
-    const inviteRedirectTo = `${window.location.origin}/finish-profile`;
+    const inviteRedirectTo = `${getPublicAppUrl()}/finish-profile`;
 
     // 2. Fetch Workspace Users
     const { data: users, isLoading: isLoadingUsers } = useQuery({
