@@ -428,6 +428,104 @@ Deno.serve(async (req) => {
       });
     }
 
+    // --- ACTION: RESEND INVITE ---
+    if (action === "resend_invite") {
+      const requesterToken = getBearerToken(req);
+      if (!requesterToken) {
+        throw new Error("Unauthorized");
+      }
+
+      const { data: authData, error: authError } = await supabaseAuth.auth
+        .getUser(requesterToken);
+      const requester = authData?.user;
+      if (authError || !requester) {
+        throw new Error("Unauthorized");
+      }
+
+      if (!email) {
+        throw new Error("Email is required");
+      }
+
+      console.log(`[AUTH_MANAGER] Resending invite for ${email}`);
+
+      // Get requester profile
+      const requesterProfile = await getProfileById(requester.id);
+      if (!requesterProfile) {
+        throw new Error("Unauthorized");
+      }
+
+      const requesterIsSuperAdmin = Boolean(requesterProfile.is_super_admin);
+      const targetTenantId = tenant_id || null;
+
+      // Authorize tenant action
+      if (!requesterIsSuperAdmin) {
+        if (!targetTenantId) {
+          throw new Error("Tenant ID is required");
+        }
+        await authorizeTenantAction(requester.id, targetTenantId, requesterIsSuperAdmin);
+      }
+
+      // Find the existing user by email
+      const { data: existingProfile, error: profileError } = await supabaseAdmin
+        .from(PROFILE_TABLE)
+        .select("id, email, full_name, tenant_id, current_tenant_id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      if (!existingProfile) {
+        throw new Error("User not found");
+      }
+
+      // Verify user belongs to the tenant
+      if (targetTenantId) {
+        const membership = await getMembership(existingProfile.id, targetTenantId);
+        const belongsToTenant = membership ||
+          existingProfile.tenant_id === targetTenantId ||
+          existingProfile.current_tenant_id === targetTenantId;
+
+        if (!belongsToTenant) {
+          throw new Error("User not found in this tenant");
+        }
+      }
+
+      // Generate magic link for the user
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth
+        .admin.generateLink({
+          type: "magiclink",
+          email: email,
+          options: { redirectTo: redirectTo },
+        });
+
+      if (linkError) {
+        console.error("[AUTH_MANAGER] Generate Link Error:", linkError);
+        throw linkError;
+      }
+
+      const targetUser = linkData.user;
+      if (!targetUser) {
+        throw new Error("Failed to resolve user from link generation");
+      }
+
+      // Send email via Brevo
+      await sendBrevoEmail({
+        type: "invite",
+        toEmail: email,
+        toName: existingProfile.full_name || email.split("@")[0],
+        variables: {
+          action_url: linkData.properties.action_link,
+          name: existingProfile.full_name || "Colaborador",
+          email: email,
+        },
+      });
+
+      console.log(`[AUTH_MANAGER] Invite resent successfully to ${email}`);
+
+      return new Response(JSON.stringify({ success: true, message: "Invite resent successfully" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "recovery") {
       const { data: linkData, error: linkError } = await supabaseAdmin.auth
         .admin.generateLink({

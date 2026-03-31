@@ -172,11 +172,11 @@ export default function UsersPage() {
     // 5. Resend Invite Mutation
     const resendInviteMutation = useMutation({
         mutationFn: async (email: string) => {
-            const data = await invokeAuthenticatedEdgeFunction<{ error?: string }>('manage-users', {
+            const data = await invokeAuthenticatedEdgeFunction<{ error?: string; success?: boolean }>('auth_manager_dispara_lead', {
                 action: 'resend_invite',
                 email: email,
                 tenant_id: currentTenantId,
-                redirectTo: window.location.origin // Ensure we use the current page origin, not localhost default
+                redirectTo: window.location.origin
             });
             if (data?.error) throw new Error(data.error);
 
